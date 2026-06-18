@@ -23,7 +23,10 @@ hana:
         quote-path: ${HANA_OMNILENS_QUOTE_STREAM_PATH:/ws/market/quotes}
         quote-currency: ${HANA_OMNILENS_QUOTE_STREAM_CURRENCY:USD}
         quote-replay-enabled: ${HANA_OMNILENS_QUOTE_STREAM_REPLAY_ENABLED:true}
-        reconnect-initial-delay: ${HANA_OMNILENS_QUOTE_STREAM_RECONNECT_INITIAL_DELAY:1s}
-        reconnect-max-delay: ${HANA_OMNILENS_QUOTE_STREAM_RECONNECT_MAX_DELAY:30s}
-        backpressure-buffer-size: ${HANA_OMNILENS_QUOTE_STREAM_BACKPRESSURE_BUFFER_SIZE:1000}
-        drain-interval: ${HANA_OMNILENS_QUOTE_STREAM_DRAIN_INTERVAL:50ms}
+        alert-enabled: ${HANA_OMNILENS_ALERT_STREAM_ENABLED:false}
+        alert-path: ${HANA_OMNILENS_ALERT_STREAM_PATH:/ws/alerts/events}
+        alert-replay-enabled: ${HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED:true}
+        reconnect-initial-delay: ${HANA_OMNILENS_STREAM_RECONNECT_INITIAL_DELAY:1s}
+        reconnect-max-delay: ${HANA_OMNILENS_STREAM_RECONNECT_MAX_DELAY:30s}
+        backpressure-buffer-size: ${HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE:1000}
+        drain-interval: ${HANA_OMNILENS_STREAM_DRAIN_INTERVAL:50ms}

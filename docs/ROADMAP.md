@@ -31,12 +31,12 @@
 - 평가금액과 주문 경고 contract test: portfolio valuation과 주문 경고 API contract test 구현 완료
 
 ## M3 뉴스·공시 알림
-- Hana-OmniLens-API WebSocket client
-- 이벤트 저장소와 idempotency key: REST ingest 기반 인메모리 구현 완료, WebSocket 수신/영속화 예정
-- 보유종목/watchlist 대상자 매칭: REST ingest 기반 매칭 구현 완료, 이벤트 worker 예정
+- Hana-OmniLens-API WebSocket client: 기본 비활성화 설정, reconnect, replay, backpressure buffer 구현 완료
+- 이벤트 저장소와 idempotency key: REST ingest와 WebSocket 수신 기반 인메모리 구현 완료, 영속화 예정
+- 보유종목/watchlist 대상자 매칭: REST ingest와 WebSocket 수신 기반 매칭 구현 완료, push worker 예정
 - push provider 연동
 - 알림함 API: 인메모리 조회/읽음 처리 구현 완료, push delivery 상태/영속화 예정
-- 종목별 인텔리전스 피드 API: REST ingest 기반 인메모리 조회 구현 완료, WebSocket 이벤트 수신/영속화와 FE 연동 예정
+- 종목별 인텔리전스 피드 API: REST ingest와 WebSocket 이벤트 수신 기반 인메모리 조회 구현 완료, FE 연동/영속화 예정
 
 ## M4 세무 전산화
 - 세무 서류 업로드와 object storage 연동

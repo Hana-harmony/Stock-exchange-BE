@@ -124,7 +124,15 @@
   - The request contains `stockCode`, `stockName`, `market`, `currentPriceKrw`, `changeRate`, `volume`, `localCurrency`, `localCurrencyPrice`, `fxRate`, `fxRateTime`, `fxStale`, `marketDataTime`, and `source`.
 - The publisher sends the same tick to global, market, stock, matching watchlist account, and matching portfolio account topics.
 - Hana-OmniLens-API quote stream client is controlled by `HANA_OMNILENS_QUOTE_STREAM_ENABLED`. It is disabled by default for local tests and connects to `HANA_OMNILENS_QUOTE_STREAM_PATH`, default `/ws/market/quotes`, when enabled.
-- Reconnect policy uses exponential backoff from `HANA_OMNILENS_QUOTE_STREAM_RECONNECT_INITIAL_DELAY` to `HANA_OMNILENS_QUOTE_STREAM_RECONNECT_MAX_DELAY`.
+- Reconnect policy uses exponential backoff from `HANA_OMNILENS_STREAM_RECONNECT_INITIAL_DELAY` to `HANA_OMNILENS_STREAM_RECONNECT_MAX_DELAY`.
 - Replay policy sends `QUOTE_STREAM_REPLAY` with `currency` and last published `marketDataTime` when `HANA_OMNILENS_QUOTE_STREAM_REPLAY_ENABLED=true`.
-- Backpressure policy buffers validated ticks up to `HANA_OMNILENS_QUOTE_STREAM_BACKPRESSURE_BUFFER_SIZE` and drops excess ticks with an internal `DROPPED` processing result.
+- Backpressure policy buffers validated ticks up to `HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE` and drops excess ticks with an internal `DROPPED` processing result.
 - FE must still use REST snapshot endpoints for initial load and recovery.
+
+## News And Disclosure Alert WebSocket
+
+- Hana-OmniLens-API alert stream client is controlled by `HANA_OMNILENS_ALERT_STREAM_ENABLED`. It is disabled by default for local tests and connects to `HANA_OMNILENS_ALERT_STREAM_PATH`, default `/ws/alerts/events`, when enabled.
+- Incoming alert event payload uses the same contract as `POST /api/v1/alerts/events`: `eventId`, `idempotencyKey`, `sourceType`, `title`, `summary`, `originalUrl`, `stockCode`, `relatedStocks`, `sentiment`, `importance`, `riskLevel`, `watchlistTarget`, `holderTarget`, and `publishedAt`.
+- Reconnect policy uses the shared stream backoff settings, and replay policy sends `ALERT_STREAM_REPLAY` with the last ingested `publishedAt` when `HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED=true`.
+- Backpressure policy buffers validated alert events up to `HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE`, then drains them into `AlertEventService.ingest`.
+- REST ingest remains available for local smoke tests and adapter verification.

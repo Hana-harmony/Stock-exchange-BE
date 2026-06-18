@@ -1,0 +1,34 @@
+package com.hana.exchange.common.exception;
+
+import org.springframework.http.HttpStatus;
+
+public enum ErrorCode {
+	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_001", "Invalid request"),
+	VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "COMMON_002", "Request validation failed"),
+	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_003", "Resource not found"),
+	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_999", "Internal server error"),
+	MARKET_UPSTREAM_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "MARKET_001", "Hana OmniLens market upstream is unavailable"),
+	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance");
+
+	private final HttpStatus status;
+	private final String code;
+	private final String message;
+
+	ErrorCode(HttpStatus status, String code, String message) {
+		this.status = status;
+		this.code = code;
+		this.message = message;
+	}
+
+	public HttpStatus status() {
+		return status;
+	}
+
+	public String code() {
+		return code;
+	}
+
+	public String message() {
+		return message;
+	}
+}

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 
@@ -67,14 +68,24 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.remainingQuantity").value(2))
 				.andExpect(jsonPath("$.data.tradingMode").value("EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING"));
 
+		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
+				.thenReturn(List.of(quote("005930", "Samsung Electronics", "55.00")));
+
 		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", accountId))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("100.00"))
+				.andExpect(jsonPath("$.data.totalMarketValueUsd").value("110.00"))
+				.andExpect(jsonPath("$.data.totalAssetValueUsd").value("210.00"))
 				.andExpect(jsonPath("$.data.realizedPnlUsd").value("0.00"))
+				.andExpect(jsonPath("$.data.unrealizedPnlUsd").value("10.00"))
 				.andExpect(jsonPath("$.data.holdings[0].stockCode").value("005930"))
 				.andExpect(jsonPath("$.data.holdings[0].quantity").value(2))
 				.andExpect(jsonPath("$.data.holdings[0].averagePriceUsd").value("50.00"))
-				.andExpect(jsonPath("$.data.holdings[0].costBasisUsd").value("100.00"));
+				.andExpect(jsonPath("$.data.holdings[0].costBasisUsd").value("100.00"))
+				.andExpect(jsonPath("$.data.holdings[0].currentPriceUsd").value("55.00"))
+				.andExpect(jsonPath("$.data.holdings[0].marketValueUsd").value("110.00"))
+				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlUsd").value("10.00"))
+				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlRate").value("10.00"));
 	}
 
 	@Test
@@ -112,12 +123,22 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.remainingQuantity").value(2))
 				.andExpect(jsonPath("$.data.cashBalanceUsdAfter").value("210.00"));
 
+		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
+				.thenReturn(List.of(quote("005930", "Samsung Electronics", "70.00")));
+
 		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", accountId))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("210.00"))
+				.andExpect(jsonPath("$.data.totalMarketValueUsd").value("140.00"))
+				.andExpect(jsonPath("$.data.totalAssetValueUsd").value("350.00"))
 				.andExpect(jsonPath("$.data.realizedPnlUsd").value("10.00"))
+				.andExpect(jsonPath("$.data.unrealizedPnlUsd").value("40.00"))
 				.andExpect(jsonPath("$.data.holdings[0].quantity").value(2))
-				.andExpect(jsonPath("$.data.holdings[0].averagePriceUsd").value("50.00"));
+				.andExpect(jsonPath("$.data.holdings[0].averagePriceUsd").value("50.00"))
+				.andExpect(jsonPath("$.data.holdings[0].currentPriceUsd").value("70.00"))
+				.andExpect(jsonPath("$.data.holdings[0].marketValueUsd").value("140.00"))
+				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlUsd").value("40.00"))
+				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlRate").value("40.00"));
 	}
 
 	@Test

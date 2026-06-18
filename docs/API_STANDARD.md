@@ -83,7 +83,8 @@
   - Blocking reasons include foreign ownership limit exhaustion, trading halt, or upstream order blocked reason.
   - Warnings include VI activity and buy/sell at upper/lower price limit.
 - `GET /api/v1/accounts/{accountId}/portfolio`
-  - Returns mock USD cash, holdings, recent trades, and realized PnL.
+  - Returns mock USD cash, holdings, recent trades, realized PnL, total market value, total asset value, and unrealized PnL.
+  - Holding rows include average price, cost basis, current Hana USD quote price, market value, unrealized PnL, unrealized PnL rate, and market data time.
 
 ## Market Chart
 

@@ -1,5 +1,8 @@
 package com.hana.exchange.trade.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +16,7 @@ import java.util.List;
 
 import com.jayway.jsonpath.JsonPath;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -42,6 +46,12 @@ class TradeControllerTest {
 
 	@MockitoBean
 	private OmniLensOrderabilityClient omniLensOrderabilityClient;
+
+	@BeforeEach
+	void allowMockOrdersByDefault() {
+		when(omniLensOrderabilityClient.checkOrderability(anyString(), any(TradeSide.class), anyLong()))
+				.thenAnswer(invocation -> orderability(invocation.getArgument(0), true, null, false, false, "NORMAL", false));
+	}
 
 	@Test
 	void buyUsesOmniLensUsdQuoteAndUpdatesPortfolio() throws Exception {
@@ -167,6 +177,34 @@ class TradeControllerTest {
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("TRADE_001"));
+	}
+
+	@Test
+	void executeTradeRejectsBlockedOrderabilityBeforeMockLedgerMutation() throws Exception {
+		AuthSession session = fundedAccount("BlockedTrader01", "200.00");
+		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 1))
+				.thenReturn(orderability("005930", false, "FOREIGN_LIMIT_EXCEEDED", true, false, "NORMAL", false));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "stockCode": "005930",
+								  "side": "BUY",
+								  "quantity": 1
+								}
+								"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("TRADE_003"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.holdings").isEmpty())
+				.andExpect(jsonPath("$.data.recentTrades").isEmpty())
+				.andExpect(jsonPath("$.data.cashBalanceUsd").value("200.00"));
 	}
 
 	@Test

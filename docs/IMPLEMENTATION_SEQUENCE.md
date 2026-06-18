@@ -79,6 +79,7 @@
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
 - Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
+- mock 주문 실행 API는 같은 orderability boundary를 다시 확인하고, 차단 사유가 있으면 DB ledger 기록 전에 주문을 거절한다.
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 - DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.

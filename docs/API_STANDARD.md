@@ -121,6 +121,9 @@
   - Returns `canPlaceMockOrder`, `blockingReasons`, and `warnings`.
   - Blocking reasons include foreign ownership limit exhaustion, trading halt, or upstream order blocked reason.
   - Warnings include VI activity and buy/sell at upper/lower price limit.
+- `POST /api/v1/accounts/{accountId}/trades`
+  - Re-checks the same Hana-OmniLens-API orderability boundary before writing the mock ledger.
+  - Returns common error code `TRADE_003` when blocking reasons exist, and no mock holding/trade ledger row is written.
 - `GET /api/v1/accounts/{accountId}/portfolio`
   - Returns mock USD cash, holdings, recent trades, realized PnL, total market value, total asset value, and unrealized PnL.
   - Holding rows include average price, cost basis, current Hana USD quote price, market value, unrealized PnL, unrealized PnL rate, and market data time.

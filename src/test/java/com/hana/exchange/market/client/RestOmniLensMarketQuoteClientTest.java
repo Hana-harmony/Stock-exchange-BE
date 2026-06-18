@@ -10,6 +10,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,10 @@ class RestOmniLensMarketQuoteClientTest {
 						      "baseCurrency": "KRW",
 						      "localCurrencyPrice": 54.00,
 						      "localCurrency": "USD",
+						      "fxRate": 0.00072,
+						      "fxRateTime": "2026-06-18T05:59:30Z",
+						      "fxRateSource": "HANA_FX_RATE_API",
+						      "fxStale": false,
 						      "foreignOwnedQuantity": 50000000,
 						      "foreignOwnershipRate": 54.5,
 						      "foreignLimitExhaustionRate": 72.3,
@@ -71,6 +76,10 @@ class RestOmniLensMarketQuoteClientTest {
 
 		assertThat(quotes).hasSize(1);
 		assertThat(quotes.get(0).stockCode()).isEqualTo("005930");
+		assertThat(quotes.get(0).fxRate().stripTrailingZeros().toPlainString()).isEqualTo("0.00072");
+		assertThat(quotes.get(0).fxRateTime()).isEqualTo(Instant.parse("2026-06-18T05:59:30Z"));
+		assertThat(quotes.get(0).fxRateSource()).isEqualTo("HANA_FX_RATE_API");
+		assertThat(quotes.get(0).fxStale()).isFalse();
 		assertThat(quotes.get(0).source()).isEqualTo("HANA_OMNILENS_API_BULK");
 		server.verify();
 	}

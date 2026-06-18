@@ -154,6 +154,7 @@ class MarketQuoteStreamControllerTest {
 				  "localCurrencyPrice": 54.00,
 				  "fxRate": 0.00072,
 				  "fxRateTime": "2026-06-18T06:00:00Z",
+				  "fxRateSource": "HANA_FX_RATE_API",
 				  "fxStale": false,
 				  "marketDataTime": "2026-06-18T06:00:01Z",
 				  "source": "HANA_OMNILENS_API_STREAM"

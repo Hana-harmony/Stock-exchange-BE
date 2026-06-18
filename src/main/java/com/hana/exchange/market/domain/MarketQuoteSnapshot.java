@@ -38,6 +38,7 @@ public record MarketQuoteSnapshot(
 			String localCurrencyPrice,
 			String fxRate,
 			Instant fxRateTime,
+			String fxRateSource,
 			boolean fxStale
 	) {
 	}

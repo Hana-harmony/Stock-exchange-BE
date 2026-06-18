@@ -19,6 +19,7 @@ public record MarketQuoteTickRequest(
 		@NotNull @PositiveOrZero BigDecimal localCurrencyPrice,
 		@NotNull @PositiveOrZero BigDecimal fxRate,
 		@NotNull Instant fxRateTime,
+		String fxRateSource,
 		boolean fxStale,
 		@NotNull Instant marketDataTime,
 		@NotBlank String source

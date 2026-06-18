@@ -33,7 +33,27 @@ public class MarketQuoteService {
 	}
 
 	public MarketQuoteSnapshot getQuoteSnapshot(List<String> stockCodes, String market, String currency) {
-		List<OmniLensMarketQuote> quotes = omniLensMarketQuoteClient.getQuotes(resolveStockCodes(stockCodes), currency);
+		return getQuoteSnapshot(stockCodes, market, currency, marketCoverage(stockCodes), true);
+	}
+
+	public MarketQuoteSnapshot getQuoteSnapshotForScope(
+			List<String> stockCodes,
+			String market,
+			String currency,
+			String marketCoverage) {
+		return getQuoteSnapshot(stockCodes, market, currency, marketCoverage, false);
+	}
+
+	private MarketQuoteSnapshot getQuoteSnapshot(
+			List<String> stockCodes,
+			String market,
+			String currency,
+			String marketCoverage,
+			boolean useDefaultUniverse) {
+		List<String> resolvedStockCodes = resolveStockCodes(stockCodes, useDefaultUniverse);
+		List<OmniLensMarketQuote> quotes = resolvedStockCodes.isEmpty()
+				? List.of()
+				: omniLensMarketQuoteClient.getQuotes(resolvedStockCodes, currency);
 		String normalizedMarket = normalizeMarket(market);
 		List<MarketQuoteSnapshot.Quote> exchangeQuotes = quotes.stream()
 				.filter(quote -> normalizedMarket == null || normalizedMarket.equals(quote.market()))
@@ -41,7 +61,7 @@ public class MarketQuoteService {
 				.toList();
 		return new MarketQuoteSnapshot(
 				dataSource(quotes),
-				marketCoverage(stockCodes),
+				marketCoverage,
 				"en",
 				currency,
 				"EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING",
@@ -93,10 +113,13 @@ public class MarketQuoteService {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
 	}
 
-	private List<String> resolveStockCodes(List<String> requestedStockCodes) {
-		List<String> source = requestedStockCodes == null || requestedStockCodes.isEmpty()
+	private List<String> resolveStockCodes(List<String> requestedStockCodes, boolean useDefaultUniverse) {
+		List<String> source = useDefaultUniverse && (requestedStockCodes == null || requestedStockCodes.isEmpty())
 				? properties.defaultStockCodes()
 				: requestedStockCodes;
+		if (source == null) {
+			return List.of();
+		}
 		Set<String> deduplicated = new LinkedHashSet<>(source);
 		return deduplicated.stream()
 				.filter(StringUtils::hasText)

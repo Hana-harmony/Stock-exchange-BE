@@ -156,6 +156,47 @@ class AccountControllerTest {
 	}
 
 	@Test
+	void refreshTokenRecordsAuditEventWhenSessionContextChanges() throws Exception {
+		signUpAndGetAccountId("RefreshAnomaly01");
+		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
+						.header("X-Forwarded-For", "203.0.113.10")
+						.header(HttpHeaders.USER_AGENT, "MobileApp/1.0")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "RefreshAnomaly01",
+								  "password": "localPass123!"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		String accountId = JsonPath.read(login.getResponse().getContentAsString(), "$.data.accountId");
+		String refreshToken = JsonPath.read(login.getResponse().getContentAsString(), "$.data.refreshToken");
+		MvcResult refresh = mockMvc.perform(post("/api/v1/auth/token/refresh")
+						.header("X-Forwarded-For", "198.51.100.7")
+						.header(HttpHeaders.USER_AGENT, "MobileApp/2.0")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "%s"
+								}
+								""".formatted(refreshToken)))
+				.andExpect(status().isOk())
+				.andReturn();
+		String accessToken = JsonPath.read(refresh.getResponse().getContentAsString(), "$.data.accessToken");
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/audit/events", accountId)
+						.header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.eventCount").value(1))
+				.andExpect(jsonPath("$.data.events[0].eventType").value("AUTH_SESSION_ANOMALY_DETECTED"))
+				.andExpect(jsonPath("$.data.events[0].subjectType").value("REFRESH_SESSION"))
+				.andExpect(jsonPath("$.data.events[0].summary").value(org.hamcrest.Matchers.containsString("ipChanged=true")))
+				.andExpect(jsonPath("$.data.events[0].summary").value(org.hamcrest.Matchers.containsString("userAgentChanged=true")));
+	}
+
+	@Test
 	void logoutRevokesRefreshSession() throws Exception {
 		signUpAndGetAccountId("LogoutTrader01");
 		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")

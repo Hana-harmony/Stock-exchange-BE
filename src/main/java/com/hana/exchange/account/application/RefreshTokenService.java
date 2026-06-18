@@ -33,7 +33,7 @@ public class RefreshTokenService {
 		this.authProperties = authProperties;
 	}
 
-	public IssuedRefreshSession issue(ExchangeUser user, MockUsdAccount account) {
+	public IssuedRefreshSession issue(ExchangeUser user, MockUsdAccount account, String clientIp, String userAgent) {
 		Instant issuedAt = Instant.now();
 		Instant expiresAt = issuedAt.plus(authProperties.refreshTokenTtl());
 		String refreshToken = randomRefreshToken();
@@ -42,6 +42,8 @@ public class RefreshTokenService {
 				user.userId(),
 				account.accountId(),
 				hash(refreshToken),
+				clientIp,
+				userAgent,
 				issuedAt,
 				expiresAt,
 				null,

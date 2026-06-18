@@ -5,10 +5,10 @@
 - 최종투자자별 세무 서류 업로드, mock 거래원장/매도 실현손익 매칭, 환급/선지급 상태 표시를 위한 현지 데이터 계층을 제공한다.
 
 ## 서비스 구성
-- `market/api`: FE용 단건, 다건, 설정 universe, 시장별, 계좌별 watchlist/보유종목 실시간 시세 REST API와 quote stream ingest API
+- `market/api`: FE용 단건, 다건, 설정 universe, 시장별, 계좌별 watchlist/보유종목 실시간 시세 REST API, 과거 차트 API, quote stream ingest API
 - `market/application`: Hana-OmniLens-API snapshot을 현지 사용자 컨텍스트, 계좌별 watchlist/보유종목, market filter에 맞게 조합하고 WebSocket topic으로 재배포하는 application service
-- `market/domain`: quote snapshot, quote tick, transport, KRW/USD 표시 field 등 market 계약 record
-- `market/client`: Hana-OmniLens-API 단건 실시간 시세 REST client와 다건 조합 adapter
+- `market/domain`: quote snapshot, quote tick, chart point, transport, KRW/USD 표시 field 등 market 계약 record
+- `market/client`: Hana-OmniLens-API 단건 실시간 시세 REST client, 다건 조합 adapter, KRX history REST client
 - `account/api`: 아이디/비밀번호 회원가입, mock USD 계좌 조회, 실제 결제 없는 달러 충전 REST API
 - `account/application`: password hash, 사용자 생성, mock USD cash ledger 조합 service
 - `account/domain`: user, mock USD account, cash ledger, account response 계약 record
@@ -27,7 +27,7 @@
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
 - Planned `auth`: 로그인, 세션/JWT, 인증 context
 - Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
-- Planned `market/client`: Hana-OmniLens-API 종목 검색, bulk/all 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability API client
+- Planned `market/client`: Hana-OmniLens-API 종목 검색, bulk/all 실시간 시세 snapshot, 호가, orderability API client
 - Planned `market/stream`: Hana-OmniLens-API market quote WebSocket client, reconnect, replay, backpressure worker
 - Planned `market/cache`: Hana-OmniLens-API snapshot을 현지 거래소 화면 요구사항에 맞게 짧게 캐시하는 layer
 - Planned `portfolio`: 사용자 보유종목, 평가금액, 자체 mock ledger 주문 상태
@@ -63,7 +63,7 @@
 - Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 USD 가격을 모두 포함해야 하며, Stock-exchange-BE는 단건 snapshot에서 이를 FE 표시 형식으로 전달한다.
 - 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다. 현재 단건 snapshot은 Hana 가격을 기준으로 환율 값을 산출하고 `fxStale=false`로 응답한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
-- Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 과거 시세 API를 FE 차트 응답 형식으로 재가공한다.
+- Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API를 FE 차트 응답 형식으로 재가공한다. 현재 BE client/proxy 계약은 구현되어 있고, Hana의 KRX history 수집/DB/API 완성은 별도 단계다.
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.
 - 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 로컬 개발용 인메모리 저장소에 계좌를 생성한다.
@@ -86,6 +86,7 @@
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - `GET /api/v1/market/quotes?stockCodes=...&market=...&currency=USD`는 설정 universe, 요청 종목코드, 시장 필터 기준으로 KRW/USD 시세 목록 snapshot을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
+- `GET /api/v1/market/stocks/{stockCode}/chart?from=...&to=...&interval=1d&currency=USD`는 Hana-OmniLens-API KRX history API를 호출해 Flutter chart용 KRW/현지통화 OHLCV를 제공한다.
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local/Hana adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - 로그인/JWT, 영속 DB schema, orderability 경고, Hana bulk/all quote client, Hana market WebSocket client, replay/backpressure, alert WebSocket client, push worker, 웹 푸시는 미구현이다.

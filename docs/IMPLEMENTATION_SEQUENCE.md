@@ -73,6 +73,7 @@
 - watchlist와 보유종목 REST snapshot은 계좌별 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
+- Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - 보유종목과 watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 
@@ -111,7 +112,8 @@
 - 1차 PR은 작업 브랜치에서 `feature`로 올린다.
 - 체크 통과 후 `feature`에 merge한다.
 - 2차 PR은 `feature`에서 `main`으로 올린다.
-- 체크 통과 후 `main`에 merge하고 작업 브랜치를 삭제한다.
+- 체크 통과 후 `main`에 merge하고 작업 브랜치만 삭제한다.
+- `feature`는 개발 통합 브랜치이므로 삭제하지 않는다.
 
 완료 기준:
 - PR 설명에 구현 범위, 검증 결과, 남은 리스크가 한글로 정리되어 있다.

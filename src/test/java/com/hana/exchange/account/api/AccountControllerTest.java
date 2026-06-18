@@ -12,9 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -135,9 +139,10 @@ class AccountControllerTest {
 
 	@Test
 	void depositUsdIncreasesMockCashBalance() throws Exception {
-		String accountId = signUpAndGetAccountId("DepositTrader01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "DepositTrader01");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -146,19 +151,20 @@ class AccountControllerTest {
 								"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
 				.andExpect(jsonPath("$.data.currency").value("USD"))
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("125.50"))
 				.andExpect(jsonPath("$.data.lastLedgerEntryId", notNullValue()));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("125.50"))
 				.andExpect(jsonPath("$.data.lastLedgerEntryId").doesNotExist());
 	}
 
 	@Test
-	void depositRejectsUnknownAccount() throws Exception {
+	void accountApiRejectsMissingBearerToken() throws Exception {
 		mockMvc.perform(post("/api/v1/accounts/ACC-UNKNOWN00000/deposits")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
@@ -166,9 +172,20 @@ class AccountControllerTest {
 								  "amountUsd": 10.00
 								}
 								"""))
-				.andExpect(status().isNotFound())
+				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.success").value(false))
-				.andExpect(jsonPath("$.code").value("ACCOUNT_001"));
+				.andExpect(jsonPath("$.code").value("AUTH_003"));
+	}
+
+	@Test
+	void accountApiRejectsDifferentAccountToken() throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "ForbiddenTrader01");
+
+		mockMvc.perform(get("/api/v1/accounts/ACC-UNKNOWN00000")
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("AUTH_004"));
 	}
 
 	@Test

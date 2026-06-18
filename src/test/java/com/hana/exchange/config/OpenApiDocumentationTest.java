@@ -48,6 +48,9 @@ class OpenApiDocumentationTest {
 				.andExpect(jsonPath("$.paths['/api/v1/market/stocks/{stockCode}/chart']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/stream/quotes']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/market/quotes/watchlist']", notNullValue()))
-				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/market/quotes/portfolio']", notNullValue()));
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/market/quotes/portfolio']", notNullValue()))
+				.andExpect(jsonPath("$.components.securitySchemes.bearerAuth.type").value("http"))
+				.andExpect(jsonPath("$.components.securitySchemes.bearerAuth.scheme").value("bearer"))
+				.andExpect(jsonPath("$.components.securitySchemes.bearerAuth.bearerFormat").value("JWT"));
 	}
 }

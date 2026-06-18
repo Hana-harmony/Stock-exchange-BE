@@ -27,6 +27,16 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"local_trader","password":"localPass123!"}'
+ACCESS_TOKEN="$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"local_trader","password":"localPass123!"}' | jq -r '.data.accessToken')"
+ACCOUNT_ID="$(curl -s -X POST http://localhost:3000/api/v1/auth/token/verify \
+  -H 'Content-Type: application/json' \
+  -d "{\"accessToken\":\"${ACCESS_TOKEN}\"}" | jq -r '.data.accountId')"
+curl -X POST "http://localhost:3000/api/v1/accounts/${ACCOUNT_ID}/deposits" \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H 'Content-Type: application/json' \
+  -d '{"amountUsd":125.50}'
 ```
 
 기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
@@ -86,7 +96,8 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
 - STOMP `/ws/market`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
-- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT를 발급한다. 영속 DB schema, 마이그레이션, Spring Security filter enforcement는 별도 단계에서 추가한다.
+- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT를 발급한다.
+- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. 영속 DB schema, 마이그레이션, refresh token은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정
@@ -112,17 +123,18 @@ curl -X POST http://localhost:3000/api/v1/auth/login \
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
 8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, 외국인 보유율, VI, 상·하한가 상태를 제공한다.
 9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
-10. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
-11. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.
-12. 사용자가 모의 주문을 입력하면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
-13. 포트폴리오 API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
-14. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
-15. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
-16. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
-17. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
-18. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
-19. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 push delivery 상태와 읽음 상태를 관리한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, FCM/APNS/web push provider와 retry worker는 다음 단계에서 연결한다.
-20. 세무 서류 metadata와 거래원장 데이터를 tax refund case로 묶고, mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. 실제 파일 저장, Hana-OmniLens-API 세무 상태 sync, 환급금 지급은 다음 단계에서 연결한다.
+10. 사용자가 로그인하면 HMAC 기반 bearer token을 발급하고, 계좌별 API는 Spring Security filter가 token 검증과 accountId 일치 여부를 확인한다.
+11. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
+12. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.
+13. 사용자가 모의 주문을 입력하면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
+14. 포트폴리오 API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
+15. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
+16. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
+17. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
+18. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
+19. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
+20. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 push delivery 상태와 읽음 상태를 관리한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, FCM/APNS/web push provider와 retry worker는 다음 단계에서 연결한다.
+21. 세무 서류 metadata와 거래원장 데이터를 tax refund case로 묶고, mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. 실제 파일 저장, Hana-OmniLens-API 세무 상태 sync, 환급금 지급은 다음 단계에서 연결한다.
 
 ## 문서
 - [아키텍처](docs/ARCHITECTURE.md)

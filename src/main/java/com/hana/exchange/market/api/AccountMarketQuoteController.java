@@ -14,11 +14,13 @@ import com.hana.exchange.market.application.AccountMarketQuoteService;
 import com.hana.exchange.market.domain.MarketQuoteSnapshot;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}/market/quotes")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Account Market", description = "Account-scoped Korean stock quote snapshot APIs")
 public class AccountMarketQuoteController {
 

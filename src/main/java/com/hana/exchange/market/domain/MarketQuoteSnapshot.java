@@ -11,11 +11,20 @@ public record MarketQuoteSnapshot(
 		String tradingMode,
 		Transport transport,
 		String marketFilter,
+		Cache cache,
 		int quoteCount,
 		List<Quote> quotes,
 		Instant servedAt
 ) {
 	public record Transport(String snapshot, String realtime) {
+	}
+
+	public record Cache(
+			String status,
+			Instant cachedAt,
+			Instant expiresAt,
+			Instant staleUntil
+	) {
 	}
 
 	public record Quote(

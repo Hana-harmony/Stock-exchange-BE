@@ -10,7 +10,7 @@
 | 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Done |
 | 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |
-| Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Planned |
+| Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Partial |
 | 단건 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
 | 전체/시장별/다건/watchlist/보유종목 실시간 시세 REST API 제공 | Stock-exchange-BE | Partial |
 | 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket 제공 | Stock-exchange-BE | Partial |
@@ -18,14 +18,14 @@
 | 환율 기준시각/출처/stale flag 전달 | Stock-exchange-BE | Partial |
 | Hana-OmniLens-API의 KRX 기반 과거 시세 API 조회 | Stock-exchange-BE | Partial |
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Partial |
-| Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Planned |
+| Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Done |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Partial |
 | 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
 | watchlist 관심종목 API와 알림 대상 입력 데이터 | Stock-exchange-BE | Done |
 | KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |
 | 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Partial |
-| 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산 | Stock-exchange-BE | Planned |
-| 실시간 평가금액과 주문 경고 API 제공 | Stock-exchange-BE | Planned |
+| 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산 | Stock-exchange-BE | Partial |
+| 실시간 평가금액과 주문 경고 API 제공 | Stock-exchange-BE | Partial |
 | 실제 주문 실행, 체결, 정산, 환전 | Out of scope | Out of scope |
 
 ## 2. 뉴스·공시 인텔리전스

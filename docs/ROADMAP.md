@@ -13,6 +13,7 @@
 ## M2 시장 데이터와 모의 주문
 - 종목 검색/상세 proxy API: Hana stock search/detail client와 FE용 영어/USD 응답 구현 완료
 - 단건 종목 실시간 시세 REST snapshot API
+- 단건 종목 호가 REST snapshot API: Hana orderbook client와 FE용 KRW/현지통화 호가 응답 구현 완료
 - 전체 종목 실시간 시세 REST API: Hana all quote client와 시장 필터 구현 완료
 - 시장별/다건/watchlist/보유종목 실시간 시세 REST API: Hana bulk quote client와 시장별/다건/watchlist/보유종목 view 구현 완료
 - 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket stream: FE topic publish와 Hana stream client/reconnect/replay/backpressure buffer 구현 완료

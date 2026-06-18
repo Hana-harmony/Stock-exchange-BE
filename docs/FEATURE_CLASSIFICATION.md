@@ -12,7 +12,7 @@
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Done |
 | 단건 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
-| 전체/시장별/다건/watchlist/보유종목 실시간 시세 REST API 제공 | Stock-exchange-BE | Partial |
+| 전체/시장별/다건/watchlist/보유종목 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
 | 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket 제공 | Stock-exchange-BE | Partial |
 | KRW 가격과 USD 환산 가격을 FE에 함께 전달 | Stock-exchange-BE | Partial |
 | 환율 기준시각/출처/stale flag 전달 | Stock-exchange-BE | Partial |

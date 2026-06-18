@@ -34,8 +34,7 @@ class MarketQuoteControllerTest {
 
 	@Test
 	void quotesProxyConfiguredUniverseAsRestSnapshot() throws Exception {
-		when(omniLensMarketQuoteClient.getQuotes(
-				List.of("005930", "000660", "035420", "005380", "035720", "207940"), "USD"))
+		when(omniLensMarketQuoteClient.getAllQuotes("USD"))
 				.thenReturn(List.of(
 						quote("005930", "삼성전자", "Samsung Electronics", "KOSPI", "75000", "54.00"),
 						quote("000660", "SK하이닉스", "SK hynix", "KOSPI", "180000", "129.60")));
@@ -46,7 +45,7 @@ class MarketQuoteControllerTest {
 				.andExpect(jsonPath("$.status").value(200))
 				.andExpect(jsonPath("$.code").value("COMMON_000"))
 				.andExpect(jsonPath("$.data.dataSource").value("HANA_OMNILENS_API"))
-				.andExpect(jsonPath("$.data.marketCoverage").value("CONFIGURED_KOREAN_STOCK_UNIVERSE"))
+				.andExpect(jsonPath("$.data.marketCoverage").value("ALL_KOREAN_STOCKS"))
 				.andExpect(jsonPath("$.data.userLanguage").value("en"))
 				.andExpect(jsonPath("$.data.displayCurrency").value("USD"))
 				.andExpect(jsonPath("$.data.tradingMode").value("EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING"))

@@ -208,3 +208,5 @@
   - Current event types are `TRADE_EXECUTED`, `NOTIFICATION_READ`, and `TAX_REFUND_CASE_UPSERTED`.
   - Each item includes `auditEventId`, `eventType`, `subjectType`, `subjectId`, `summary`, and `occurredAt`.
   - The endpoint is protected by the same bearer account ownership rule as other `/api/v1/accounts/**` APIs.
+  - `summary` and `subjectId` are masked before persistence for email, phone number, Korean resident registration number format, and long secret/token-like values.
+  - Retention worker is enabled with `EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED=true` and deletes events older than `EXCHANGE_AUDIT_RETENTION_DAYS` on `EXCHANGE_AUDIT_RETENTION_FIXED_DELAY`.

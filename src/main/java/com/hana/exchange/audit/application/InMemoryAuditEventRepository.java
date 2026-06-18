@@ -30,4 +30,15 @@ public class InMemoryAuditEventRepository implements AuditEventRepository {
 				.limit(limit)
 				.toList();
 	}
+
+	@Override
+	public int deleteOccurredBefore(java.time.Instant cutoff) {
+		List<String> expiredIds = eventsById.values()
+				.stream()
+				.filter(event -> event.occurredAt().isBefore(cutoff))
+				.map(AuditEvent::auditEventId)
+				.toList();
+		expiredIds.forEach(eventsById::remove);
+		return expiredIds.size();
+	}
 }

@@ -9,4 +9,6 @@ public interface AuditEventRepository {
 	void save(AuditEvent event);
 
 	List<AuditEvent> findByAccountId(String accountId, int limit);
+
+	int deleteOccurredBefore(java.time.Instant cutoff);
 }

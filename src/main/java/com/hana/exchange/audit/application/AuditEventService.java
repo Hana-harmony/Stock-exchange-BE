@@ -14,6 +14,7 @@ import com.hana.exchange.audit.domain.AuditEventResponse;
 import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.config.AuditProperties;
 
 @Service
 public class AuditEventService {
@@ -23,14 +24,20 @@ public class AuditEventService {
 	private final AuditEventRepository auditEventRepository;
 	private final AccountRepository accountRepository;
 	private final IdGenerator idGenerator;
+	private final AuditEventMasker auditEventMasker;
+	private final AuditProperties auditProperties;
 
 	public AuditEventService(
 			AuditEventRepository auditEventRepository,
 			AccountRepository accountRepository,
-			IdGenerator idGenerator) {
+			IdGenerator idGenerator,
+			AuditEventMasker auditEventMasker,
+			AuditProperties auditProperties) {
 		this.auditEventRepository = auditEventRepository;
 		this.accountRepository = accountRepository;
 		this.idGenerator = idGenerator;
+		this.auditEventMasker = auditEventMasker;
+		this.auditProperties = auditProperties;
 	}
 
 	public void record(
@@ -47,8 +54,8 @@ public class AuditEventService {
 				userId,
 				eventType,
 				subjectType,
-				subjectId,
-				summary,
+				auditEventMasker.mask(subjectId),
+				auditEventMasker.mask(summary),
 				occurredAt));
 	}
 
@@ -60,6 +67,11 @@ public class AuditEventService {
 				.map(this::toResponse)
 				.toList();
 		return new AuditEventListResponse(account.accountId(), events.size(), events, Instant.now());
+	}
+
+	public int purgeExpiredEvents() {
+		Instant cutoff = Instant.now().minus(java.time.Duration.ofDays(auditProperties.retentionDays()));
+		return auditEventRepository.deleteOccurredBefore(cutoff);
 	}
 
 	private AuditEventResponse toResponse(AuditEvent event) {

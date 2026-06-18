@@ -43,7 +43,7 @@
 - mock 거래원장/sub-ledger와 매도 실현손익 DB 매칭 구현 완료
 - Hana-OmniLens-API 세무 상태 동기화 구현 완료
 - 환급/선지급 상태 API: mock 세무 케이스 상태, 예상 환급액/선지급 가능 여부, Hana 상태 sync 구현 완료
-- audit log와 개인정보 마스킹
+- audit log와 개인정보 마스킹/보존 정책 구현 완료
 
 ## M5 운영 하드닝
 - auth context 기반 계좌 API 보호: `/api/v1/accounts/**` bearer token 검증과 accountId path 매칭 구현 완료
@@ -52,4 +52,4 @@
 - retry/backoff
 - WebSocket reconnect/replay
 - push provider retry/backoff hardening과 외부 provider delivery retry policy
-- 세무/금융 데이터 접근 로그: 주문 체결, notification 읽음, tax refund case 변경 감사 이벤트 DB 저장과 조회 API 구현 완료, 개인정보 마스킹/보존 정책 예정
+- 세무/금융 데이터 접근 로그: 주문 체결, notification 읽음, tax refund case 변경 감사 이벤트 DB 저장과 조회 API, 개인정보 마스킹/보존 정책 구현 완료

@@ -146,6 +146,30 @@ class AuditEventControllerTest {
 				.andExpect(status().isUnauthorized());
 	}
 
+	@Test
+	void auditEventSummariesAreMaskedBeforeExposure() throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "AuditMask01");
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "taxYear": %d,
+								  "treatyCountry": "US",
+								  "residenceCertificateFileName": "customer-010-1234-5678.pdf",
+								  "reducedTaxApplicationFileName": "token-abcdefghijklmnopqrstuvwxyz123456.pdf",
+								  "advancePaymentRequested": true
+								}
+								""".formatted(Year.now(ZoneOffset.UTC).getValue())))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/audit/events", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.events[0].summary").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("010-1234-5678"))))
+				.andExpect(jsonPath("$.data.events[0].subjectId").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("abcdefghijklmnopqrstuvwxyz123456"))));
+	}
+
 	private String refundCasePayload(int taxYear) {
 		return """
 				{

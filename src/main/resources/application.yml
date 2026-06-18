@@ -30,6 +30,10 @@ exchange:
       batch-size: ${EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE:50}
       max-attempt-count: ${EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT:3}
       fixed-delay: ${EXCHANGE_NOTIFICATION_PUSH_FIXED_DELAY:30s}
+  audit:
+    retention-days: ${EXCHANGE_AUDIT_RETENTION_DAYS:365}
+    retention-worker-enabled: ${EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED:false}
+    retention-fixed-delay: ${EXCHANGE_AUDIT_RETENTION_FIXED_DELAY:24h}
 
 hana:
   omnilens:

@@ -3,6 +3,7 @@ package com.hana.exchange.tax.api;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,6 +34,9 @@ import com.hana.exchange.market.client.OmniLensOrderabilityClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
 import com.hana.exchange.support.AuthTestSupport;
 import com.hana.exchange.support.AuthTestSupport.AuthSession;
+import com.hana.exchange.tax.client.OmniLensTaxStatusClient;
+import com.hana.exchange.tax.client.OmniLensTaxStatusSyncRequest;
+import com.hana.exchange.tax.client.OmniLensTaxStatusSyncResponse;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @SpringBootTest
@@ -47,6 +51,9 @@ class TaxRefundCaseControllerTest {
 
 	@MockitoBean
 	private OmniLensOrderabilityClient omniLensOrderabilityClient;
+
+	@MockitoBean
+	private OmniLensTaxStatusClient omniLensTaxStatusClient;
 
 	@BeforeEach
 	void allowMockOrdersByDefault() {
@@ -124,6 +131,47 @@ class TaxRefundCaseControllerTest {
 				.andExpect(jsonPath("$.data.status").value("NO_REFUNDABLE_PROFIT"))
 				.andExpect(jsonPath("$.data.estimatedRefundUsd").value("0.00"))
 				.andExpect(jsonPath("$.data.advancePaymentEligible").value(false));
+	}
+
+	@Test
+	void syncRefundStatusCallsHanaAndUpdatesLatestTaxCaseStatus() throws Exception {
+		int taxYear = Year.now(ZoneOffset.UTC).getValue();
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxSync01");
+		when(omniLensTaxStatusClient.sync(any(OmniLensTaxStatusSyncRequest.class)))
+				.thenReturn(new OmniLensTaxStatusSyncResponse(
+						"TAX-SYNC-REMOTE",
+						"SYNCED_WITH_HANA",
+						Instant.parse("2026-06-18T06:30:00Z"),
+						"HANA_OMNILENS_API"));
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(refundCasePayload(taxYear, false)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("NO_REFUNDABLE_PROFIT"));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-status/sync", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("SYNCED_WITH_HANA"))
+				.andExpect(jsonPath("$.data.updatedAt").value("2026-06-18T06:30:00Z"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/tax/refund-status", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("SYNCED_WITH_HANA"));
+		verify(omniLensTaxStatusClient).sync(any(OmniLensTaxStatusSyncRequest.class));
+	}
+
+	@Test
+	void syncRefundStatusRejectsWhenTaxCaseDoesNotExist() throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxSyncMissing01");
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-status/sync", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("TAX_001"));
 	}
 
 	@Test

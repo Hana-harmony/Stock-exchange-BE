@@ -115,7 +115,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade holding/ledger, watchlist, alert event/match result, notification inbox, tax refund case, audit event는 Flyway/JDBC로 영속화한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API와 Hana tax status sync 구현, 호가 예정
 - WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/매칭 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 delivery 상태 기록 구현, 실패/미발송 notification retry worker 구현, FCM/APNS/web push provider 예정
 - 구독 topic:
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 18. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
 19. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
 20. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 push delivery 상태와 읽음 상태를 관리한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, 실패/미발송 notification은 retry worker가 설정된 batch와 max attempt 기준으로 재시도한다. FCM/APNS/web push provider는 다음 단계에서 연결한다.
-21. 세무 서류 metadata와 거래원장 데이터를 tax refund case로 묶고, mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. 실제 파일 저장, Hana-OmniLens-API 세무 상태 sync, 환급금 지급은 다음 단계에서 연결한다.
+21. 세무 서류 metadata와 거래원장 데이터를 tax refund case로 묶고, mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`는 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 보내고 응답 status를 DB에 반영한다. 실제 파일 저장과 환급금 지급은 다음 단계에서 연결한다.
 
 ## 문서
 - [아키텍처](docs/ARCHITECTURE.md)

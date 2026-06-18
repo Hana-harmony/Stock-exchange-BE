@@ -47,4 +47,11 @@ public class TaxRefundCaseController {
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId) {
 		return ApiResponse.success(taxRefundCaseService.getLatestStatus(accountId));
 	}
+
+	@PostMapping("/refund-status/sync")
+	@Operation(summary = "Sync latest tax refund status with Hana-OmniLens-API")
+	public ApiResponse<TaxRefundCaseResponse> syncRefundStatus(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId) {
+		return ApiResponse.success(taxRefundCaseService.syncLatestStatusWithHana(accountId));
+	}
 }

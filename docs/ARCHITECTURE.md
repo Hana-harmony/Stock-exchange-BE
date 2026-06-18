@@ -21,6 +21,9 @@
 - `alert/api`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 REST ingest와 target 조회 API
 - `alert/application`: idempotency key 기반 이벤트 저장, watchlist/holder 대상자 매칭 service
 - `alert/domain`: alert event, matched target, source link, AI 분석 metadata 계약 record
+- `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
+- `notification/application`: matched alert target 기반 notification 저장과 중복 방지 service
+- `notification/domain`: notification inbox, original URL, match reason, read state 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
 - Planned `auth`: 로그인, 세션/JWT, 인증 context
 - Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
@@ -30,7 +33,7 @@
 - Planned `portfolio`: 사용자 보유종목, 평가금액, 자체 mock ledger 주문 상태
 - Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 경고, 외국인 한도/VI/상·하한가 검증
 - Planned `alert`: Hana-OmniLens-API WebSocket client, 영속 이벤트 저장소, replay/retry worker
-- Planned `notification`: 푸시 대상자 매칭, 알림함 저장, 푸시 발송
+- Planned `notification`: push provider 발송, 웹 푸시, delivery retry worker
 - Planned `tax`: 세무 서류 업로드 metadata, 거래원장/sub-ledger 매칭, 환급 상태 동기화
 - Planned `audit`: 사용자별 알림/주문/세무 상태 변경 이력
 
@@ -64,6 +67,7 @@
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - watchlist는 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다. 현재 API는 로컬 개발용 인메모리 저장소를 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest를 통해 동일한 payload를 저장·매칭한다.
+- 매칭된 alert target은 계좌별 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다. 현재 구현은 로컬 개발용 인메모리 저장소를 사용한다.
 - 세무 기능은 거주자증명서, 제한세율신청서, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다.
 
 ## 현재 구현 상태
@@ -73,5 +77,6 @@
 - `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 매도 실현손익을 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
+- `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
-- 로그인/JWT, 영속 DB schema, orderability 경고, 다건/전체 quote REST, market WebSocket stream, alert WebSocket client, push worker, 알림함 저장은 미구현이다.
+- 로그인/JWT, 영속 DB schema, orderability 경고, 다건/전체 quote REST, market WebSocket stream, alert WebSocket client, push worker, 웹 푸시는 미구현이다.

@@ -16,6 +16,7 @@ import com.hana.exchange.alert.domain.AlertEventMatchResult;
 import com.hana.exchange.alert.domain.AlertTargetResponse;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.notification.application.NotificationService;
 import com.hana.exchange.trade.application.TradeRepository;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.watchlist.application.WatchlistRepository;
@@ -27,14 +28,17 @@ public class AlertEventService {
 	private final AlertEventRepository alertEventRepository;
 	private final WatchlistRepository watchlistRepository;
 	private final TradeRepository tradeRepository;
+	private final NotificationService notificationService;
 
 	public AlertEventService(
 			AlertEventRepository alertEventRepository,
 			WatchlistRepository watchlistRepository,
-			TradeRepository tradeRepository) {
+			TradeRepository tradeRepository,
+			NotificationService notificationService) {
 		this.alertEventRepository = alertEventRepository;
 		this.watchlistRepository = watchlistRepository;
 		this.tradeRepository = tradeRepository;
+		this.notificationService = notificationService;
 	}
 
 	public AlertEventMatchResponse ingest(AlertEventIngestRequest request) {
@@ -68,6 +72,7 @@ public class AlertEventService {
 				Instant.now());
 		AlertEventMatchResult matchResult = new AlertEventMatchResult(event, targets(event), Instant.now());
 		alertEventRepository.save(event, matchResult);
+		notificationService.storeAlertNotifications(event, matchResult.targets());
 		return matchResult.toResponse();
 	}
 

@@ -62,3 +62,4 @@
 | notification 읽음 감사 이벤트 저장과 조회 | Stock-exchange-BE | Done |
 | tax refund case 생성/갱신 감사 이벤트 저장과 조회 | Stock-exchange-BE | Done |
 | 감사 로그 개인정보 마스킹과 보존 정책 | Stock-exchange-BE | Done |
+| API rate limit | Stock-exchange-BE | Done |

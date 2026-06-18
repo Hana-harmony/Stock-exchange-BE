@@ -77,7 +77,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, KRX 기반 과거 차트 client/proxy 구현, 종목 검색, 호가, orderability, tax refund status 조회 예정
+- REST: 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, 종목 검색, 호가, orderability, tax refund status 조회 예정
 - WebSocket: 뉴스·공시 알림과 market quote stream 구독/재배포
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -94,19 +94,20 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 cache에 반영한다.
 3. Stock-exchange-BE는 Hana가 내려준 `currentPriceKrw`, `localCurrencyPrice`, `localCurrency`, `fxRate`, `fxRateTime`, `fxRateSource`를 보존해 FE에 전달한다.
 4. FE가 설정된 전체 universe, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 현재 전체 universe는 `HANA_OMNILENS_DEFAULT_STOCK_CODES` 설정값을 사용하고, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다. Hana-OmniLens-API bulk/all quote가 추가되면 client 경계에서 교체한다.
-5. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. 현재 구현은 `POST /api/v1/market/stream/quotes`로 동일 publisher를 검증하며, Hana-OmniLens-API stream client가 붙으면 같은 publisher를 호출한다.
-6. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
-7. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Hana-OmniLens-API에서 시세, 외국인 보유율, VI, 상·하한가 상태를 조회한다.
-8. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
-9. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
-10. 사용자가 모의 주문을 입력하면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
-11. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
-12. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
-13. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 저장하고 idempotency key로 중복 처리를 수행한다. 현재 구현은 WebSocket client 전 단계의 REST ingest 계약이다.
-14. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
-15. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
-16. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 읽음 상태를 관리한다. 실제 push provider 발송은 다음 단계에서 수행한다.
-17. 세무 서류 업로드와 거래원장 데이터를 Hana-OmniLens-API의 세무 상태 계약과 동기화하고 환급/선지급 상태를 사용자에게 제공한다.
+5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
+6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. 현재 구현은 `POST /api/v1/market/stream/quotes`로 동일 publisher를 검증하며, Hana-OmniLens-API stream client가 붙으면 같은 publisher를 호출한다.
+7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
+8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Hana-OmniLens-API에서 시세, 외국인 보유율, VI, 상·하한가 상태를 조회한다.
+9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
+10. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
+11. 사용자가 모의 주문을 입력하면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
+12. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
+13. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
+14. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 저장하고 idempotency key로 중복 처리를 수행한다. 현재 구현은 WebSocket client 전 단계의 REST ingest 계약이다.
+15. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
+16. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
+17. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 읽음 상태를 관리한다. 실제 push provider 발송은 다음 단계에서 수행한다.
+18. 세무 서류 업로드와 거래원장 데이터를 Hana-OmniLens-API의 세무 상태 계약과 동기화하고 환급/선지급 상태를 사용자에게 제공한다.
 
 ## 문서
 - [아키텍처](docs/ARCHITECTURE.md)

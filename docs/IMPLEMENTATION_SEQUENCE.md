@@ -86,6 +86,7 @@
 - notification은 provider 추상화와 delivery 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다. 실패/미발송 notification은 환경변수로 활성화하는 retry worker가 batch size와 max attempt 기준으로 재전송한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 - 세무 환급 케이스는 거주자증명서/제한세율신청서 metadata와 mock SELL 원장을 DB에서 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다. 실제 파일 저장은 별도 단계로 확장한다.
+- 감사 이벤트는 저장 전 민감 문자열을 마스킹하고, 설정된 보존기간이 지난 이벤트를 retention worker로 정리한다.
 
 완료 기준:
 - KIS 모의투자 API 호출 없이 자체 mock 거래가 가능하다.

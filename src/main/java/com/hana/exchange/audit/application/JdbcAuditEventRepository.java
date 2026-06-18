@@ -49,6 +49,11 @@ public class JdbcAuditEventRepository implements AuditEventRepository {
 				limit);
 	}
 
+	@Override
+	public int deleteOccurredBefore(Instant cutoff) {
+		return jdbcTemplate.update("DELETE FROM audit_events WHERE occurred_at < ?", timestamp(cutoff));
+	}
+
 	private AuditEvent event(ResultSet resultSet) throws SQLException {
 		return new AuditEvent(
 				resultSet.getString("audit_event_id"),

@@ -35,6 +35,7 @@
 | `COMMON_001` | 400 | Invalid request |
 | `COMMON_002` | 400 | Validation failed |
 | `COMMON_003` | 404 | Resource not found |
+| `COMMON_004` | 429 | Rate limit exceeded |
 | `COMMON_999` | 500 | Internal server error |
 | `AUTH_001` | 409 | Username already exists |
 | `AUTH_002` | 401 | Invalid username or password |
@@ -55,6 +56,15 @@
 
 - Swagger UI: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
+
+## Rate Limit
+
+- Rate limit is enabled with `EXCHANGE_RATE_LIMIT_ENABLED=true`.
+- Applies to `/api/v1/**` requests.
+- Account paths use accountId as the rate limit key, and other API paths use the client IP or first `X-Forwarded-For` value.
+- Configure with `EXCHANGE_RATE_LIMIT_MAX_REQUESTS` and `EXCHANGE_RATE_LIMIT_WINDOW`.
+- Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and, when blocked, `Retry-After`.
+- Exceeded requests return common response code `COMMON_004` with HTTP 429.
 
 ## Auth
 

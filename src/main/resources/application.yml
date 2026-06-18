@@ -34,6 +34,10 @@ exchange:
     retention-days: ${EXCHANGE_AUDIT_RETENTION_DAYS:365}
     retention-worker-enabled: ${EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED:false}
     retention-fixed-delay: ${EXCHANGE_AUDIT_RETENTION_FIXED_DELAY:24h}
+  rate-limit:
+    enabled: ${EXCHANGE_RATE_LIMIT_ENABLED:false}
+    max-requests: ${EXCHANGE_RATE_LIMIT_MAX_REQUESTS:120}
+    window: ${EXCHANGE_RATE_LIMIT_WINDOW:1m}
 
 hana:
   omnilens:

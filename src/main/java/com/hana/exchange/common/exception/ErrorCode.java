@@ -6,6 +6,7 @@ public enum ErrorCode {
 	INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_001", "Invalid request"),
 	VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "COMMON_002", "Request validation failed"),
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_003", "Resource not found"),
+	RATE_LIMIT_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "COMMON_004", "Rate limit exceeded"),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_999", "Internal server error"),
 	USERNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_001", "Username already exists"),
 	INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_002", "Invalid username or password"),

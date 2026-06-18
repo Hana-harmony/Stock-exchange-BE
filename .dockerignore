@@ -1,0 +1,10 @@
+.gradle
+.gradle-home
+build
+out
+.idea
+.git
+.gitignore
+
+**/secrets.local.env
+**/*.local.env

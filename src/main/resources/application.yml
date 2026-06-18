@@ -46,6 +46,11 @@ hana:
       api-key: ${HANA_OMNILENS_API_KEY:}
       quote-cache-ttl: ${HANA_OMNILENS_QUOTE_CACHE_TTL:3s}
       quote-cache-stale-ttl: ${HANA_OMNILENS_QUOTE_CACHE_STALE_TTL:30s}
+      retry:
+        enabled: ${HANA_OMNILENS_REST_RETRY_ENABLED:true}
+        max-attempts: ${HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS:3}
+        initial-delay: ${HANA_OMNILENS_REST_RETRY_INITIAL_DELAY:100ms}
+        max-delay: ${HANA_OMNILENS_REST_RETRY_MAX_DELAY:1s}
       stream:
         quote-enabled: ${HANA_OMNILENS_QUOTE_STREAM_ENABLED:false}
         quote-path: ${HANA_OMNILENS_QUOTE_STREAM_PATH:/ws/market/quotes}

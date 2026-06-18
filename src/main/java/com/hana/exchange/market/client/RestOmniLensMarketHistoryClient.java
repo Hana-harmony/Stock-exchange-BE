@@ -8,6 +8,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import com.hana.exchange.common.client.OmniLensRestRetryer;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.config.ExchangeBackendProperties;
@@ -19,10 +20,15 @@ public class RestOmniLensMarketHistoryClient implements OmniLensMarketHistoryCli
 
 	private final RestClient restClient;
 	private final ExchangeBackendProperties properties;
+	private final OmniLensRestRetryer retryer;
 
-	public RestOmniLensMarketHistoryClient(RestClient omniLensRestClient, ExchangeBackendProperties properties) {
+	public RestOmniLensMarketHistoryClient(
+			RestClient omniLensRestClient,
+			ExchangeBackendProperties properties,
+			OmniLensRestRetryer retryer) {
 		this.restClient = omniLensRestClient;
 		this.properties = properties;
+		this.retryer = retryer;
 	}
 
 	@Override
@@ -33,7 +39,7 @@ public class RestOmniLensMarketHistoryClient implements OmniLensMarketHistoryCli
 			String interval,
 			String currency) {
 		try {
-			OmniLensApiResponse<OmniLensMarketHistoryResponse> response = restClient.get()
+			OmniLensApiResponse<OmniLensMarketHistoryResponse> response = retryer.execute("market.getHistory", () -> restClient.get()
 					.uri(uriBuilder -> uriBuilder
 							.path("/api/v1/market/stocks/{stockCode}/history")
 							.queryParam("from", from)
@@ -48,7 +54,7 @@ public class RestOmniLensMarketHistoryClient implements OmniLensMarketHistoryCli
 					})
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
-					});
+					}));
 
 			if (response == null || !response.success() || response.data() == null) {
 				throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE);

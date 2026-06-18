@@ -121,9 +121,10 @@
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.
 - `GET /api/v1/market/quotes?stockCodes=...&market=...&currency=USD`는 Hana all/bulk quote endpoint와 시장 필터 기준으로 KRW/USD 시세 목록 snapshot을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
+- Hana-OmniLens-API REST client는 transport 실패에 대해 설정 기반 retry/backoff를 적용한다.
 - quote REST snapshot 응답은 `cache.status` metadata를 포함하고, upstream 장애 시 stale fallback 가능 구간의 snapshot을 반환한다.
 - `GET /api/v1/market/stocks/{stockCode}/chart?from=...&to=...&interval=1d&currency=USD`는 Hana-OmniLens-API KRX history API를 호출해 Flutter chart용 KRW/현지통화 OHLCV를 제공한다.
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- 웹 푸시와 세무 파일 object storage는 미구현이다. notification retry worker와 audit retention worker는 기본 비활성화 설정으로 구현되어 통합 환경에서 활성화할 수 있다.
+- 웹 푸시와 세무 파일 object storage는 미구현이다. Hana REST retry/backoff, notification retry worker, audit retention worker는 기본 설정으로 구현되어 통합 환경에서 활성화할 수 있다.

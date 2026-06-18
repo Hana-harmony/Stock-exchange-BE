@@ -70,6 +70,7 @@ class MarketQuoteServiceCacheTest {
 				"",
 				Duration.ofSeconds(3),
 				Duration.ofSeconds(30),
+				ExchangeBackendProperties.Retry.defaults(),
 				ExchangeBackendProperties.Stream.defaults());
 		return new MarketQuoteService(
 				quoteClient,

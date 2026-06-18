@@ -6,6 +6,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import com.hana.exchange.common.client.OmniLensRestRetryer;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.config.ExchangeBackendProperties;
@@ -18,16 +19,21 @@ public class RestOmniLensOrderabilityClient implements OmniLensOrderabilityClien
 
 	private final RestClient restClient;
 	private final ExchangeBackendProperties properties;
+	private final OmniLensRestRetryer retryer;
 
-	public RestOmniLensOrderabilityClient(RestClient omniLensRestClient, ExchangeBackendProperties properties) {
+	public RestOmniLensOrderabilityClient(
+			RestClient omniLensRestClient,
+			ExchangeBackendProperties properties,
+			OmniLensRestRetryer retryer) {
 		this.restClient = omniLensRestClient;
 		this.properties = properties;
+		this.retryer = retryer;
 	}
 
 	@Override
 	public OmniLensOrderabilityResponse checkOrderability(String stockCode, TradeSide side, long quantity) {
 		try {
-			OmniLensApiResponse<OmniLensOrderabilityResponse> response = restClient.get()
+			OmniLensApiResponse<OmniLensOrderabilityResponse> response = retryer.execute("market.checkOrderability", () -> restClient.get()
 					.uri(uriBuilder -> uriBuilder
 							.path("/api/v1/market/stocks/{stockCode}/orderability")
 							.queryParam("side", side.name())
@@ -40,7 +46,7 @@ public class RestOmniLensOrderabilityClient implements OmniLensOrderabilityClien
 					})
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
-					});
+					}));
 
 			if (response == null || !response.success() || response.data() == null) {
 				throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE);

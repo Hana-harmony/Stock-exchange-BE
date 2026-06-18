@@ -15,6 +15,9 @@ import com.hana.exchange.audit.application.AuditEventService;
 import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.tax.client.OmniLensTaxStatusClient;
+import com.hana.exchange.tax.client.OmniLensTaxStatusSyncRequest;
+import com.hana.exchange.tax.client.OmniLensTaxStatusSyncResponse;
 import com.hana.exchange.tax.domain.TaxMatchedTradeResponse;
 import com.hana.exchange.tax.domain.TaxRefundCase;
 import com.hana.exchange.tax.domain.TaxRefundCaseCreateRequest;
@@ -37,18 +40,21 @@ public class TaxRefundCaseService {
 	private final TaxRefundCaseRepository taxRefundCaseRepository;
 	private final IdGenerator idGenerator;
 	private final AuditEventService auditEventService;
+	private final OmniLensTaxStatusClient omniLensTaxStatusClient;
 
 	public TaxRefundCaseService(
 			AccountRepository accountRepository,
 			TradeRepository tradeRepository,
 			TaxRefundCaseRepository taxRefundCaseRepository,
 			IdGenerator idGenerator,
-			AuditEventService auditEventService) {
+			AuditEventService auditEventService,
+			OmniLensTaxStatusClient omniLensTaxStatusClient) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.taxRefundCaseRepository = taxRefundCaseRepository;
 		this.idGenerator = idGenerator;
 		this.auditEventService = auditEventService;
+		this.omniLensTaxStatusClient = omniLensTaxStatusClient;
 	}
 
 	public TaxRefundCaseResponse createOrReplace(String accountId, TaxRefundCaseCreateRequest request) {
@@ -100,6 +106,25 @@ public class TaxRefundCaseService {
 		return taxRefundCaseRepository.findLatestByAccountId(accountId)
 				.map(taxCase -> toResponse(taxCase, matchedSellTrades(accountId, taxCase.taxYear())))
 				.orElseGet(() -> notSubmitted(accountId));
+	}
+
+	public TaxRefundCaseResponse syncLatestStatusWithHana(String accountId) {
+		account(accountId);
+		TaxRefundCase taxCase = taxRefundCaseRepository.findLatestByAccountId(accountId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.TAX_CASE_NOT_FOUND));
+		OmniLensTaxStatusSyncResponse syncResponse = omniLensTaxStatusClient.sync(toSyncRequest(taxCase));
+		TaxRefundCase syncedCase = taxCase.updateStatus(syncStatus(syncResponse.status()), syncResponse.syncedAt());
+		taxRefundCaseRepository.save(syncedCase);
+		auditEventService.record(
+				syncedCase.accountId(),
+				syncedCase.userId(),
+				AuditEventType.TAX_REFUND_CASE_UPSERTED,
+				"TAX_REFUND_CASE",
+				syncedCase.caseId(),
+				"Synced tax year " + syncedCase.taxYear()
+						+ " with Hana status=" + syncedCase.status().name(),
+				syncedCase.updatedAt());
+		return toResponse(syncedCase, matchedSellTrades(accountId, syncedCase.taxYear()));
 	}
 
 	private TaxRefundCaseResponse notSubmitted(String accountId) {
@@ -218,6 +243,28 @@ public class TaxRefundCaseService {
 				moneyText(trade.grossAmountUsd()),
 				moneyText(trade.realizedPnlUsd()),
 				trade.executedAt());
+	}
+
+	private OmniLensTaxStatusSyncRequest toSyncRequest(TaxRefundCase taxCase) {
+		return new OmniLensTaxStatusSyncRequest(
+				taxCase.caseId(),
+				taxCase.accountId(),
+				taxCase.userId(),
+				taxCase.taxYear(),
+				taxCase.treatyCountry(),
+				moneyText(taxCase.estimatedRefundUsd()),
+				taxCase.advancePaymentRequested(),
+				taxCase.advancePaymentEligible(),
+				taxCase.matchedTradeIds(),
+				Instant.now());
+	}
+
+	private TaxRefundCaseStatus syncStatus(String status) {
+		try {
+			return TaxRefundCaseStatus.valueOf(status);
+		} catch (RuntimeException exception) {
+			throw new BusinessException(ErrorCode.TAX_STATUS_SYNC_FAILED, "Unsupported Hana tax status: " + status);
+		}
 	}
 
 	private BigDecimal money(BigDecimal value) {

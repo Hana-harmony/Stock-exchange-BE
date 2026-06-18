@@ -27,4 +27,28 @@ public record TaxRefundCase(
 		Instant createdAt,
 		Instant updatedAt
 ) {
+	public TaxRefundCase updateStatus(TaxRefundCaseStatus status, Instant updatedAt) {
+		return new TaxRefundCase(
+				caseId,
+				accountId,
+				userId,
+				taxYear,
+				treatyCountry,
+				residenceCertificateFileName,
+				reducedTaxApplicationFileName,
+				advancePaymentRequested,
+				status,
+				totalSellAmountUsd,
+				realizedProfitUsd,
+				realizedLossUsd,
+				netRealizedPnlUsd,
+				taxableRealizedPnlUsd,
+				estimatedWithholdingTaxUsd,
+				estimatedTreatyTaxUsd,
+				estimatedRefundUsd,
+				advancePaymentEligible,
+				matchedTradeIds,
+				createdAt,
+				updatedAt);
+	}
 }

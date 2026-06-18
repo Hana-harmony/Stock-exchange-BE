@@ -49,6 +49,7 @@
 | `TRADE_001` | 409 | Mock USD account has insufficient balance |
 | `TRADE_002` | 409 | Mock holding has insufficient quantity |
 | `TAX_001` | 404 | Tax refund case not found |
+| `TAX_002` | 502 | Tax refund status sync failed |
 
 ## Swagger
 
@@ -148,11 +149,14 @@
   - It returns total sell amount, realized profit, realized loss, net realized PnL, taxable realized PnL, estimated local withholding tax, estimated treaty tax, estimated refund, matched trades, and advance payment eligibility.
 - `GET /api/v1/accounts/{accountId}/tax/refund-status`
   - Returns the latest tax refund case, or `NOT_SUBMITTED` when no case exists.
+- `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`
+  - Sends the latest tax refund case to Hana-OmniLens-API tax status sync boundary and persists the returned status.
+  - Returns `TAX_001` when no local tax case exists and `TAX_002` when Hana sync fails or returns an unsupported status.
 - Current statuses:
   - `NOT_SUBMITTED`: no tax refund case has been created.
-  - `READY_FOR_HANA_SYNC`: taxable realized profit exists and the case can be sent to Hana tax status sync later.
+  - `READY_FOR_HANA_SYNC`: taxable realized profit exists and the case can be sent to Hana tax status sync.
   - `NO_REFUNDABLE_PROFIT`: no positive taxable realized PnL exists for the requested year.
-  - `SYNCED_WITH_HANA`, `REFUND_APPROVED`, `ADVANCE_PAID`, `RECAPTURE_RISK`: reserved for Hana tax status synchronization and post-payment controls.
+  - `SYNCED_WITH_HANA`, `REFUND_APPROVED`, `ADVANCE_PAID`, `RECAPTURE_RISK`: Hana tax status synchronization and post-payment controls.
 - Current tax estimates are local mock calculations for the demo flow. They are not tax advice and do not submit a filing.
 
 ## Market Quote WebSocket

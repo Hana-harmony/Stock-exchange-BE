@@ -44,6 +44,7 @@
 | `MARKET_001` | 502 | Hana OmniLens market upstream unavailable |
 | `TRADE_001` | 409 | Mock USD account has insufficient balance |
 | `TRADE_002` | 409 | Mock holding has insufficient quantity |
+| `TAX_001` | 404 | Tax refund case not found |
 
 ## Swagger
 
@@ -108,6 +109,23 @@
   - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
 - Stock-exchange-BE calls Hana-OmniLens-API `/api/v1/market/stocks/{stockCode}/history` and reformats KRX history for the Flutter chart.
 - Chart points include KRW OHLCV, trading value, adjusted flag, and requested local currency OHLC.
+
+## Tax Refund
+
+- `POST /api/v1/accounts/{accountId}/tax/refund-cases`
+  - Creates or replaces a tax refund case for a mock USD account and tax year.
+  - Request fields: `taxYear`, `treatyCountry`, `residenceCertificateFileName`, `reducedTaxApplicationFileName`, `advancePaymentRequested`.
+  - File fields are metadata only in the current implementation. Object storage upload is planned.
+  - The service matches internal mock `SELL` ledger entries for the requested tax year.
+  - It returns total sell amount, realized profit, realized loss, net realized PnL, taxable realized PnL, estimated local withholding tax, estimated treaty tax, estimated refund, matched trades, and advance payment eligibility.
+- `GET /api/v1/accounts/{accountId}/tax/refund-status`
+  - Returns the latest tax refund case, or `NOT_SUBMITTED` when no case exists.
+- Current statuses:
+  - `NOT_SUBMITTED`: no tax refund case has been created.
+  - `READY_FOR_HANA_SYNC`: taxable realized profit exists and the case can be sent to Hana tax status sync later.
+  - `NO_REFUNDABLE_PROFIT`: no positive taxable realized PnL exists for the requested year.
+  - `SYNCED_WITH_HANA`, `REFUND_APPROVED`, `ADVANCE_PAID`, `RECAPTURE_RISK`: reserved for Hana tax status synchronization and post-payment controls.
+- Current tax estimates are local mock calculations for the demo flow. They are not tax advice and do not submit a filing.
 
 ## Market Quote WebSocket
 

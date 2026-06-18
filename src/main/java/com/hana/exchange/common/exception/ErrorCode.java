@@ -14,7 +14,8 @@ public enum ErrorCode {
 	NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "Notification not found"),
 	MARKET_UPSTREAM_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "MARKET_001", "Hana OmniLens market upstream is unavailable"),
 	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance"),
-	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity");
+	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity"),
+	TAX_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_001", "Tax refund case not found");
 
 	private final HttpStatus status;
 	private final String code;

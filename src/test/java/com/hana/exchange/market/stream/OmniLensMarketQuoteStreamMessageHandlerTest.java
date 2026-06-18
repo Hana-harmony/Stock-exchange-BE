@@ -87,6 +87,7 @@ class OmniLensMarketQuoteStreamMessageHandlerTest {
 						"",
 						Duration.ofSeconds(3),
 						Duration.ofSeconds(30),
+						ExchangeBackendProperties.Retry.defaults(),
 						new ExchangeBackendProperties.Stream(
 								false,
 								"/ws/market/quotes",

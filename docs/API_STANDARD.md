@@ -66,6 +66,13 @@
 - Responses include `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and, when blocked, `Retry-After`.
 - Exceeded requests return common response code `COMMON_004` with HTTP 429.
 
+## Hana REST Retry
+
+- Hana-OmniLens-API REST clients retry transport failures from Spring `RestClientException`.
+- Common response envelope failures such as `success=false` are treated as business failures and are not retried.
+- Defaults: `HANA_OMNILENS_REST_RETRY_ENABLED=true`, `HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS=3`, `HANA_OMNILENS_REST_RETRY_INITIAL_DELAY=100ms`, `HANA_OMNILENS_REST_RETRY_MAX_DELAY=1s`.
+- Covered clients: stock search/detail, single/bulk/all quote snapshot, chart history, orderability, and tax status sync.
+
 ## Auth
 
 - `POST /api/v1/auth/signup`

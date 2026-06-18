@@ -11,19 +11,19 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-import com.jayway.jsonpath.JsonPath;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -37,10 +37,11 @@ class AccountMarketQuoteControllerTest {
 
 	@Test
 	void watchlistQuotesReturnOnlyAccountWatchlistStocks() throws Exception {
-		String accountId = signUpAndGetAccountId("QuoteWatch01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "QuoteWatch01");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "KOSPI", "54.00"));
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -52,7 +53,8 @@ class AccountMarketQuoteControllerTest {
 		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
 				.thenReturn(List.of(quote("005930", "Samsung Electronics", "KOSPI", "55.00")));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/watchlist", accountId)
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("currency", "USD"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
@@ -65,10 +67,11 @@ class AccountMarketQuoteControllerTest {
 
 	@Test
 	void portfolioQuotesReturnOnlyCurrentHoldings() throws Exception {
-		String accountId = fundedAccount("QuoteHolding01", "200.00");
+		AuthSession session = fundedAccount("QuoteHolding01", "200.00");
 		when(omniLensMarketQuoteClient.getQuote("000660", "USD"))
 				.thenReturn(quote("000660", "SK hynix", "KOSPI", "50.00"));
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -82,7 +85,8 @@ class AccountMarketQuoteControllerTest {
 		when(omniLensMarketQuoteClient.getQuotes(List.of("000660"), "USD"))
 				.thenReturn(List.of(quote("000660", "SK hynix", "KOSPI", "60.00")));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/portfolio", accountId)
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/portfolio", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("market", "KOSPI")
 						.param("currency", "USD"))
 				.andExpect(status().isOk())
@@ -95,25 +99,27 @@ class AccountMarketQuoteControllerTest {
 
 	@Test
 	void emptyWatchlistDoesNotFallBackToDefaultUniverse() throws Exception {
-		String accountId = signUpAndGetAccountId("QuoteEmpty01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "QuoteEmpty01");
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/watchlist", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/market/quotes/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.marketCoverage").value("WATCHLIST_STOCKS"))
 				.andExpect(jsonPath("$.data.quoteCount").value(0));
 	}
 
 	@Test
-	void accountQuoteViewsRejectUnknownAccount() throws Exception {
+	void accountQuoteViewsRejectMissingBearerToken() throws Exception {
 		mockMvc.perform(get("/api/v1/accounts/ACC-UNKNOWN00000/market/quotes/portfolio"))
-				.andExpect(status().isNotFound())
+				.andExpect(status().isUnauthorized())
 				.andExpect(jsonPath("$.success").value(false))
-				.andExpect(jsonPath("$.code").value("ACCOUNT_001"));
+				.andExpect(jsonPath("$.code").value("AUTH_003"));
 	}
 
-	private String fundedAccount(String username, String amountUsd) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+	private AuthSession fundedAccount(String username, String amountUsd) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -121,21 +127,7 @@ class AccountMarketQuoteControllerTest {
 								}
 								""".formatted(amountUsd)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private OmniLensMarketQuote quote(String stockCode, String stockNameEn, String market, String usdPrice) {

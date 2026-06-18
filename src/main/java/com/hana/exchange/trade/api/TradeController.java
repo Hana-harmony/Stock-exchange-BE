@@ -23,11 +23,13 @@ import com.hana.exchange.trade.domain.TradeOrderabilityResponse;
 import com.hana.exchange.trade.domain.TradeSide;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Trade", description = "Local mock Korean stock trading APIs")
 public class TradeController {
 

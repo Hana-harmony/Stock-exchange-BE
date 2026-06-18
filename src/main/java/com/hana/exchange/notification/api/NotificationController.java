@@ -15,11 +15,13 @@ import com.hana.exchange.notification.domain.NotificationInboxResponse;
 import com.hana.exchange.notification.domain.NotificationItemResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}/notifications")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Notification", description = "Local in-app notification inbox APIs")
 public class NotificationController {
 

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +24,8 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,7 +39,7 @@ class NotificationControllerTest {
 
 	@Test
 	void alertIngestStoresUnreadNotificationForMatchedWatchlistAccount() throws Exception {
-		String accountId = watchedAccount("NotifyWatch01", "111111");
+		AuthSession session = watchedAccount("NotifyWatch01", "111111");
 
 		mockMvc.perform(post("/api/v1/alerts/events")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -44,7 +47,8 @@ class NotificationControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.targetCount").value(1));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.unreadCount").value(1))
 				.andExpect(jsonPath("$.data.totalCount").value(1))
@@ -62,7 +66,7 @@ class NotificationControllerTest {
 
 	@Test
 	void duplicateAlertEventDoesNotDuplicateNotification() throws Exception {
-		String accountId = watchedAccount("NotifyIdempotent01", "222222");
+		AuthSession session = watchedAccount("NotifyIdempotent01", "222222");
 
 		mockMvc.perform(post("/api/v1/alerts/events")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -73,7 +77,8 @@ class NotificationControllerTest {
 						.content(eventPayload("NOTIFY-EVENT-RETRY", "notify-key-02", "222222")))
 				.andExpect(status().isOk());
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.unreadCount").value(1))
 				.andExpect(jsonPath("$.data.totalCount").value(1))
@@ -82,65 +87,57 @@ class NotificationControllerTest {
 
 	@Test
 	void markReadUpdatesNotificationState() throws Exception {
-		String accountId = watchedAccount("NotifyRead01", "333333");
+		AuthSession session = watchedAccount("NotifyRead01", "333333");
 		mockMvc.perform(post("/api/v1/alerts/events")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(eventPayload("NOTIFY-EVENT-03", "notify-key-03", "333333")))
 				.andExpect(status().isOk());
-		MvcResult inbox = mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", accountId))
+		MvcResult inbox = mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andReturn();
 		String notificationId = JsonPath.read(inbox.getResponse().getContentAsString(),
 				"$.data.notifications[0].notificationId");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/{notificationId}/read", accountId, notificationId))
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/{notificationId}/read",
+						session.accountId(), notificationId)
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.notificationId").value(notificationId))
 				.andExpect(jsonPath("$.data.read").value(true))
 				.andExpect(jsonPath("$.data.readAt").exists());
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.unreadCount").value(0));
 	}
 
 	@Test
 	void markReadRejectsUnknownNotification() throws Exception {
-		String accountId = signUpAndGetAccountId("NotifyMissing01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "NotifyMissing01");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/NTF-UNKNOWN00000/read", accountId))
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/NTF-UNKNOWN00000/read", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("NOTIFICATION_001"));
 	}
 
-	private String watchedAccount(String username, String stockCode) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
+	private AuthSession watchedAccount(String username, String stockCode) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
 		when(omniLensMarketQuoteClient.getQuote(stockCode, "USD"))
 				.thenReturn(quote(stockCode));
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
 								  "stockCode": "%s"
 								}
-								""".formatted(stockCode)))
+				""".formatted(stockCode)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private String eventPayload(String eventId, String idempotencyKey, String stockCode) {

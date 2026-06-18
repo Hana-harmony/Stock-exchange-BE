@@ -18,13 +18,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,20 +41,21 @@ class TaxRefundCaseControllerTest {
 	@Test
 	void createRefundCaseMatchesSellRealizedPnlAndEstimatesRefund() throws Exception {
 		int taxYear = Year.now(ZoneOffset.UTC).getValue();
-		String accountId = fundedAccount("TaxTrader01", "200.00");
+		AuthSession session = fundedAccount("TaxTrader01", "200.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "50.00"))
 				.thenReturn(quote("005930", "Samsung Electronics", "70.00"));
-		buy(accountId, "005930", 2);
-		sell(accountId, "005930", 1);
+		buy(session, "005930", 2);
+		sell(session, "005930", 1);
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(refundCasePayload(taxYear, true)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.caseId").isNotEmpty())
-				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
 				.andExpect(jsonPath("$.data.taxYear").value(taxYear))
 				.andExpect(jsonPath("$.data.treatyCountry").value("US"))
 				.andExpect(jsonPath("$.data.status").value("READY_FOR_HANA_SYNC"))
@@ -71,7 +74,8 @@ class TaxRefundCaseControllerTest {
 				.andExpect(jsonPath("$.data.matchedTrades[0].realizedPnlUsd").value("20.00"))
 				.andExpect(jsonPath("$.data.dataSource").value("EXCHANGE_MOCK_LEDGER_REALIZED_PNL"));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/tax/refund-status", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/tax/refund-status", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.status").value("READY_FOR_HANA_SYNC"))
 				.andExpect(jsonPath("$.data.estimatedRefundUsd").value("1.40"))
@@ -80,11 +84,12 @@ class TaxRefundCaseControllerTest {
 
 	@Test
 	void refundStatusReturnsNotSubmittedBeforeTaxCaseExists() throws Exception {
-		String accountId = signUpAndGetAccountId("TaxEmpty01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxEmpty01");
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/tax/refund-status", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/tax/refund-status", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
 				.andExpect(jsonPath("$.data.status").value("NOT_SUBMITTED"))
 				.andExpect(jsonPath("$.data.estimatedRefundUsd").value("0.00"))
 				.andExpect(jsonPath("$.data.matchedTradeCount").value(0));
@@ -93,9 +98,10 @@ class TaxRefundCaseControllerTest {
 	@Test
 	void createRefundCaseWithoutProfitableSellTradeMarksNoRefundableProfit() throws Exception {
 		int taxYear = Year.now(ZoneOffset.UTC).getValue();
-		String accountId = signUpAndGetAccountId("TaxNoProfit01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxNoProfit01");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(refundCasePayload(taxYear, false)))
 				.andExpect(status().isOk())
@@ -106,9 +112,10 @@ class TaxRefundCaseControllerTest {
 
 	@Test
 	void createRefundCaseRejectsInvalidPayload() throws Exception {
-		String accountId = signUpAndGetAccountId("TaxInvalid01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxInvalid01");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -124,16 +131,17 @@ class TaxRefundCaseControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
-	private void buy(String accountId, String stockCode, long quantity) throws Exception {
-		trade(accountId, stockCode, "BUY", quantity);
+	private void buy(AuthSession session, String stockCode, long quantity) throws Exception {
+		trade(session, stockCode, "BUY", quantity);
 	}
 
-	private void sell(String accountId, String stockCode, long quantity) throws Exception {
-		trade(accountId, stockCode, "SELL", quantity);
+	private void sell(AuthSession session, String stockCode, long quantity) throws Exception {
+		trade(session, stockCode, "SELL", quantity);
 	}
 
-	private void trade(String accountId, String stockCode, String side, long quantity) throws Exception {
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+	private void trade(AuthSession session, String stockCode, String side, long quantity) throws Exception {
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -145,9 +153,10 @@ class TaxRefundCaseControllerTest {
 				.andExpect(status().isOk());
 	}
 
-	private String fundedAccount(String username, String amountUsd) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+	private AuthSession fundedAccount(String username, String amountUsd) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -155,21 +164,7 @@ class TaxRefundCaseControllerTest {
 								}
 								""".formatted(amountUsd)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private String refundCasePayload(int taxYear, boolean advancePaymentRequested) {

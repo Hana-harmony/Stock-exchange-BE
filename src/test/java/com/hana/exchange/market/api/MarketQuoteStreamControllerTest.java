@@ -12,21 +12,21 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.jayway.jsonpath.JsonPath;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.domain.MarketQuoteTickMessage;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -43,11 +43,11 @@ class MarketQuoteStreamControllerTest {
 
 	@Test
 	void publishQuoteTickSendsMarketStockAndAccountScopedTopics() throws Exception {
-		String accountId = fundedAccount("StreamTrader01", "200.00");
+		AuthSession session = fundedAccount("StreamTrader01", "200.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "54.00"));
-		addWatchlist(accountId, "005930");
-		buy(accountId, "005930", 1);
+		addWatchlist(session, "005930");
+		buy(session, "005930", 1);
 
 		mockMvc.perform(post("/api/v1/market/stream/quotes")
 						.contentType(MediaType.APPLICATION_JSON)
@@ -61,18 +61,18 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(jsonPath("$.data.topics[1]").value("/topic/market/markets/KOSPI"))
 				.andExpect(jsonPath("$.data.topics[2]").value("/topic/market/stocks/005930"))
 				.andExpect(jsonPath("$.data.topics[3]")
-						.value("/topic/accounts/" + accountId + "/market/quotes/watchlist"))
+						.value("/topic/accounts/" + session.accountId() + "/market/quotes/watchlist"))
 				.andExpect(jsonPath("$.data.topics[4]")
-						.value("/topic/accounts/" + accountId + "/market/quotes/portfolio"));
+						.value("/topic/accounts/" + session.accountId() + "/market/quotes/portfolio"));
 
 		verify(messagingTemplate).convertAndSend(eq("/topic/market/quotes"), any(MarketQuoteTickMessage.class));
 		verify(messagingTemplate).convertAndSend(eq("/topic/market/markets/KOSPI"), any(MarketQuoteTickMessage.class));
 		verify(messagingTemplate).convertAndSend(eq("/topic/market/stocks/005930"), any(MarketQuoteTickMessage.class));
 		verify(messagingTemplate).convertAndSend(
-				eq("/topic/accounts/" + accountId + "/market/quotes/watchlist"),
+				eq("/topic/accounts/" + session.accountId() + "/market/quotes/watchlist"),
 				any(MarketQuoteTickMessage.class));
 		verify(messagingTemplate).convertAndSend(
-				eq("/topic/accounts/" + accountId + "/market/quotes/portfolio"),
+				eq("/topic/accounts/" + session.accountId() + "/market/quotes/portfolio"),
 				any(MarketQuoteTickMessage.class));
 	}
 
@@ -86,8 +86,9 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
-	private void addWatchlist(String accountId, String stockCode) throws Exception {
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+	private void addWatchlist(AuthSession session, String stockCode) throws Exception {
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -97,8 +98,9 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(status().isOk());
 	}
 
-	private void buy(String accountId, String stockCode, long quantity) throws Exception {
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+	private void buy(AuthSession session, String stockCode, long quantity) throws Exception {
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -110,9 +112,10 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(status().isOk());
 	}
 
-	private String fundedAccount(String username, String amountUsd) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+	private AuthSession fundedAccount(String username, String amountUsd) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -120,21 +123,7 @@ class MarketQuoteStreamControllerTest {
 								}
 								""".formatted(amountUsd)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private String tickPayload(String stockCode, String stockName, String market) {

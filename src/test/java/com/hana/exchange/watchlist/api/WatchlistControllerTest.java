@@ -20,13 +20,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -40,12 +42,13 @@ class WatchlistControllerTest {
 
 	@Test
 	void getWatchlistReturnsEmptyItemsForNewAccount() throws Exception {
-		String accountId = signUpAndGetAccountId("WatchEmpty01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "WatchEmpty01");
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/watchlist", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
 				.andExpect(jsonPath("$.data.itemCount").value(0))
 				.andExpect(jsonPath("$.data.targetingMode").value("WATCHLIST_ALERT_TARGET"))
 				.andExpect(jsonPath("$.data.items", empty()));
@@ -53,11 +56,11 @@ class WatchlistControllerTest {
 
 	@Test
 	void addWatchlistItemUsesOmniLensMetadataAndIsIdempotent() throws Exception {
-		String accountId = signUpAndGetAccountId("WatchAdd01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "WatchAdd01");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "KOSPI"));
 
-		addStock(accountId, "005930")
+		addStock(session, "005930")
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.itemCount").value(1))
 				.andExpect(jsonPath("$.data.items[0].stockCode").value("005930"))
@@ -65,7 +68,7 @@ class WatchlistControllerTest {
 				.andExpect(jsonPath("$.data.items[0].market").value("KOSPI"))
 				.andExpect(jsonPath("$.data.items[0].targetingMode").value("WATCHLIST_ALERT_TARGET"));
 
-		addStock(accountId, "005930")
+		addStock(session, "005930")
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.itemCount").value(1));
 		verify(omniLensMarketQuoteClient, times(1)).getQuote("005930", "USD");
@@ -73,12 +76,13 @@ class WatchlistControllerTest {
 
 	@Test
 	void removeWatchlistItemDeletesAlertTarget() throws Exception {
-		String accountId = signUpAndGetAccountId("WatchDelete01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "WatchDelete01");
 		when(omniLensMarketQuoteClient.getQuote("000660", "USD"))
 				.thenReturn(quote("000660", "SK Hynix", "KOSPI"));
-		addStock(accountId, "000660").andExpect(status().isOk());
+		addStock(session, "000660").andExpect(status().isOk());
 
-		mockMvc.perform(delete("/api/v1/accounts/{accountId}/watchlist/{stockCode}", accountId, "000660"))
+		mockMvc.perform(delete("/api/v1/accounts/{accountId}/watchlist/{stockCode}", session.accountId(), "000660")
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.itemCount").value(0))
 				.andExpect(jsonPath("$.data.items", empty()));
@@ -86,9 +90,10 @@ class WatchlistControllerTest {
 
 	@Test
 	void removeUnknownWatchlistItemReturnsCommonError() throws Exception {
-		String accountId = signUpAndGetAccountId("WatchMissing01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "WatchMissing01");
 
-		mockMvc.perform(delete("/api/v1/accounts/{accountId}/watchlist/{stockCode}", accountId, "005930"))
+		mockMvc.perform(delete("/api/v1/accounts/{accountId}/watchlist/{stockCode}", session.accountId(), "005930")
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("WATCHLIST_001"));
@@ -96,9 +101,10 @@ class WatchlistControllerTest {
 
 	@Test
 	void watchlistRejectsInvalidStockCode() throws Exception {
-		String accountId = signUpAndGetAccountId("WatchInvalid01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "WatchInvalid01");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -110,28 +116,15 @@ class WatchlistControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
-	private org.springframework.test.web.servlet.ResultActions addStock(String accountId, String stockCode) throws Exception {
-		return mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+	private org.springframework.test.web.servlet.ResultActions addStock(AuthSession session, String stockCode) throws Exception {
+		return mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+				.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 						{
 						  "stockCode": "%s"
 						}
 						""".formatted(stockCode)));
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
 	}
 
 	private OmniLensMarketQuote quote(String stockCode, String stockNameEn, String market) {

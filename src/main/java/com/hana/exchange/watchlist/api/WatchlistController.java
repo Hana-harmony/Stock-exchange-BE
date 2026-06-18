@@ -18,11 +18,13 @@ import com.hana.exchange.watchlist.domain.WatchlistAddRequest;
 import com.hana.exchange.watchlist.domain.WatchlistResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}/watchlist")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Watchlist", description = "Local exchange watchlist APIs for quote and alert targeting")
 public class WatchlistController {
 

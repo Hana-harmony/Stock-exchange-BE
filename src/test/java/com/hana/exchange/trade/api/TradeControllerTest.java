@@ -23,6 +23,9 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.client.OmniLensOrderabilityClient;
+import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
+import com.hana.exchange.trade.domain.TradeSide;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -33,6 +36,9 @@ class TradeControllerTest {
 
 	@MockitoBean
 	private OmniLensMarketQuoteClient omniLensMarketQuoteClient;
+
+	@MockitoBean
+	private OmniLensOrderabilityClient omniLensOrderabilityClient;
 
 	@Test
 	void buyUsesOmniLensUsdQuoteAndUpdatesPortfolio() throws Exception {
@@ -172,6 +178,56 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
+	@Test
+	void orderabilityWarnsWhenViAndUpperLimitAreActive() throws Exception {
+		String accountId = fundedAccount("OrderabilityTrader01", "200.00");
+		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 2))
+				.thenReturn(orderability("005930", true, null, false, true, "UPPER_LIMIT", false));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+						.param("stockCode", "005930")
+						.param("side", "BUY")
+						.param("quantity", "2"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.stockCode").value("005930"))
+				.andExpect(jsonPath("$.data.side").value("BUY"))
+				.andExpect(jsonPath("$.data.quantity").value(2))
+				.andExpect(jsonPath("$.data.canPlaceMockOrder").value(true))
+				.andExpect(jsonPath("$.data.warnings[0]").value("VI_ACTIVE"))
+				.andExpect(jsonPath("$.data.warnings[1]").value("BUY_AT_UPPER_LIMIT"))
+				.andExpect(jsonPath("$.data.tradingMode").value("EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING"));
+	}
+
+	@Test
+	void orderabilityBlocksWhenForeignLimitExceeded() throws Exception {
+		String accountId = fundedAccount("OrderBlockTrader01", "200.00");
+		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 1))
+				.thenReturn(orderability("005930", false, "FOREIGN_LIMIT_EXCEEDED", true, false, "NORMAL", false));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+						.param("stockCode", "005930")
+						.param("side", "BUY")
+						.param("quantity", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.canPlaceMockOrder").value(false))
+				.andExpect(jsonPath("$.data.blockingReasons[0]").value("FOREIGN_LIMIT_EXCEEDED"));
+	}
+
+	@Test
+	void orderabilityRejectsInvalidInput() throws Exception {
+		String accountId = fundedAccount("OrderInvalidTrader01", "200.00");
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+						.param("stockCode", "ABCDEF")
+						.param("side", "BUY")
+						.param("quantity", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
 	private String fundedAccount(String username, String amountUsd) throws Exception {
 		String accountId = signUpAndGetAccountId(username);
 		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
@@ -216,6 +272,27 @@ class TradeControllerTest {
 				new BigDecimal("54.5"),
 				new BigDecimal("72.3"),
 				LocalDate.parse("2026-06-18"),
+				Instant.parse("2026-06-18T06:00:00Z"),
+				"HANA_OMNILENS_API");
+	}
+
+	private OmniLensOrderabilityResponse orderability(
+			String stockCode,
+			boolean orderable,
+			String orderBlockedReason,
+			boolean foreignLimitExceeded,
+			boolean viActive,
+			String priceLimitState,
+			boolean tradingHalted) {
+		return new OmniLensOrderabilityResponse(
+				stockCode,
+				"KOSPI",
+				orderable,
+				orderBlockedReason,
+				foreignLimitExceeded,
+				viActive,
+				priceLimitState,
+				tradingHalted,
 				Instant.parse("2026-06-18T06:00:00Z"),
 				"HANA_OMNILENS_API");
 	}

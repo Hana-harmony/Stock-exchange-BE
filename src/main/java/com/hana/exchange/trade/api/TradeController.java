@@ -1,6 +1,7 @@
 package com.hana.exchange.trade.api;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 
 import org.springframework.validation.annotation.Validated;
@@ -9,13 +10,17 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hana.exchange.common.api.ApiResponse;
+import com.hana.exchange.trade.application.TradeOrderabilityService;
 import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.PortfolioResponse;
-import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
+import com.hana.exchange.trade.domain.TradeOrderRequest;
+import com.hana.exchange.trade.domain.TradeOrderabilityResponse;
+import com.hana.exchange.trade.domain.TradeSide;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -27,9 +32,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class TradeController {
 
 	private final TradeService tradeService;
+	private final TradeOrderabilityService tradeOrderabilityService;
 
-	public TradeController(TradeService tradeService) {
+	public TradeController(TradeService tradeService, TradeOrderabilityService tradeOrderabilityService) {
 		this.tradeService = tradeService;
+		this.tradeOrderabilityService = tradeOrderabilityService;
 	}
 
 	@PostMapping("/trades")
@@ -45,5 +52,15 @@ public class TradeController {
 	public ApiResponse<PortfolioResponse> getPortfolio(
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId) {
 		return ApiResponse.success(tradeService.getPortfolio(accountId));
+	}
+
+	@GetMapping("/trades/orderability")
+	@Operation(summary = "Check mock trade orderability warnings from Hana OmniLens")
+	public ApiResponse<TradeOrderabilityResponse> checkOrderability(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
+			@RequestParam @Pattern(regexp = "\\d{6}") String stockCode,
+			@RequestParam TradeSide side,
+			@RequestParam @Min(1) long quantity) {
+		return ApiResponse.success(tradeOrderabilityService.check(accountId, stockCode, side, quantity));
 	}
 }

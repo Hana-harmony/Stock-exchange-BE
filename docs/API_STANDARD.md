@@ -70,6 +70,21 @@
   - `STALE_CACHE`: Hana-OmniLens-API was unavailable and Stock-exchange-BE served a snapshot inside `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL`; quote `fxStale` is `true`.
   - `EMPTY`: Account watchlist or portfolio had no stock codes, so no upstream call or cache entry was used.
 
+## Trade
+
+- `POST /api/v1/accounts/{accountId}/trades`
+  - Executes an internal mock buy/sell ledger entry.
+  - Uses Hana-OmniLens-API USD quote as the mock execution price.
+  - Does not call KIS real order or KIS mock trading.
+- `GET /api/v1/accounts/{accountId}/trades/orderability`
+  - Query params: `stockCode`, `side`, `quantity`.
+  - Calls Hana-OmniLens-API orderability boundary before a mock order.
+  - Returns `canPlaceMockOrder`, `blockingReasons`, and `warnings`.
+  - Blocking reasons include foreign ownership limit exhaustion, trading halt, or upstream order blocked reason.
+  - Warnings include VI activity and buy/sell at upper/lower price limit.
+- `GET /api/v1/accounts/{accountId}/portfolio`
+  - Returns mock USD cash, holdings, recent trades, and realized PnL.
+
 ## Market Chart
 
 - `GET /api/v1/market/stocks/{stockCode}/chart`

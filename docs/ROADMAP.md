@@ -11,7 +11,7 @@
 - Gradle Wrapper와 CI
 
 ## M2 시장 데이터와 모의 주문
-- 종목 검색/상세 proxy API
+- 종목 검색/상세 proxy API: Hana stock search/detail client와 FE용 영어/USD 응답 구현 완료
 - 단건 종목 실시간 시세 REST snapshot API
 - 전체 종목 실시간 시세 REST API: 설정 universe 기반 구현 완료, Hana bulk/all quote client 예정
 - 시장별/다건/watchlist/보유종목 실시간 시세 REST API: 시장별/다건/watchlist/보유종목 view 구현 완료, Hana bulk/all quote client 예정

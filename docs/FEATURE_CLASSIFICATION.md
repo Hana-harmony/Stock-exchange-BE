@@ -10,7 +10,7 @@
 | 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Done |
 | 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |
-| Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Partial |
+| Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Done |
 | 단건 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
 | 전체/시장별/다건/watchlist/보유종목 실시간 시세 REST API 제공 | Stock-exchange-BE | Partial |
 | 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket 제공 | Stock-exchange-BE | Partial |

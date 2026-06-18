@@ -68,6 +68,7 @@
 - Java Spring Boot 구조를 유지하고 Hana-OmniLens-API와 유사한 계층 구조를 사용한다.
 - 아이디/비밀번호 회원가입과 mock USD 계좌 생성을 구현한다.
 - 실제 결제 없는 달러 충전과 자체 mock ledger 기반 매수·매도를 구현한다.
+- 종목 검색/상세 API는 Hana-OmniLens-API를 proxy해 영어명, USD 가격, 외국인 보유율, VI, 상/하한가, orderable flag를 제공한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
 - 전체 한국 주식 REST snapshot은 Hana-OmniLens-API bulk/all quote가 완성되기 전까지 설정된 `HANA_OMNILENS_DEFAULT_STOCK_CODES` universe와 요청 `stockCodes` 조합으로 단계 구현한다.
 - quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status와 `fxStale=true`를 포함한다.

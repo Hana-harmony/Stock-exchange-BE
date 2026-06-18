@@ -13,6 +13,8 @@
 docker compose -f compose.local.yml up --build
 curl http://localhost:3000/actuator/health
 curl http://localhost:3000/api/v1/market/quotes
+curl "http://localhost:3000/api/v1/stocks/search?query=samsung&market=KOSPI&currency=USD&limit=10"
+curl "http://localhost:3000/api/v1/stocks/005930?currency=USD"
 curl "http://localhost:3000/api/v1/market/quotes?stockCodes=005930&stockCodes=000660&market=KOSPI&currency=USD"
 curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
 curl "http://localhost:3000/api/v1/market/stocks/005930/chart?from=2026-06-01&to=2026-06-18&interval=1d&currency=USD"
@@ -67,6 +69,8 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `GET /api/v1/stocks/{stockCode}/intelligence`
 - `GET /api/v1/accounts/{accountId}/notifications`
 - `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`
+- `GET /api/v1/stocks/search?query=samsung&market=KOSPI&currency=USD&limit=10`
+- `GET /api/v1/stocks/{stockCode}?currency=USD`
 - `GET /api/v1/market/quotes?stockCodes=005930&market=KOSPI&currency=USD`
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`
 - `GET /api/v1/market/stocks/{stockCode}/chart?from=2026-06-01&to=2026-06-18&interval=1d&currency=USD`
@@ -78,7 +82,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, 종목 검색, 호가, tax refund status 조회 예정
+- REST: 종목 검색/상세 proxy 구현, 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, 호가, tax refund status 조회 예정
 - WebSocket: 뉴스·공시 알림과 market quote stream 구독/재배포
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -98,7 +102,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. 현재 구현은 `POST /api/v1/market/stream/quotes`로 동일 publisher를 검증하며, Hana-OmniLens-API stream client가 붙으면 같은 publisher를 호출한다.
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
-8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Hana-OmniLens-API에서 시세, 외국인 보유율, VI, 상·하한가 상태를 조회한다.
+8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, 외국인 보유율, VI, 상·하한가 상태를 제공한다.
 9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
 10. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
 11. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.

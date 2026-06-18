@@ -14,6 +14,9 @@ hana:
         quote-path: /ws/market/quotes
         quote-currency: USD
         quote-replay-enabled: true
+        alert-enabled: false
+        alert-path: /ws/alerts/events
+        alert-replay-enabled: true
         reconnect-initial-delay: 1s
         reconnect-max-delay: 30s
         backpressure-buffer-size: 1000

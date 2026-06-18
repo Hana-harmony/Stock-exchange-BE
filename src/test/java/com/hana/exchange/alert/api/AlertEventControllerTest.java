@@ -1,5 +1,8 @@
 package com.hana.exchange.alert.api;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -23,8 +27,11 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.client.OmniLensOrderabilityClient;
+import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
 import com.hana.exchange.support.AuthTestSupport;
 import com.hana.exchange.support.AuthTestSupport.AuthSession;
+import com.hana.exchange.trade.domain.TradeSide;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -35,6 +42,15 @@ class AlertEventControllerTest {
 
 	@MockitoBean
 	private OmniLensMarketQuoteClient omniLensMarketQuoteClient;
+
+	@MockitoBean
+	private OmniLensOrderabilityClient omniLensOrderabilityClient;
+
+	@BeforeEach
+	void allowMockOrdersByDefault() {
+		when(omniLensOrderabilityClient.checkOrderability(anyString(), any(TradeSide.class), anyLong()))
+				.thenAnswer(invocation -> orderability(invocation.getArgument(0)));
+	}
 
 	@Test
 	void ingestEventMatchesWatchlistAndHoldingTargets() throws Exception {
@@ -194,6 +210,20 @@ class AlertEventControllerTest {
 				new BigDecimal("54.5"),
 				new BigDecimal("72.3"),
 				LocalDate.parse("2026-06-18"),
+				Instant.parse("2026-06-18T06:00:00Z"),
+				"HANA_OMNILENS_API");
+	}
+
+	private OmniLensOrderabilityResponse orderability(String stockCode) {
+		return new OmniLensOrderabilityResponse(
+				stockCode,
+				"KOSPI",
+				true,
+				null,
+				false,
+				false,
+				"NORMAL",
+				false,
 				Instant.parse("2026-06-18T06:00:00Z"),
 				"HANA_OMNILENS_API");
 	}

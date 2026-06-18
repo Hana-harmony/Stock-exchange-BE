@@ -60,7 +60,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - Hana-OmniLens-API의 KRX 기반 과거 시세 DB를 조회해 FE용 과거 시세 API 제공
 - KIS 모의투자 API를 사용하지 않는 자체 mock ledger 기반 가짜 매수·매도/자산 평가 로직
 - 실제 결제 없이 금액 입력만으로 mock USD 잔고를 증가시키는 달러 충전 기능
-- 외국인 한도, VI, 상·하한가 상태 기반 주문 가능 여부 안내
+- 외국인 한도, 거래정지, VI, 상·하한가 상태 기반 주문 가능 여부 안내와 mock 주문 실행 차단
 - 뉴스·공시 이벤트 수신, 저장, 사용자별 푸시 대상자 매칭
 - 앱 푸시 provider 경계, delivery 상태, 알림함 저장
 - 세무 서류 업로드 수신, mock 거래원장/sub-ledger와 매도 실현손익 매칭, 환급 상태 동기화
@@ -141,7 +141,8 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 10. 사용자가 로그인하면 HMAC 기반 bearer token을 발급하고, 계좌별 API는 Spring Security filter가 token 검증과 accountId 일치 여부를 확인한다.
 11. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
 12. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.
-13. 사용자가 모의 주문을 입력하면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
+13. 사용자가 모의 주문을 입력하면 Stock-exchange-BE가 같은 Hana-OmniLens-API orderability boundary를 다시 확인하고, 차단 사유가 있으면 mock ledger 기록 전에 주문을 거절한다.
+14. 차단 사유가 없으면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
 14. 포트폴리오 API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 15. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
 16. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.

@@ -27,7 +27,7 @@
 - 실제 결제 없는 mock 달러 충전: DB cash ledger 구현 완료
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: DB trade ledger와 holding 구현 완료
 - 평균단가, 평가손익, 매도 실현손익 계산: 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익 구현 완료
-- 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산: Hana orderability client와 mock 주문 전 경고 API 구현 완료, 실제 Hana 연동 smoke 예정
+- 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산: Hana orderability client, mock 주문 전 경고 API, mock 주문 실행 전 차단 검증 구현 완료, 실제 Hana 연동 smoke 예정
 - 평가금액과 주문 경고 contract test: portfolio valuation과 주문 경고 API contract test 구현 완료
 
 ## M3 뉴스·공시 알림

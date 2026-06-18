@@ -27,8 +27,8 @@
 - 실제 결제 없는 mock 달러 충전: 인메모리 cash ledger 구현 완료, 영속 ledger 예정
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: 인메모리 API 구현 완료, 영속 ledger 예정
 - 평균단가, 평가손익, 매도 실현손익 계산: 평균단가/매도 실현손익 구현 완료, 실시간 평가손익 예정
-- 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산
-- 평가금액과 주문 경고 contract test
+- 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산: Hana orderability client와 mock 주문 전 경고 API 구현 완료, 실제 Hana 연동 smoke 예정
+- 평가금액과 주문 경고 contract test: 주문 경고 API contract test 구현 완료, 실시간 평가금액 예정
 
 ## M3 뉴스·공시 알림
 - Hana-OmniLens-API WebSocket client

@@ -11,20 +11,25 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.hana.exchange.config.ExchangeBackendProperties;
+import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.domain.MarketQuoteSnapshot;
+import com.hana.exchange.market.application.MarketQuoteCache.CachedQuotes;
 
 @Service
 public class MarketQuoteService {
 
 	private final OmniLensMarketQuoteClient omniLensMarketQuoteClient;
+	private final MarketQuoteCache marketQuoteCache;
 	private final ExchangeBackendProperties properties;
 
 	public MarketQuoteService(
 			OmniLensMarketQuoteClient omniLensMarketQuoteClient,
+			MarketQuoteCache marketQuoteCache,
 			ExchangeBackendProperties properties) {
 		this.omniLensMarketQuoteClient = omniLensMarketQuoteClient;
+		this.marketQuoteCache = marketQuoteCache;
 		this.properties = properties;
 	}
 
@@ -51,29 +56,31 @@ public class MarketQuoteService {
 			String marketCoverage,
 			boolean useDefaultUniverse) {
 		List<String> resolvedStockCodes = resolveStockCodes(stockCodes, useDefaultUniverse);
-		List<OmniLensMarketQuote> quotes = resolvedStockCodes.isEmpty()
-				? List.of()
-				: omniLensMarketQuoteClient.getQuotes(resolvedStockCodes, currency);
+		CachedQuotes cachedQuotes = resolvedStockCodes.isEmpty()
+				? emptyQuotes()
+				: getQuotesWithCache(resolvedStockCodes, currency);
 		String normalizedMarket = normalizeMarket(market);
-		List<MarketQuoteSnapshot.Quote> exchangeQuotes = quotes.stream()
+		List<MarketQuoteSnapshot.Quote> exchangeQuotes = cachedQuotes.quotes().stream()
 				.filter(quote -> normalizedMarket == null || normalizedMarket.equals(quote.market()))
-				.map(this::toExchangeQuote)
+				.map(quote -> toExchangeQuote(quote, cachedQuotes.stale()))
 				.toList();
 		return new MarketQuoteSnapshot(
-				dataSource(quotes),
+				dataSource(cachedQuotes.quotes()),
 				marketCoverage,
 				"en",
 				currency,
 				"EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING",
 				new MarketQuoteSnapshot.Transport("REST", "WebSocket"),
 				normalizedMarket,
+				toCacheMetadata(cachedQuotes),
 				exchangeQuotes.size(),
 				exchangeQuotes,
 				Instant.now());
 	}
 
 	public MarketQuoteSnapshot getQuoteSnapshot(String stockCode, String currency) {
-		OmniLensMarketQuote quote = omniLensMarketQuoteClient.getQuote(stockCode, currency);
+		CachedQuotes cachedQuotes = getQuoteWithCache(stockCode, currency);
+		OmniLensMarketQuote quote = cachedQuotes.quotes().get(0);
 		return new MarketQuoteSnapshot(
 				quote.source(),
 				quote.stockCode(),
@@ -82,12 +89,55 @@ public class MarketQuoteService {
 				"EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING",
 				new MarketQuoteSnapshot.Transport("REST", "WebSocket"),
 				quote.market(),
+				toCacheMetadata(cachedQuotes),
 				1,
-				List.of(toExchangeQuote(quote)),
+				List.of(toExchangeQuote(quote, cachedQuotes.stale())),
 				Instant.now());
 	}
 
-	private MarketQuoteSnapshot.Quote toExchangeQuote(OmniLensMarketQuote quote) {
+	private CachedQuotes getQuotesWithCache(List<String> stockCodes, String currency) {
+		return marketQuoteCache.getFresh(stockCodes, currency)
+				.orElseGet(() -> fetchQuotesWithStaleFallback(stockCodes, currency));
+	}
+
+	private CachedQuotes getQuoteWithCache(String stockCode, String currency) {
+		List<String> stockCodes = List.of(stockCode);
+		return marketQuoteCache.getFresh(stockCodes, currency)
+				.orElseGet(() -> fetchQuoteWithStaleFallback(stockCode, currency));
+	}
+
+	private CachedQuotes fetchQuotesWithStaleFallback(List<String> stockCodes, String currency) {
+		try {
+			return marketQuoteCache.put(stockCodes, currency, omniLensMarketQuoteClient.getQuotes(stockCodes, currency));
+		} catch (BusinessException exception) {
+			return marketQuoteCache.getStale(stockCodes, currency)
+					.orElseThrow(() -> exception);
+		}
+	}
+
+	private CachedQuotes fetchQuoteWithStaleFallback(String stockCode, String currency) {
+		List<String> stockCodes = List.of(stockCode);
+		try {
+			return marketQuoteCache.put(stockCodes, currency, List.of(omniLensMarketQuoteClient.getQuote(stockCode, currency)));
+		} catch (BusinessException exception) {
+			return marketQuoteCache.getStale(stockCodes, currency)
+					.orElseThrow(() -> exception);
+		}
+	}
+
+	private CachedQuotes emptyQuotes() {
+		return new CachedQuotes(List.of(), MarketQuoteCache.CacheStatus.EMPTY, null, null, null);
+	}
+
+	private MarketQuoteSnapshot.Cache toCacheMetadata(CachedQuotes cachedQuotes) {
+		return new MarketQuoteSnapshot.Cache(
+				cachedQuotes.status().name(),
+				cachedQuotes.cachedAt(),
+				cachedQuotes.expiresAt(),
+				cachedQuotes.staleUntil());
+	}
+
+	private MarketQuoteSnapshot.Quote toExchangeQuote(OmniLensMarketQuote quote, boolean stale) {
 		return new MarketQuoteSnapshot.Quote(
 				quote.stockCode(),
 				displayName(quote),
@@ -99,7 +149,7 @@ public class MarketQuoteService {
 				toText(quote.localCurrencyPrice()),
 				deriveFxRate(quote),
 				quote.marketDataTime(),
-				false);
+				stale);
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {

@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: stock-exchange-be-test
+
+hana:
+  omnilens:
+    api:
+      base-url: http://localhost:8080
+      api-key: ""
+      default-stock-codes: 005930,000660,035420,005380,035720,207940
+      quote-cache-ttl: 0s
+      quote-cache-stale-ttl: 0s

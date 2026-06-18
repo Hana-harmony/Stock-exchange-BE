@@ -154,3 +154,16 @@
 - Reconnect policy uses the shared stream backoff settings, and replay policy sends `ALERT_STREAM_REPLAY` with the last ingested `publishedAt` when `HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED=true`.
 - Backpressure policy buffers validated alert events up to `HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE`, then drains them into `AlertEventService.ingest`.
 - REST ingest remains available for local smoke tests and adapter verification.
+
+## Notification Delivery
+
+- `GET /api/v1/accounts/{accountId}/notifications`
+  - Returns in-app notification items and push delivery metadata.
+  - Each notification includes `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, and `lastDeliveryError`.
+- Delivery statuses:
+  - `PENDING`: notification was created but no provider result has been recorded yet.
+  - `DELIVERED`: provider accepted or locally confirmed the delivery.
+  - `FAILED`: provider returned a failure result.
+  - `SKIPPED`: delivery was intentionally skipped.
+- Current provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
+- External mobile/web push providers and retry workers are planned hardening work.

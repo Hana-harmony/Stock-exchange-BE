@@ -50,7 +50,7 @@
 | 거주자증명서, 제한세율신청서 업로드 접수 | Stock-exchange-BE | Partial |
 | 파일 metadata와 거래원장/sub-ledger 매칭 | Stock-exchange-BE | Done |
 | 매도 실현손익 기반 세무 환급/선지급 입력 데이터 연결 | Stock-exchange-BE | Done |
-| Hana-OmniLens-API 세무 상태 조회/동기화 | Stock-exchange-BE | Planned |
+| Hana-OmniLens-API 세무 상태 조회/동기화 | Stock-exchange-BE | Done |
 | 환급/선지급 상태와 사후 환수 리스크 알림 | Stock-exchange-BE | Partial |
 | 국세청 경정청구 실제 제출 | Hana/업무 운영 시스템 | Out of scope until compliance approval |
 

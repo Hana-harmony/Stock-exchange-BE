@@ -20,7 +20,8 @@ public enum ErrorCode {
 	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance"),
 	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity"),
 	MOCK_ORDER_BLOCKED(HttpStatus.CONFLICT, "TRADE_003", "Mock order is blocked by orderability rules"),
-	TAX_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_001", "Tax refund case not found");
+	TAX_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_001", "Tax refund case not found"),
+	TAX_STATUS_SYNC_FAILED(HttpStatus.BAD_GATEWAY, "TAX_002", "Tax refund status sync failed");
 
 	private final HttpStatus status;
 	private final String code;

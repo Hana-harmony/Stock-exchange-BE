@@ -37,8 +37,8 @@
 | 기능 | 책임 | 상태 |
 | --- | --- | --- |
 | Hana-OmniLens-API WebSocket 구독 | Stock-exchange-BE | Done |
-| 이벤트 저장과 중복 제거 | Stock-exchange-BE | Partial |
-| `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Partial |
+| 이벤트 저장과 중복 제거 | Stock-exchange-BE | Done |
+| `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Done |
 | 앱 푸시/웹 알림/알림함 저장 | Stock-exchange-BE | Partial |
 | 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done |
 

@@ -23,7 +23,7 @@
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책: 기본 3초 fresh cache, 30초 stale fallback, 응답 cache metadata 구현 완료
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책: 기본 비활성화 설정과 upstream WebSocket client 구현 완료, 실제 Hana endpoint 연동 smoke 예정
 - 보유종목과 watchlist 모델: watchlist 인메모리 API 구현 완료, 보유종목은 mock 거래 portfolio로 부분 구현
-- 아이디/비밀번호 회원가입과 mock USD 계좌 생성: 인메모리 API 구현 완료, 로그인/영속화 예정
+- 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: 인메모리 API와 local JWT 발급/검증 구현 완료, 영속화와 auth filter 예정
 - 실제 결제 없는 mock 달러 충전: 인메모리 cash ledger 구현 완료, 영속 ledger 예정
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: 인메모리 API 구현 완료, 영속 ledger 예정
 - 평균단가, 평가손익, 매도 실현손익 계산: 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익 구현 완료

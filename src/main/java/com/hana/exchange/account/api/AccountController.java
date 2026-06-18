@@ -14,8 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hana.exchange.account.application.AccountService;
 import com.hana.exchange.account.domain.AccountBalanceResponse;
 import com.hana.exchange.account.domain.DepositUsdRequest;
+import com.hana.exchange.account.domain.LoginRequest;
+import com.hana.exchange.account.domain.LoginResponse;
 import com.hana.exchange.account.domain.SignUpRequest;
 import com.hana.exchange.account.domain.SignUpResponse;
+import com.hana.exchange.account.domain.TokenVerifyRequest;
+import com.hana.exchange.account.domain.TokenVerifyResponse;
 import com.hana.exchange.common.api.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +41,18 @@ public class AccountController {
 	@Operation(summary = "Sign up a local exchange user and create a mock USD account")
 	public ApiResponse<SignUpResponse> signUp(@Valid @RequestBody SignUpRequest request) {
 		return ApiResponse.success(accountService.signUp(request));
+	}
+
+	@PostMapping("/auth/login")
+	@Operation(summary = "Login a local exchange user and issue a local JWT")
+	public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+		return ApiResponse.success(accountService.login(request));
+	}
+
+	@PostMapping("/auth/token/verify")
+	@Operation(summary = "Verify a local exchange JWT issued by the login API")
+	public ApiResponse<TokenVerifyResponse> verifyToken(@Valid @RequestBody TokenVerifyRequest request) {
+		return ApiResponse.success(accountService.verifyToken(request));
 	}
 
 	@GetMapping("/accounts/{accountId}")

@@ -37,6 +37,8 @@
 | `COMMON_003` | 404 | Resource not found |
 | `COMMON_999` | 500 | Internal server error |
 | `AUTH_001` | 409 | Username already exists |
+| `AUTH_002` | 401 | Invalid username or password |
+| `AUTH_003` | 401 | Invalid auth token |
 | `ACCOUNT_001` | 404 | Mock USD account not found |
 | `WATCHLIST_001` | 404 | Watchlist item not found |
 | `ALERT_001` | 404 | Alert event not found |
@@ -50,6 +52,18 @@
 
 - Swagger UI: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
+
+## Auth
+
+- `POST /api/v1/auth/signup`
+  - Creates a local user and a mock USD account.
+- `POST /api/v1/auth/login`
+  - Issues a local HMAC-signed JWT-like bearer token for a username/password pair.
+  - Token claims include `sub`, `username`, `accountId`, `iat`, and `exp`.
+  - Signing key and TTL are configured by `EXCHANGE_AUTH_TOKEN_SIGNING_KEY` and `EXCHANGE_AUTH_ACCESS_TOKEN_TTL`.
+- `POST /api/v1/auth/token/verify`
+  - Verifies token signature and expiry, then returns the token claims used by the FE session context.
+- Current auth endpoints establish the login/session contract. Endpoint authorization filters are planned hardening work.
 
 ## Stock Search And Detail
 

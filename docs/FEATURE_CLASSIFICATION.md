@@ -23,7 +23,8 @@
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Partial |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Done |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Done |
-| 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
+| 사용자 보유종목과 자체 mock 주문 상태 DB 영속화 | Stock-exchange-BE | Done |
+| watchlist 저장소 영속화 | Stock-exchange-BE | Partial |
 | watchlist 관심종목 API와 알림 대상 입력 데이터 | Stock-exchange-BE | Done |
 | KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |
 | 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Done |

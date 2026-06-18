@@ -7,12 +7,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
 
 @Repository
+@Profile("memory")
 public class InMemoryTradeRepository implements TradeRepository {
 
 	private final Map<String, MockHolding> holdingsByAccountAndStock = new ConcurrentHashMap<>();

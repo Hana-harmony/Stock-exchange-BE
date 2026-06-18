@@ -49,3 +49,13 @@
 
 - Swagger UI: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
+
+## Market Quote Snapshot
+
+- `GET /api/v1/market/quotes`
+  - `stockCodes`: optional repeated 6-digit stock code. Omit it to use `HANA_OMNILENS_DEFAULT_STOCK_CODES`.
+  - `market`: optional `KOSPI`, `KOSDAQ`, `KONEX`, `OTHER` filter.
+  - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
+- `GET /api/v1/market/quotes/{stockCode}`
+  - Single stock snapshot for stock detail and mock trade price lookup.
+- Quote payload includes KRW price, requested local currency price, derived FX rate, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.

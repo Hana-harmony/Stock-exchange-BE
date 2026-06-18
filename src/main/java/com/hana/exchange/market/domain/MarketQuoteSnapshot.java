@@ -10,6 +10,8 @@ public record MarketQuoteSnapshot(
 		String displayCurrency,
 		String tradingMode,
 		Transport transport,
+		String marketFilter,
+		int quoteCount,
 		List<Quote> quotes,
 		Instant servedAt
 ) {
@@ -19,7 +21,10 @@ public record MarketQuoteSnapshot(
 	public record Quote(
 			String stockCode,
 			String stockName,
+			String market,
 			String currentPriceKrw,
+			String changeRate,
+			long volume,
 			String localCurrency,
 			String localCurrencyPrice,
 			String fxRate,

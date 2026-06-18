@@ -41,7 +41,8 @@
 | 이벤트 저장과 중복 제거 | Stock-exchange-BE | Done |
 | `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Done |
 | 알림함 저장, local push delivery 상태, 실패/미발송 retry worker | Stock-exchange-BE | Done |
-| FCM/APNS/web push provider 연동 | Stock-exchange-BE | Planned |
+| FCM/APNS/web push provider routing과 미설정 provider SKIPPED 상태 기록 | Stock-exchange-BE | Done |
+| 실제 FCM/APNS/web push 자격증명, 디바이스 토큰, 외부 발송 연동 | Stock-exchange-BE | Planned |
 | 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done |
 
 ## 3. 세무 전산화 및 환급금 선지급

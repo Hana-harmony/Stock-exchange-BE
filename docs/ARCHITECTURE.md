@@ -48,7 +48,8 @@
 - Planned `portfolio`: 평가금액 이력
 - Planned `trade`: 체결 원장 하드닝
 - Planned `alert`: replay/retry worker hardening
-- Planned `notification`: FCM/APNS/web push provider 발송, provider별 retry/backoff hardening
+- `notification`: FCM/APNS/web push provider routing, 미설정 provider SKIPPED 상태, provider별 retry worker 연동
+- Planned `notification`: 실제 FCM/APNS/web push 자격증명, 디바이스 토큰 저장, 외부 provider 발송
 - `tax`: object storage 파일 업로드, 세무 문서 metadata, tax refund case 연결
 - `tax`: Hana status sync 기반 사후 환수 리스크 notification
 - `audit/persistence`: Flyway schema와 JDBC repository 기반 사용자별 알림/주문/세무 상태 변경 이력 영속화와 retention purge
@@ -101,7 +102,7 @@
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 DB에 이벤트와 매칭 결과를 저장한다.
 - 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다.
 - 매칭된 alert target과 Hana 세무 sync에서 반환된 사후 환수 리스크는 계좌별 DB 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다.
-- notification은 provider 추상화와 delivery 상태를 보관한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, 실패/미발송 notification은 `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true`일 때 retry worker가 batch size와 max attempt 설정 기준으로 재전송한다. FCM/APNS/web push provider는 별도 단계다.
+- notification은 provider 추상화와 delivery 상태를 보관한다. 기본 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있다. 외부 provider는 디바이스 토큰과 자격증명이 없으면 `SKIPPED`로 기록되고, 실패/미발송 notification은 `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true`일 때 retry worker가 batch size와 max attempt 설정 기준으로 재전송한다. 실제 FCM/APNS/web push 자격증명·디바이스 토큰·외부 발송은 통합 단계다.
 - 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별 DB tax refund case로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다. Hana sync 결과가 `RECAPTURE_RISK`이면 tax case subject 기반 인앱 notification을 한 번 저장한다.
 
 ## 현재 구현 상태
@@ -129,4 +130,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- 웹 푸시와 외부 object storage provider는 미구현이다. 세무 파일은 로컬 object storage adapter로 저장하며, Hana REST retry/backoff, notification retry worker, audit retention worker는 기본 설정으로 구현되어 통합 환경에서 활성화할 수 있다.
+- 실제 웹 푸시 발송과 외부 object storage provider는 통합 단계다. 세무 파일은 로컬 object storage adapter로 저장하며, Hana REST retry/backoff, notification provider routing/retry worker, audit retention worker는 기본 설정으로 구현되어 통합 환경에서 활성화할 수 있다.

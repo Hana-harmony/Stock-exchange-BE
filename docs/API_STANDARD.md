@@ -58,4 +58,8 @@
   - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
 - `GET /api/v1/market/quotes/{stockCode}`
   - Single stock snapshot for stock detail and mock trade price lookup.
+- `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`
+  - Account watchlist quote snapshot. Empty watchlists return `quoteCount: 0` and do not fall back to the default universe.
+- `GET /api/v1/accounts/{accountId}/market/quotes/portfolio`
+  - Account portfolio holding quote snapshot. Empty holdings return `quoteCount: 0`.
 - Quote payload includes KRW price, requested local currency price, derived FX rate, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.

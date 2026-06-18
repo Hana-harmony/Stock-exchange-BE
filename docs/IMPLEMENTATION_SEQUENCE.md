@@ -69,6 +69,7 @@
 - 실제 결제 없는 달러 충전과 자체 mock ledger 기반 매수·매도를 구현한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
 - 전체 한국 주식 REST snapshot은 Hana-OmniLens-API bulk/all quote가 완성되기 전까지 설정된 `HANA_OMNILENS_DEFAULT_STOCK_CODES` universe와 요청 `stockCodes` 조합으로 단계 구현한다.
+- watchlist와 보유종목 REST snapshot은 계좌별 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
 - 보유종목과 watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.

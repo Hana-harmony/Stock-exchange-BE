@@ -64,6 +64,8 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`
 - `GET /api/v1/market/quotes?stockCodes=005930&market=KOSPI&currency=USD`
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`
+- `GET /api/v1/accounts/{accountId}/market/quotes/watchlist?currency=USD`
+- `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
@@ -79,7 +81,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 1. Hana-OmniLens-API의 KIS 기반 단건 실시간 시세 snapshot을 조회해 FE에 공통 응답 형식으로 전달한다.
 2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 cache에 반영한다.
 3. Stock-exchange-BE는 Hana가 내려준 `currentPriceKrw`, `localCurrencyPrice`, `localCurrency`, `fxRate`, `fxRateTime`, `fxRateSource`를 보존해 FE에 전달한다.
-4. FE가 설정된 전체 universe, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 현재 전체 universe는 `HANA_OMNILENS_DEFAULT_STOCK_CODES` 설정값을 사용하고, Hana-OmniLens-API bulk/all quote가 추가되면 client 경계에서 교체한다.
+4. FE가 설정된 전체 universe, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 현재 전체 universe는 `HANA_OMNILENS_DEFAULT_STOCK_CODES` 설정값을 사용하고, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다. Hana-OmniLens-API bulk/all quote가 추가되면 client 경계에서 교체한다.
 5. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 사용자 권한과 watchlist/portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다.
 6. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
 7. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Hana-OmniLens-API에서 시세, 외국인 보유율, VI, 상·하한가 상태를 조회한다.

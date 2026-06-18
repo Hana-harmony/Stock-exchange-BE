@@ -37,6 +37,8 @@ class OpenApiDocumentationTest {
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/notifications/{notificationId}/read']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/stocks/{stockCode}/intelligence']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/quotes']", notNullValue()))
-				.andExpect(jsonPath("$.paths['/api/v1/market/quotes/{stockCode}']", notNullValue()));
+				.andExpect(jsonPath("$.paths['/api/v1/market/quotes/{stockCode}']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/market/quotes/watchlist']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/market/quotes/portfolio']", notNullValue()));
 	}
 }

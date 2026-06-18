@@ -40,6 +40,7 @@
 | `AUTH_002` | 401 | Invalid username or password |
 | `AUTH_003` | 401 | Invalid auth token |
 | `AUTH_004` | 403 | Authenticated account cannot access this account resource |
+| `AUTH_005` | 401 | Invalid refresh token |
 | `ACCOUNT_001` | 404 | Mock USD account not found |
 | `WATCHLIST_001` | 404 | Watchlist item not found |
 | `ALERT_001` | 404 | Alert event not found |
@@ -59,11 +60,16 @@
 - `POST /api/v1/auth/signup`
   - Creates a local user and a mock USD account.
 - `POST /api/v1/auth/login`
-  - Issues a local HMAC-signed JWT-like bearer token for a username/password pair.
+  - Issues a local HMAC-signed JWT-like bearer token and refresh token for a username/password pair.
   - Token claims include `sub`, `username`, `accountId`, `iat`, and `exp`.
-  - Signing key and TTL are configured by `EXCHANGE_AUTH_TOKEN_SIGNING_KEY` and `EXCHANGE_AUTH_ACCESS_TOKEN_TTL`.
+  - Signing key and TTLs are configured by `EXCHANGE_AUTH_TOKEN_SIGNING_KEY`, `EXCHANGE_AUTH_ACCESS_TOKEN_TTL`, and `EXCHANGE_AUTH_REFRESH_TOKEN_TTL`.
 - `POST /api/v1/auth/token/verify`
   - Verifies token signature and expiry, then returns the token claims used by the FE session context.
+- `POST /api/v1/auth/token/refresh`
+  - Validates an active refresh token, revokes the previous refresh session, then issues a new access token and rotated refresh token.
+  - Reusing an old, revoked, expired, or unknown refresh token returns `AUTH_005`.
+- `POST /api/v1/auth/logout`
+  - Revokes the active refresh session. A revoked refresh token cannot be used again.
 - `GET/POST/DELETE /api/v1/accounts/**`
   - Requires `Authorization: Bearer <accessToken>`.
   - Spring Security verifies the local HMAC token and stores `userId`, `username`, `accountId`, `iat`, and `exp` in the authentication context.

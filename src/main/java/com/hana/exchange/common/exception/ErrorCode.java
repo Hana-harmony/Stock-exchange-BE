@@ -11,6 +11,7 @@ public enum ErrorCode {
 	INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_002", "Invalid username or password"),
 	INVALID_AUTH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_003", "Invalid auth token"),
 	AUTH_ACCOUNT_FORBIDDEN(HttpStatus.FORBIDDEN, "AUTH_004", "Authenticated account cannot access this account resource"),
+	INVALID_REFRESH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_005", "Invalid refresh token"),
 	MOCK_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT_001", "Mock USD account not found"),
 	WATCHLIST_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "WATCHLIST_001", "Watchlist item not found"),
 	ALERT_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ALERT_001", "Alert event not found"),

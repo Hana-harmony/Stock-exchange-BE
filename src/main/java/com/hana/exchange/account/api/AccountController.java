@@ -14,8 +14,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.hana.exchange.account.application.AccountService;
 import com.hana.exchange.account.domain.AccountBalanceResponse;
 import com.hana.exchange.account.domain.DepositUsdRequest;
+import com.hana.exchange.account.domain.LogoutRequest;
+import com.hana.exchange.account.domain.LogoutResponse;
 import com.hana.exchange.account.domain.LoginRequest;
 import com.hana.exchange.account.domain.LoginResponse;
+import com.hana.exchange.account.domain.RefreshTokenRequest;
+import com.hana.exchange.account.domain.RefreshTokenResponse;
 import com.hana.exchange.account.domain.SignUpRequest;
 import com.hana.exchange.account.domain.SignUpResponse;
 import com.hana.exchange.account.domain.TokenVerifyRequest;
@@ -54,6 +58,18 @@ public class AccountController {
 	@Operation(summary = "Verify a local exchange JWT issued by the login API")
 	public ApiResponse<TokenVerifyResponse> verifyToken(@Valid @RequestBody TokenVerifyRequest request) {
 		return ApiResponse.success(accountService.verifyToken(request));
+	}
+
+	@PostMapping("/auth/token/refresh")
+	@Operation(summary = "Rotate a refresh token and issue a new access token")
+	public ApiResponse<RefreshTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+		return ApiResponse.success(accountService.refreshToken(request));
+	}
+
+	@PostMapping("/auth/logout")
+	@Operation(summary = "Revoke a local refresh session")
+	public ApiResponse<LogoutResponse> logout(@Valid @RequestBody LogoutRequest request) {
+		return ApiResponse.success(accountService.logout(request));
 	}
 
 	@GetMapping("/accounts/{accountId}")

@@ -8,7 +8,7 @@
 | 영어권 현지 사용자와 USD 기준 서비스 목표 | Stock-exchange-BE | Done |
 | 아이디/비밀번호 기반 간편 회원가입/로그인 | Stock-exchange-BE | Done |
 | 계좌 API bearer token 인증과 accountId 접근 제어 | Stock-exchange-BE | Done |
-| refresh token/session rotation | Stock-exchange-BE | Planned |
+| refresh token/session rotation | Stock-exchange-BE | Done |
 | 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Done |
 | 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |

@@ -86,6 +86,7 @@
 - `POST /api/v1/auth/token/refresh`
   - Validates an active refresh token, revokes the previous refresh session, then issues a new access token and rotated refresh token.
   - Reusing an old, revoked, expired, or unknown refresh token returns `AUTH_005`.
+  - Refresh sessions store issue-time IP/User-Agent context. If a refresh request arrives from a different IP or User-Agent, the API still rotates the token but records `AUTH_SESSION_ANOMALY_DETECTED` in the account audit log.
 - `POST /api/v1/auth/logout`
   - Revokes the active refresh session. A revoked refresh token cannot be used again.
 - `GET/POST/DELETE /api/v1/accounts/**`

@@ -44,6 +44,8 @@ class JdbcRefreshSessionRepositoryTest {
 				user.userId(),
 				account.accountId(),
 				"refresh-token-hash-02",
+				"203.0.113.10",
+				"JUnit/5",
 				now,
 				now.plusSeconds(3600),
 				null,
@@ -51,7 +53,11 @@ class JdbcRefreshSessionRepositoryTest {
 
 		refreshSessionRepository.save(session);
 		assertThat(refreshSessionRepository.findByRefreshTokenHash(session.refreshTokenHash()))
-				.hasValueSatisfying(savedSession -> assertThat(savedSession.activeAt(now.plusSeconds(30))).isTrue());
+				.hasValueSatisfying(savedSession -> {
+					assertThat(savedSession.activeAt(now.plusSeconds(30))).isTrue();
+					assertThat(savedSession.issuedIpAddress()).isEqualTo("203.0.113.10");
+					assertThat(savedSession.issuedUserAgent()).isEqualTo("JUnit/5");
+				});
 
 		RefreshSession revokedSession = session.revoke(now.plusSeconds(120), "SES-DBTEST00003");
 		refreshSessionRepository.save(revokedSession);

@@ -48,6 +48,7 @@
 ## M5 운영 하드닝
 - auth context 기반 계좌 API 보호: `/api/v1/accounts/**` bearer token 검증과 accountId path 매칭 구현 완료
 - refresh token/session rotation과 refresh session DB 영속화 구현 완료
+- refresh session IP/User-Agent anomaly audit 구현 완료
 - rate limit 구현 완료
 - Hana-OmniLens-API REST client retry/backoff 구현 완료
 - Hana-OmniLens-API market quote/news·disclosure WebSocket reconnect/replay 구현 완료

@@ -41,7 +41,7 @@
 - `audit/application`: 주문 체결, notification 읽음 처리, tax refund case 생성/갱신 이벤트 저장, 개인정보 마스킹, 보존기간 정리 service
 - `audit/domain`: audit event type, subject, summary, occurredAt 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, API rate limit 설정, profile별 runtime 설정
-- Planned `auth`: session anomaly detection
+- `auth`: refresh session rotation, session context anomaly audit
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger 영속화

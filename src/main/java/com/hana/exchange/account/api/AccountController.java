@@ -1,8 +1,10 @@
 package com.hana.exchange.account.api;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,8 +52,13 @@ public class AccountController {
 
 	@PostMapping("/auth/login")
 	@Operation(summary = "Login a local exchange user and issue a local JWT")
-	public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-		return ApiResponse.success(accountService.login(request));
+	public ApiResponse<LoginResponse> login(
+			@Valid @RequestBody LoginRequest request,
+			HttpServletRequest servletRequest) {
+		return ApiResponse.success(accountService.login(
+				request,
+				clientIp(servletRequest),
+				userAgent(servletRequest)));
 	}
 
 	@PostMapping("/auth/token/verify")
@@ -62,8 +69,13 @@ public class AccountController {
 
 	@PostMapping("/auth/token/refresh")
 	@Operation(summary = "Rotate a refresh token and issue a new access token")
-	public ApiResponse<RefreshTokenResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-		return ApiResponse.success(accountService.refreshToken(request));
+	public ApiResponse<RefreshTokenResponse> refreshToken(
+			@Valid @RequestBody RefreshTokenRequest request,
+			HttpServletRequest servletRequest) {
+		return ApiResponse.success(accountService.refreshToken(
+				request,
+				clientIp(servletRequest),
+				userAgent(servletRequest)));
 	}
 
 	@PostMapping("/auth/logout")
@@ -87,5 +99,22 @@ public class AccountController {
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
 			@Valid @RequestBody DepositUsdRequest request) {
 		return ApiResponse.success(accountService.depositUsd(accountId, request));
+	}
+
+	private String clientIp(HttpServletRequest request) {
+		String forwardedFor = request.getHeader("X-Forwarded-For");
+		if (forwardedFor != null && !forwardedFor.isBlank()) {
+			return truncate(forwardedFor.split(",")[0].trim(), 64);
+		}
+		return truncate(request.getRemoteAddr() == null ? "UNKNOWN" : request.getRemoteAddr(), 64);
+	}
+
+	private String userAgent(HttpServletRequest request) {
+		String userAgent = request.getHeader(HttpHeaders.USER_AGENT);
+		return truncate(userAgent == null || userAgent.isBlank() ? "UNKNOWN" : userAgent, 255);
+	}
+
+	private String truncate(String value, int maxLength) {
+		return value.length() <= maxLength ? value : value.substring(0, maxLength);
 	}
 }

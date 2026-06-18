@@ -112,6 +112,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
 - 현재 mock 사용자, mock USD 계좌, mock cash ledger, refresh session 저장소는 Flyway schema와 JDBC repository로 영속화하며, 로그인 API는 HMAC 기반 local JWT와 refresh token을 발급한다.
 - refresh API는 기존 refresh session을 revoke하고 새 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다.
+- refresh session은 발급 시 IP/User-Agent를 저장하고, refresh 요청의 컨텍스트가 달라지면 감사 이벤트를 기록한다.
 - `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade holding/ledger, watchlist, alert event/match result, notification inbox, tax refund case, audit event는 Flyway/JDBC로 영속화한다.
 - 감사 이벤트는 저장 전 이메일, 전화번호, 주민등록번호 형식, 긴 secret/token 형식을 마스킹하며, `EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED=true`에서 보존기간이 지난 이벤트를 정리한다.
 - API rate limit은 `EXCHANGE_RATE_LIMIT_ENABLED=true`에서 `/api/v1/**` 요청에 적용되며, 계좌 path는 accountId 기준, 그 외 요청은 client IP 기준으로 제한한다.

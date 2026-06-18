@@ -24,6 +24,10 @@ public class IdGenerator {
 		return "LED-" + randomToken();
 	}
 
+	public String newTradeId() {
+		return "TRD-" + randomToken();
+	}
+
 	private String randomToken() {
 		StringBuilder token = new StringBuilder(RANDOM_LENGTH);
 		for (int index = 0; index < RANDOM_LENGTH; index++) {

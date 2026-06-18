@@ -20,4 +20,14 @@ public record MockUsdAccount(
 				createdAt,
 				updatedAt);
 	}
+
+	public MockUsdAccount withdraw(BigDecimal amountUsd, Instant updatedAt) {
+		return new MockUsdAccount(
+				accountId,
+				userId,
+				currency,
+				cashBalanceUsd.subtract(amountUsd),
+				createdAt,
+				updatedAt);
+	}
 }

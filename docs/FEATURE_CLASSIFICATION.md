@@ -20,9 +20,9 @@
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Planned |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Planned |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Planned |
-| 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Planned |
-| KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Planned |
-| 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Planned |
+| 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
+| KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |
+| 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Partial |
 | 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산 | Stock-exchange-BE | Planned |
 | 실시간 평가금액과 주문 경고 API 제공 | Stock-exchange-BE | Planned |
 | 실제 주문 실행, 체결, 정산, 환전 | Out of scope | Out of scope |

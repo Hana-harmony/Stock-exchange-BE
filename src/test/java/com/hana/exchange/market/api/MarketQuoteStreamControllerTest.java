@@ -1,0 +1,180 @@
+package com.hana.exchange.market.api;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.LocalDate;
+
+import com.jayway.jsonpath.JsonPath;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import com.hana.exchange.market.client.OmniLensMarketQuote;
+import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.domain.MarketQuoteTickMessage;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class MarketQuoteStreamControllerTest {
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@MockitoBean
+	private SimpMessagingTemplate messagingTemplate;
+
+	@MockitoBean
+	private OmniLensMarketQuoteClient omniLensMarketQuoteClient;
+
+	@Test
+	void publishQuoteTickSendsMarketStockAndAccountScopedTopics() throws Exception {
+		String accountId = fundedAccount("StreamTrader01", "200.00");
+		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
+				.thenReturn(quote("005930", "Samsung Electronics", "54.00"));
+		addWatchlist(accountId, "005930");
+		buy(accountId, "005930", 1);
+
+		mockMvc.perform(post("/api/v1/market/stream/quotes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(tickPayload("005930", "Samsung Electronics", "KOSPI")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.stockCode").value("005930"))
+				.andExpect(jsonPath("$.data.market").value("KOSPI"))
+				.andExpect(jsonPath("$.data.topicCount").value(5))
+				.andExpect(jsonPath("$.data.topics[0]").value("/topic/market/quotes"))
+				.andExpect(jsonPath("$.data.topics[1]").value("/topic/market/markets/KOSPI"))
+				.andExpect(jsonPath("$.data.topics[2]").value("/topic/market/stocks/005930"))
+				.andExpect(jsonPath("$.data.topics[3]")
+						.value("/topic/accounts/" + accountId + "/market/quotes/watchlist"))
+				.andExpect(jsonPath("$.data.topics[4]")
+						.value("/topic/accounts/" + accountId + "/market/quotes/portfolio"));
+
+		verify(messagingTemplate).convertAndSend(eq("/topic/market/quotes"), any(MarketQuoteTickMessage.class));
+		verify(messagingTemplate).convertAndSend(eq("/topic/market/markets/KOSPI"), any(MarketQuoteTickMessage.class));
+		verify(messagingTemplate).convertAndSend(eq("/topic/market/stocks/005930"), any(MarketQuoteTickMessage.class));
+		verify(messagingTemplate).convertAndSend(
+				eq("/topic/accounts/" + accountId + "/market/quotes/watchlist"),
+				any(MarketQuoteTickMessage.class));
+		verify(messagingTemplate).convertAndSend(
+				eq("/topic/accounts/" + accountId + "/market/quotes/portfolio"),
+				any(MarketQuoteTickMessage.class));
+	}
+
+	@Test
+	void publishQuoteTickRejectsInvalidPayload() throws Exception {
+		mockMvc.perform(post("/api/v1/market/stream/quotes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(tickPayload("ABCDEF", "Invalid", "kospi")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
+	private void addWatchlist(String accountId, String stockCode) throws Exception {
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "stockCode": "%s"
+								}
+								""".formatted(stockCode)))
+				.andExpect(status().isOk());
+	}
+
+	private void buy(String accountId, String stockCode, long quantity) throws Exception {
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "stockCode": "%s",
+								  "side": "BUY",
+								  "quantity": %d
+								}
+								""".formatted(stockCode, quantity)))
+				.andExpect(status().isOk());
+	}
+
+	private String fundedAccount(String username, String amountUsd) throws Exception {
+		String accountId = signUpAndGetAccountId(username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "amountUsd": %s
+								}
+								""".formatted(amountUsd)))
+				.andExpect(status().isOk());
+		return accountId;
+	}
+
+	private String signUpAndGetAccountId(String username) throws Exception {
+		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "%s",
+								  "password": "localPass123!"
+								}
+								""".formatted(username)))
+				.andExpect(status().isOk())
+				.andReturn();
+		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+	}
+
+	private String tickPayload(String stockCode, String stockName, String market) {
+		return """
+				{
+				  "stockCode": "%s",
+				  "stockName": "%s",
+				  "market": "%s",
+				  "currentPriceKrw": 75000,
+				  "changeRate": 1.25,
+				  "volume": 1000000,
+				  "localCurrency": "USD",
+				  "localCurrencyPrice": 54.00,
+				  "fxRate": 0.00072,
+				  "fxRateTime": "2026-06-18T06:00:00Z",
+				  "fxStale": false,
+				  "marketDataTime": "2026-06-18T06:00:01Z",
+				  "source": "HANA_OMNILENS_API_STREAM"
+				}
+				""".formatted(stockCode, stockName, market);
+	}
+
+	private OmniLensMarketQuote quote(String stockCode, String stockNameEn, String usdPrice) {
+		return new OmniLensMarketQuote(
+				stockCode,
+				"종목명",
+				stockNameEn,
+				"KOSPI",
+				new BigDecimal("75000"),
+				new BigDecimal("1.25"),
+				1000000L,
+				new BigDecimal("75000"),
+				"KRW",
+				new BigDecimal(usdPrice),
+				"USD",
+				50000000L,
+				new BigDecimal("54.5"),
+				new BigDecimal("72.3"),
+				LocalDate.parse("2026-06-18"),
+				Instant.parse("2026-06-18T06:00:00Z"),
+				"HANA_OMNILENS_API");
+	}
+}

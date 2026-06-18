@@ -63,3 +63,19 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio`
   - Account portfolio holding quote snapshot. Empty holdings return `quoteCount: 0`.
 - Quote payload includes KRW price, requested local currency price, derived FX rate, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.
+
+## Market Quote WebSocket
+
+- STOMP endpoints:
+  - `/ws/market`
+- FE subscription topics:
+  - `/topic/market/quotes`
+  - `/topic/market/markets/{market}`
+  - `/topic/market/stocks/{stockCode}`
+  - `/topic/accounts/{accountId}/market/quotes/watchlist`
+  - `/topic/accounts/{accountId}/market/quotes/portfolio`
+- Local/Hana adapter ingest:
+  - `POST /api/v1/market/stream/quotes`
+  - The request contains `stockCode`, `stockName`, `market`, `currentPriceKrw`, `changeRate`, `volume`, `localCurrency`, `localCurrencyPrice`, `fxRate`, `fxRateTime`, `fxStale`, `marketDataTime`, and `source`.
+- The publisher sends the same tick to global, market, stock, matching watchlist account, and matching portfolio account topics.
+- WebSocket reconnect, replay, and backpressure policies are planned hardening work; FE must use REST snapshot endpoints for initial load and recovery.

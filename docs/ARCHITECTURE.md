@@ -43,7 +43,7 @@
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, API rate limit 설정, profile별 runtime 설정
 - `auth`: refresh session rotation, session context anomaly audit
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
-- Planned `market/client`: Hana-OmniLens-API 호가 API client
+- `market/client`: Hana-OmniLens-API 호가 API client
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger 영속화
 - Planned `portfolio`: 평가금액 이력
 - Planned `trade`: 체결 원장 하드닝
@@ -122,6 +122,7 @@
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.
 - `GET /api/v1/market/quotes?stockCodes=...&market=...&currency=USD`는 Hana all/bulk quote endpoint와 시장 필터 기준으로 KRW/USD 시세 목록 snapshot을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
+- `GET /api/v1/market/stocks/{stockCode}/orderbook?currency=USD`는 Hana-OmniLens-API 호가 REST snapshot을 호출해 매도/매수 호가별 KRW 가격, 현지통화 가격, 잔량, 주문 건수를 제공한다.
 - Hana-OmniLens-API REST client는 transport 실패에 대해 설정 기반 retry/backoff를 적용한다.
 - quote REST snapshot 응답은 `cache.status` metadata를 포함하고, upstream 장애 시 stale fallback 가능 구간의 snapshot을 반환한다.
 - `GET /api/v1/market/stocks/{stockCode}/chart?from=...&to=...&interval=1d&currency=USD`는 Hana-OmniLens-API KRX history API를 호출해 Flutter chart용 KRW/현지통화 OHLCV를 제공한다.

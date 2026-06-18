@@ -11,6 +11,8 @@ public interface NotificationRepository {
 
 	void save(NotificationItem item);
 
+	List<NotificationItem> findRetryableForDelivery(int limit, int maxAttemptCount);
+
 	List<NotificationItem> findByAccountId(String accountId);
 
 	Optional<NotificationItem> findByAccountIdAndNotificationId(String accountId, String notificationId);

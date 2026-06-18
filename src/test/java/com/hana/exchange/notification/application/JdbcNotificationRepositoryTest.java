@@ -91,10 +91,53 @@ class JdbcNotificationRepositoryTest {
 				});
 	}
 
+	@Test
+	void findsRetryableNotificationsByCreatedOrderUnderMaxAttemptCount() {
+		Instant now = Instant.parse("2026-06-18T06:00:00Z");
+		ExchangeUser user = new ExchangeUser(
+				"USR-NOTIFYDB02",
+				"notifydb02",
+				"salt",
+				"hash",
+				now);
+		MockUsdAccount account = new MockUsdAccount(
+				"ACC-NOTIFYDB02",
+				user.userId(),
+				"USD",
+				new BigDecimal("500.00"),
+				now,
+				now);
+		accountRepository.saveNewAccount(user, account);
+		AlertEvent firstEvent = event("NOTIFY-DB-EVENT-02", "notify-db-key-02", now);
+		AlertEvent secondEvent = event("NOTIFY-DB-EVENT-03", "notify-db-key-03", now.plusSeconds(1));
+		AlertEvent exhaustedEvent = event("NOTIFY-DB-EVENT-04", "notify-db-key-04", now.plusSeconds(2));
+		AlertEvent deliveredEvent = event("NOTIFY-DB-EVENT-05", "notify-db-key-05", now.plusSeconds(3));
+		alertEventRepository.save(firstEvent, new AlertEventMatchResult(firstEvent, List.of(), now.plusSeconds(10)));
+		alertEventRepository.save(secondEvent, new AlertEventMatchResult(secondEvent, List.of(), now.plusSeconds(11)));
+		alertEventRepository.save(exhaustedEvent, new AlertEventMatchResult(exhaustedEvent, List.of(), now.plusSeconds(12)));
+		alertEventRepository.save(deliveredEvent, new AlertEventMatchResult(deliveredEvent, List.of(), now.plusSeconds(13)));
+		notificationRepository.save(notification("NTF-NOTIFYDB02", account, firstEvent, NotificationDeliveryStatus.FAILED, 1, now.plusSeconds(20)));
+		notificationRepository.save(notification("NTF-NOTIFYDB03", account, secondEvent, NotificationDeliveryStatus.PENDING, 0, now.plusSeconds(21)));
+		notificationRepository.save(notification("NTF-NOTIFYDB04", account, exhaustedEvent, NotificationDeliveryStatus.FAILED, 3, now.plusSeconds(22)));
+		notificationRepository.save(notification("NTF-NOTIFYDB05", account, deliveredEvent, NotificationDeliveryStatus.DELIVERED, 1, now.plusSeconds(23)));
+
+		assertThat(notificationRepository.findRetryableForDelivery(10, 3))
+				.extracting(NotificationItem::notificationId)
+				.contains("NTF-NOTIFYDB02", "NTF-NOTIFYDB03")
+				.doesNotContain("NTF-NOTIFYDB04", "NTF-NOTIFYDB05");
+		assertThat(notificationRepository.findRetryableForDelivery(1, 3))
+				.extracting(NotificationItem::notificationId)
+				.containsExactly("NTF-NOTIFYDB02");
+	}
+
 	private AlertEvent event(String eventId, Instant now) {
+		return event(eventId, "notify-db-key-01", now);
+	}
+
+	private AlertEvent event(String eventId, String idempotencyKey, Instant now) {
 		return new AlertEvent(
 				eventId,
-				"notify-db-key-01",
+				idempotencyKey,
 				"DISCLOSURE",
 				"Samsung disclosure update",
 				"Translated AI summary for local investors",
@@ -108,5 +151,34 @@ class JdbcNotificationRepositoryTest {
 				false,
 				now,
 				now.plusSeconds(1));
+	}
+
+	private NotificationItem notification(
+			String notificationId,
+			MockUsdAccount account,
+			AlertEvent event,
+			NotificationDeliveryStatus status,
+			int attemptCount,
+			Instant createdAt) {
+		return new NotificationItem(
+				notificationId,
+				account.accountId(),
+				account.userId(),
+				event.eventId(),
+				event.sourceType(),
+				event.title(),
+				event.summary(),
+				event.originalUrl(),
+				event.stockCode(),
+				List.of("005930"),
+				List.of("WATCHLIST"),
+				status,
+				null,
+				attemptCount,
+				null,
+				null,
+				false,
+				createdAt,
+				null);
 	}
 }

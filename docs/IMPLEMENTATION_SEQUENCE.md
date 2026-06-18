@@ -83,7 +83,7 @@
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 - DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
-- notification은 provider 추상화와 delivery 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다.
+- notification은 provider 추상화와 delivery 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다. 실패/미발송 notification은 환경변수로 활성화하는 retry worker가 batch size와 max attempt 기준으로 재전송한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 - 세무 환급 케이스는 거주자증명서/제한세율신청서 metadata와 mock SELL 원장을 DB에서 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 실제 파일 저장과 Hana 세무 상태 sync는 별도 단계로 확장한다.
 

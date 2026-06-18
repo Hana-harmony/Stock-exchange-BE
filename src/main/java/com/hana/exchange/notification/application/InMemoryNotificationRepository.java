@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
+import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
 import com.hana.exchange.notification.domain.NotificationItem;
 
 @Repository
@@ -30,6 +31,16 @@ public class InMemoryNotificationRepository implements NotificationRepository {
 	}
 
 	@Override
+	public List<NotificationItem> findRetryableForDelivery(int limit, int maxAttemptCount) {
+		return itemsById.values()
+				.stream()
+				.filter(item -> retryable(item, maxAttemptCount))
+				.sorted(Comparator.comparing(NotificationItem::createdAt))
+				.limit(limit)
+				.toList();
+	}
+
+	@Override
 	public List<NotificationItem> findByAccountId(String accountId) {
 		return itemsById.values()
 				.stream()
@@ -46,5 +57,11 @@ public class InMemoryNotificationRepository implements NotificationRepository {
 
 	private String key(String eventId, String accountId) {
 		return eventId + ":" + accountId;
+	}
+
+	private boolean retryable(NotificationItem item, int maxAttemptCount) {
+		return item.deliveryAttemptCount() < maxAttemptCount
+				&& (item.deliveryStatus() == NotificationDeliveryStatus.PENDING
+				|| item.deliveryStatus() == NotificationDeliveryStatus.FAILED);
 	}
 }

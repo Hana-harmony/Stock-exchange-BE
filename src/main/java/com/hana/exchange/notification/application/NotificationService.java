@@ -66,9 +66,17 @@ public class NotificationService {
 					false,
 					Instant.now(),
 					null);
-			NotificationDeliveryResult deliveryResult = pushNotificationSender.send(pendingNotification);
+			NotificationDeliveryResult deliveryResult = sendSafely(pendingNotification);
 			notificationRepository.save(pendingNotification.markDelivery(deliveryResult));
 		}
+	}
+
+	public int dispatchRetryablePushNotifications(int batchSize, int maxAttemptCount) {
+		List<NotificationItem> retryableItems = notificationRepository.findRetryableForDelivery(batchSize, maxAttemptCount);
+		for (NotificationItem item : retryableItems) {
+			notificationRepository.save(item.markDelivery(sendSafely(item)));
+		}
+		return retryableItems.size();
 	}
 
 	public NotificationInboxResponse getInbox(String accountId) {
@@ -124,5 +132,13 @@ public class NotificationService {
 				item.read(),
 				item.createdAt(),
 				item.readAt());
+	}
+
+	private NotificationDeliveryResult sendSafely(NotificationItem notification) {
+		try {
+			return pushNotificationSender.send(notification);
+		} catch (RuntimeException exception) {
+			return NotificationDeliveryResult.failed("PUSH_PROVIDER", exception.getMessage());
+		}
 	}
 }

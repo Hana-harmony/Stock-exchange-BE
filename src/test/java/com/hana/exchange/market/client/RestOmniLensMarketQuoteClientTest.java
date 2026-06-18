@@ -122,6 +122,7 @@ class RestOmniLensMarketQuoteClientTest {
 				"http://omnilens",
 				apiKey,
 				Duration.ofSeconds(3),
-				Duration.ofSeconds(30));
+				Duration.ofSeconds(30),
+				ExchangeBackendProperties.Stream.defaults());
 	}
 }

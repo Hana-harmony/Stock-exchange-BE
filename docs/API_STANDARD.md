@@ -185,6 +185,7 @@
   - Returns the latest tax refund case, or `NOT_SUBMITTED` when no case exists.
 - `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`
   - Sends the latest tax refund case to Hana-OmniLens-API tax status sync boundary and persists the returned status.
+  - When Hana returns `RECAPTURE_RISK`, the service stores one in-app notification for the tax refund case subject and records local push delivery state.
   - Returns `TAX_001` when no local tax case exists and `TAX_002` when Hana sync fails or returns an unsupported status.
 - Current statuses:
   - `NOT_SUBMITTED`: no tax refund case has been created.
@@ -225,7 +226,8 @@
 
 - `GET /api/v1/accounts/{accountId}/notifications`
   - Returns in-app notification items and push delivery metadata.
-  - Each notification includes `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, and `lastDeliveryError`.
+  - Each notification includes `eventId`, `subjectType`, `subjectId`, `sourceType`, `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, and `lastDeliveryError`.
+  - Alert notifications use subject `ALERT_EVENT`; tax recapture risk notifications use subject `TAX_REFUND_CASE` and source type `TAX_RECAPTURE_RISK`.
 - Delivery statuses:
   - `PENDING`: notification was created but no provider result has been recorded yet.
   - `DELIVERED`: provider accepted or locally confirmed the delivery.

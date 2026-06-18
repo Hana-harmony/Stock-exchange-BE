@@ -15,6 +15,7 @@ import com.hana.exchange.audit.application.AuditEventService;
 import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.notification.application.NotificationService;
 import com.hana.exchange.tax.client.OmniLensTaxStatusClient;
 import com.hana.exchange.tax.client.OmniLensTaxStatusSyncRequest;
 import com.hana.exchange.tax.client.OmniLensTaxStatusSyncResponse;
@@ -44,6 +45,7 @@ public class TaxRefundCaseService {
 	private final IdGenerator idGenerator;
 	private final AuditEventService auditEventService;
 	private final OmniLensTaxStatusClient omniLensTaxStatusClient;
+	private final NotificationService notificationService;
 
 	public TaxRefundCaseService(
 			AccountRepository accountRepository,
@@ -52,7 +54,8 @@ public class TaxRefundCaseService {
 			TaxDocumentRepository taxDocumentRepository,
 			IdGenerator idGenerator,
 			AuditEventService auditEventService,
-			OmniLensTaxStatusClient omniLensTaxStatusClient) {
+			OmniLensTaxStatusClient omniLensTaxStatusClient,
+			NotificationService notificationService) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.taxRefundCaseRepository = taxRefundCaseRepository;
@@ -60,6 +63,7 @@ public class TaxRefundCaseService {
 		this.idGenerator = idGenerator;
 		this.auditEventService = auditEventService;
 		this.omniLensTaxStatusClient = omniLensTaxStatusClient;
+		this.notificationService = notificationService;
 	}
 
 	public TaxRefundCaseResponse createOrReplace(String accountId, TaxRefundCaseCreateRequest request) {
@@ -133,6 +137,9 @@ public class TaxRefundCaseService {
 				"Synced tax year " + syncedCase.taxYear()
 						+ " with Hana status=" + syncedCase.status().name(),
 				syncedCase.updatedAt());
+		if (syncedCase.status() == TaxRefundCaseStatus.RECAPTURE_RISK) {
+			notificationService.storeTaxRecaptureRiskNotification(syncedCase);
+		}
 		return toResponse(syncedCase, matchedSellTrades(accountId, syncedCase.taxYear()));
 	}
 

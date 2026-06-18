@@ -229,6 +229,52 @@ class TaxRefundCaseControllerTest {
 	}
 
 	@Test
+	void syncRefundStatusStoresRecaptureRiskNotificationOnce() throws Exception {
+		int taxYear = Year.now(ZoneOffset.UTC).getValue();
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxRiskNotify01");
+		when(omniLensTaxStatusClient.sync(any(OmniLensTaxStatusSyncRequest.class)))
+				.thenReturn(new OmniLensTaxStatusSyncResponse(
+						"TAX-RISK-REMOTE",
+						"RECAPTURE_RISK",
+						Instant.parse("2026-06-18T07:30:00Z"),
+						"HANA_OMNILENS_API"));
+		MvcResult createdCase = mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(refundCasePayload(taxYear, false)))
+				.andExpect(status().isOk())
+				.andReturn();
+		String caseId = JsonPath.read(createdCase.getResponse().getContentAsString(), "$.data.caseId");
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-status/sync", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("RECAPTURE_RISK"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.unreadCount").value(1))
+				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.notifications[0].eventId").doesNotExist())
+				.andExpect(jsonPath("$.data.notifications[0].subjectType").value("TAX_REFUND_CASE"))
+				.andExpect(jsonPath("$.data.notifications[0].subjectId").value(caseId))
+				.andExpect(jsonPath("$.data.notifications[0].sourceType").value("TAX_RECAPTURE_RISK"))
+				.andExpect(jsonPath("$.data.notifications[0].matchReasons[0]").value("TAX_RECAPTURE_RISK"))
+				.andExpect(jsonPath("$.data.notifications[0].deliveryStatus").value("DELIVERED"))
+				.andExpect(jsonPath("$.data.notifications[0].deliveryProvider").value("LOCAL_NOOP_PUSH"));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-status/sync", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("RECAPTURE_RISK"));
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.totalCount").value(1));
+	}
+
+	@Test
 	void syncRefundStatusRejectsWhenTaxCaseDoesNotExist() throws Exception {
 		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxSyncMissing01");
 

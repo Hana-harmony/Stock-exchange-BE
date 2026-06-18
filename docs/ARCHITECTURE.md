@@ -95,7 +95,7 @@
 - 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다.
 - 매칭된 alert target은 계좌별 DB 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다.
 - notification은 provider 추상화와 delivery 상태를 보관한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, FCM/APNS/web push provider와 retry worker는 별도 단계다.
-- 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공한다.
+- 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별 DB tax refund case로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공한다.
 
 ## 현재 구현 상태
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
@@ -118,4 +118,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- tax 영속 저장소, push worker, 웹 푸시는 미구현이다.
+- push worker, 웹 푸시, 세무 파일 object storage, Hana 세무 상태 sync는 미구현이다.

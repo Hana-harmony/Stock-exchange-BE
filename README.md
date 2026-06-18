@@ -57,7 +57,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - 전체/다건/단건 한국 주식 실시간 시세 REST API 제공
 - 전체/시장별/watchlist/보유종목 한국 주식 실시간 시세 WebSocket 제공
 - KRW 가격과 실시간 환율 적용 USD 가격을 함께 FE에 제공
-- Hana-OmniLens-API의 KRX 기반 과거 시세 API를 조회해 FE용 과거 시세 API 제공
+- Hana-OmniLens-API의 KRX 기반 과거 시세 API와 quote FX metadata를 조회해 FE용 KRW/USD 차트 API 제공
 - KIS 모의투자 API를 사용하지 않는 자체 mock ledger 기반 가짜 매수·매도/자산 평가 로직
 - 실제 결제 없이 금액 입력만으로 mock USD 잔고를 증가시키는 달러 충전 기능
 - 외국인 한도, 거래정지, VI, 상·하한가 상태 기반 주문 가능 여부 안내와 mock 주문 실행 차단
@@ -119,7 +119,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - Hana-OmniLens-API REST client는 `HANA_OMNILENS_REST_RETRY_ENABLED`, `HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS`, `HANA_OMNILENS_REST_RETRY_INITIAL_DELAY`, `HANA_OMNILENS_REST_RETRY_MAX_DELAY` 기준으로 transport 실패를 exponential backoff 재시도한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy와 주/월 OHLCV 집계 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
 - WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/매칭 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 alert와 tax recapture risk delivery 상태 기록 구현, FCM/APNS/web push provider routing과 미설정 provider `SKIPPED` 기록 구현, 실패/미발송 notification retry worker 구현, 실제 외부 push 자격증명·디바이스 토큰 연동 예정
 - 구독 topic:
@@ -139,7 +139,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 4. FE가 전체 한국 주식, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 전체 목록은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 종목 목록은 bulk quote endpoint를 사용하며, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다.
 5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. `POST /api/v1/market/stream/quotes`는 local adapter smoke용 ingest 계약이고, Hana-OmniLens-API stream client도 동일 publisher를 호출한다.
-7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
+7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API와 단건 quote FX metadata를 호출해 KRW/현지통화 차트 응답으로 재가공한다. `1d`는 일봉을 그대로 반환하고, `1w`와 `1mo`는 BE가 OHLCV와 거래대금을 집계한다.
 8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, 외국인 보유율, VI, 상·하한가 상태를 제공한다.
 9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 Flyway/JDBC 기반 계좌 저장소를 사용한다.
 10. 사용자가 로그인하면 HMAC 기반 bearer token을 발급하고, 계좌별 API는 Spring Security filter가 token 검증과 accountId 일치 여부를 확인한다.

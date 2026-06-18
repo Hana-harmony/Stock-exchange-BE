@@ -39,6 +39,7 @@
 | `AUTH_001` | 409 | Username already exists |
 | `AUTH_002` | 401 | Invalid username or password |
 | `AUTH_003` | 401 | Invalid auth token |
+| `AUTH_004` | 403 | Authenticated account cannot access this account resource |
 | `ACCOUNT_001` | 404 | Mock USD account not found |
 | `WATCHLIST_001` | 404 | Watchlist item not found |
 | `ALERT_001` | 404 | Alert event not found |
@@ -63,7 +64,11 @@
   - Signing key and TTL are configured by `EXCHANGE_AUTH_TOKEN_SIGNING_KEY` and `EXCHANGE_AUTH_ACCESS_TOKEN_TTL`.
 - `POST /api/v1/auth/token/verify`
   - Verifies token signature and expiry, then returns the token claims used by the FE session context.
-- Current auth endpoints establish the login/session contract. Endpoint authorization filters are planned hardening work.
+- `GET/POST/DELETE /api/v1/accounts/**`
+  - Requires `Authorization: Bearer <accessToken>`.
+  - Spring Security verifies the local HMAC token and stores `userId`, `username`, `accountId`, `iat`, and `exp` in the authentication context.
+  - Account-scoped paths must match the token `accountId`; mismatches return `AUTH_004`.
+- Public endpoints include signup, login, token verify, stock/market public snapshots, chart, WebSocket ingest smoke endpoints, alert ingest/target lookup, Swagger, and actuator health.
 
 ## Stock Search And Detail
 

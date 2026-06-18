@@ -17,11 +17,13 @@ import com.hana.exchange.tax.domain.TaxRefundCaseCreateRequest;
 import com.hana.exchange.tax.domain.TaxRefundCaseResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
 @RestController
 @RequestMapping("/api/v1/accounts/{accountId}/tax")
+@SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Tax", description = "Mock trading realized PnL tax refund APIs")
 public class TaxRefundCaseController {
 

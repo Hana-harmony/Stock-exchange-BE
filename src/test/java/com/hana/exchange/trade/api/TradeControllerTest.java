@@ -17,15 +17,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @SpringBootTest
@@ -43,11 +45,12 @@ class TradeControllerTest {
 
 	@Test
 	void buyUsesOmniLensUsdQuoteAndUpdatesPortfolio() throws Exception {
-		String accountId = fundedAccount("BuyTrader01", "200.00");
+		AuthSession session = fundedAccount("BuyTrader01", "200.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "50.00"));
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -71,7 +74,8 @@ class TradeControllerTest {
 		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
 				.thenReturn(List.of(quote("005930", "Samsung Electronics", "55.00")));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("100.00"))
 				.andExpect(jsonPath("$.data.totalMarketValueUsd").value("110.00"))
@@ -90,12 +94,13 @@ class TradeControllerTest {
 
 	@Test
 	void sellCalculatesRealizedPnlWithoutRealOrderExecution() throws Exception {
-		String accountId = fundedAccount("SellTrader01", "300.00");
+		AuthSession session = fundedAccount("SellTrader01", "300.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "50.00"))
 				.thenReturn(quote("005930", "Samsung Electronics", "60.00"));
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -106,7 +111,8 @@ class TradeControllerTest {
 								"""))
 				.andExpect(status().isOk());
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -126,7 +132,8 @@ class TradeControllerTest {
 		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
 				.thenReturn(List.of(quote("005930", "Samsung Electronics", "70.00")));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", accountId))
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.cashBalanceUsd").value("210.00"))
 				.andExpect(jsonPath("$.data.totalMarketValueUsd").value("140.00"))
@@ -143,11 +150,12 @@ class TradeControllerTest {
 
 	@Test
 	void buyRejectsInsufficientMockUsdBalance() throws Exception {
-		String accountId = fundedAccount("PoorTrader01", "10.00");
+		AuthSession session = fundedAccount("PoorTrader01", "10.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "50.00"));
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -163,11 +171,12 @@ class TradeControllerTest {
 
 	@Test
 	void sellRejectsInsufficientMockHoldingQuantity() throws Exception {
-		String accountId = fundedAccount("NoHoldingTrader01", "200.00");
+		AuthSession session = fundedAccount("NoHoldingTrader01", "200.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "50.00"));
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -183,9 +192,10 @@ class TradeControllerTest {
 
 	@Test
 	void tradeApiRejectsInvalidInput() throws Exception {
-		String accountId = fundedAccount("InvalidTradeTrader01", "200.00");
+		AuthSession session = fundedAccount("InvalidTradeTrader01", "200.00");
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -201,17 +211,18 @@ class TradeControllerTest {
 
 	@Test
 	void orderabilityWarnsWhenViAndUpperLimitAreActive() throws Exception {
-		String accountId = fundedAccount("OrderabilityTrader01", "200.00");
+		AuthSession session = fundedAccount("OrderabilityTrader01", "200.00");
 		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 2))
 				.thenReturn(orderability("005930", true, null, false, true, "UPPER_LIMIT", false));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("stockCode", "005930")
 						.param("side", "BUY")
 						.param("quantity", "2"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
 				.andExpect(jsonPath("$.data.stockCode").value("005930"))
 				.andExpect(jsonPath("$.data.side").value("BUY"))
 				.andExpect(jsonPath("$.data.quantity").value(2))
@@ -223,11 +234,12 @@ class TradeControllerTest {
 
 	@Test
 	void orderabilityBlocksWhenForeignLimitExceeded() throws Exception {
-		String accountId = fundedAccount("OrderBlockTrader01", "200.00");
+		AuthSession session = fundedAccount("OrderBlockTrader01", "200.00");
 		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 1))
 				.thenReturn(orderability("005930", false, "FOREIGN_LIMIT_EXCEEDED", true, false, "NORMAL", false));
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("stockCode", "005930")
 						.param("side", "BUY")
 						.param("quantity", "1"))
@@ -238,9 +250,10 @@ class TradeControllerTest {
 
 	@Test
 	void orderabilityRejectsInvalidInput() throws Exception {
-		String accountId = fundedAccount("OrderInvalidTrader01", "200.00");
+		AuthSession session = fundedAccount("OrderInvalidTrader01", "200.00");
 
-		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", accountId)
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("stockCode", "ABCDEF")
 						.param("side", "BUY")
 						.param("quantity", "0"))
@@ -249,9 +262,10 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
-	private String fundedAccount(String username, String amountUsd) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+	private AuthSession fundedAccount(String username, String amountUsd) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -259,21 +273,7 @@ class TradeControllerTest {
 								}
 								""".formatted(amountUsd)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private OmniLensMarketQuote quote(String stockCode, String stockNameEn, String usdPrice) {

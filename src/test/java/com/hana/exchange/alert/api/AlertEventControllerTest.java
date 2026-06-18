@@ -12,19 +12,19 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
-import com.jayway.jsonpath.JsonPath;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.support.AuthTestSupport;
+import com.hana.exchange.support.AuthTestSupport.AuthSession;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,13 +38,14 @@ class AlertEventControllerTest {
 
 	@Test
 	void ingestEventMatchesWatchlistAndHoldingTargets() throws Exception {
-		String watchAccountId = signUpAndGetAccountId("AlertWatch01");
-		String holderAccountId = fundedAccount("AlertHolder01", "300.00");
+		AuthSession watchSession = AuthTestSupport.signUpAndLogin(mockMvc, "AlertWatch01");
+		AuthSession holderSession = fundedAccount("AlertHolder01", "300.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
 				.thenReturn(quote("005930", "Samsung Electronics", "54.00"))
 				.thenReturn(quote("005930", "Samsung Electronics", "54.00"));
 
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", watchAccountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", watchSession.accountId())
+						.header(HttpHeaders.AUTHORIZATION, watchSession.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -52,7 +53,8 @@ class AlertEventControllerTest {
 								}
 								"""))
 				.andExpect(status().isOk());
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", holderAccountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", holderSession.accountId())
+						.header(HttpHeaders.AUTHORIZATION, holderSession.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -77,10 +79,11 @@ class AlertEventControllerTest {
 
 	@Test
 	void ingestEventIsIdempotentByIdempotencyKey() throws Exception {
-		String accountId = signUpAndGetAccountId("AlertIdempotent01");
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "AlertIdempotent01");
 		when(omniLensMarketQuoteClient.getQuote("000660", "USD"))
 				.thenReturn(quote("000660", "SK Hynix", "120.00"));
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", accountId)
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/watchlist", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -134,9 +137,10 @@ class AlertEventControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
-	private String fundedAccount(String username, String amountUsd) throws Exception {
-		String accountId = signUpAndGetAccountId(username);
-		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", accountId)
+	private AuthSession fundedAccount(String username, String amountUsd) throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/deposits", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -144,21 +148,7 @@ class AlertEventControllerTest {
 								}
 								""".formatted(amountUsd)))
 				.andExpect(status().isOk());
-		return accountId;
-	}
-
-	private String signUpAndGetAccountId(String username) throws Exception {
-		MvcResult result = mockMvc.perform(post("/api/v1/auth/signup")
-						.contentType(MediaType.APPLICATION_JSON)
-						.content("""
-								{
-								  "username": "%s",
-								  "password": "localPass123!"
-								}
-								""".formatted(username)))
-				.andExpect(status().isOk())
-				.andReturn();
-		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.accountId");
+		return session;
 	}
 
 	private String eventPayload(

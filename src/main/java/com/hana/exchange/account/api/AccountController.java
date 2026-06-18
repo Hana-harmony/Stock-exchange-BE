@@ -23,6 +23,7 @@ import com.hana.exchange.account.domain.TokenVerifyResponse;
 import com.hana.exchange.common.api.ApiResponse;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Validated
@@ -56,14 +57,16 @@ public class AccountController {
 	}
 
 	@GetMapping("/accounts/{accountId}")
-	@Operation(summary = "Get a mock USD account balance")
+	@Operation(summary = "Get a mock USD account balance", security = @SecurityRequirement(name = "bearerAuth"))
 	public ApiResponse<AccountBalanceResponse> getAccount(
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId) {
 		return ApiResponse.success(accountService.getAccount(accountId));
 	}
 
 	@PostMapping("/accounts/{accountId}/deposits")
-	@Operation(summary = "Deposit mock USD without real payment settlement")
+	@Operation(
+			summary = "Deposit mock USD without real payment settlement",
+			security = @SecurityRequirement(name = "bearerAuth"))
 	public ApiResponse<AccountBalanceResponse> depositUsd(
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
 			@Valid @RequestBody DepositUsdRequest request) {

@@ -45,7 +45,7 @@
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger 영속화
 - Planned `portfolio`: 평가금액 이력
-- Planned `trade`: 주문 가능 여부 강제 검증, 체결 원장 하드닝
+- Planned `trade`: 체결 원장 하드닝
 - Planned `alert`: replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, delivery retry worker
 - Planned `tax`: object storage 파일 업로드, Hana 세무 상태 동기화, 사후 환수 리스크 worker
@@ -85,6 +85,7 @@
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API를 FE 차트 응답 형식으로 재가공한다. 현재 BE client/proxy 계약은 구현되어 있고, Hana의 KRX history 수집/DB/API 완성은 별도 단계다.
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 주문 가능 여부 API는 Hana-OmniLens-API orderability boundary를 호출해 외국인 한도, 거래정지, VI, 상/하한가 상태를 mock 주문 전 경고/차단 사유로 제공한다.
+- mock 주문 실행 API도 같은 orderability boundary를 다시 확인하며, 차단 사유가 있으면 자체 ledger 기록 전에 `TRADE_003`으로 거절한다.
 - 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.
 - 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 Flyway/JDBC 기반 DB 저장소에 사용자와 계좌를 저장한다.
 - 로그인 API는 저장된 PBKDF2 hash를 검증하고 HMAC 기반 local JWT와 refresh token을 발급한다. token verify API는 FE session context가 사용할 userId, username, accountId, expiry를 반환한다.
@@ -104,7 +105,7 @@
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
 - `POST /api/v1/auth/signup`은 아이디/비밀번호 가입과 mock USD 계좌 생성을 공통 응답 형식으로 제공한다.
 - `GET /api/v1/accounts/{accountId}`와 `POST /api/v1/accounts/{accountId}/deposits`는 mock USD 잔고 조회와 실제 결제 없는 달러 충전을 제공한다.
-- `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익을 제공한다.
+- `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 orderability 강제 검증, 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익을 제공한다.
 - `GET /api/v1/accounts/{accountId}/trades/orderability`는 Hana-OmniLens-API orderability 결과를 이용해 mock 주문 전 차단 사유와 경고를 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.

@@ -37,6 +37,7 @@ public class TradeService {
 	private final AccountRepository accountRepository;
 	private final TradeRepository tradeRepository;
 	private final OmniLensMarketQuoteClient quoteClient;
+	private final TradeOrderabilityService tradeOrderabilityService;
 	private final IdGenerator idGenerator;
 	private final AuditEventService auditEventService;
 
@@ -44,16 +45,21 @@ public class TradeService {
 			AccountRepository accountRepository,
 			TradeRepository tradeRepository,
 			OmniLensMarketQuoteClient quoteClient,
+			TradeOrderabilityService tradeOrderabilityService,
 			IdGenerator idGenerator,
 			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.quoteClient = quoteClient;
+		this.tradeOrderabilityService = tradeOrderabilityService;
 		this.idGenerator = idGenerator;
 		this.auditEventService = auditEventService;
 	}
 
 	public TradeExecutionResponse execute(String accountId, TradeOrderRequest request) {
+		if (!tradeOrderabilityService.check(accountId, request.stockCode(), request.side(), request.quantity()).canPlaceMockOrder()) {
+			throw new BusinessException(ErrorCode.MOCK_ORDER_BLOCKED);
+		}
 		MockUsdAccount account = account(accountId);
 		OmniLensMarketQuote quote = quoteClient.getQuote(request.stockCode(), USD);
 		BigDecimal executionPriceUsd = money(quote.localCurrencyPrice());

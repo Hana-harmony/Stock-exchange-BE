@@ -36,8 +36,8 @@
 - Hana-OmniLens-API WebSocket client: 기본 비활성화 설정, reconnect, replay, backpressure buffer 구현 완료
 - 이벤트 저장소와 idempotency key: REST ingest와 WebSocket 수신 기반 DB 저장 구현 완료
 - 보유종목/watchlist 대상자 매칭: REST ingest와 WebSocket 수신 기반 DB match result 저장과 notification push worker 구현 완료
-- push provider 연동: `LOCAL_NOOP_PUSH` provider abstraction, delivery 상태, 실패/미발송 retry worker 구현 완료, FCM/APNS/web push provider 예정
-- 알림함 API: DB 조회/읽음 처리와 push delivery 상태 저장 구현 완료, FCM/APNS/web push provider 예정
+- push provider 연동: `LOCAL_NOOP_PUSH` provider abstraction, FCM/APNS/web push routing, 미설정 provider `SKIPPED` 상태, delivery 상태, 실패/미발송 retry worker 구현 완료
+- 알림함 API: DB 조회/읽음 처리와 push delivery 상태 저장 구현 완료, 실제 FCM/APNS/web push 자격증명·디바이스 토큰·외부 발송은 통합 단계 예정
 - 종목별 인텔리전스 피드 API: REST ingest와 WebSocket 이벤트 수신 기반 DB 조회 구현 완료, FE 연동 smoke 예정
 
 ## M4 세무 전산화

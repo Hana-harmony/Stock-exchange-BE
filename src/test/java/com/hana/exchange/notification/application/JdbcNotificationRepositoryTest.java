@@ -56,6 +56,8 @@ class JdbcNotificationRepositoryTest {
 				account.accountId(),
 				user.userId(),
 				event.eventId(),
+				"ALERT_EVENT",
+				event.eventId(),
 				event.sourceType(),
 				event.title(),
 				event.summary(),
@@ -75,6 +77,7 @@ class JdbcNotificationRepositoryTest {
 		notificationRepository.save(item);
 
 		assertThat(notificationRepository.existsForEventAndAccount(event.eventId(), account.accountId())).isTrue();
+		assertThat(notificationRepository.existsForSubjectAndAccount("ALERT_EVENT", event.eventId(), account.accountId())).isTrue();
 		assertThat(notificationRepository.findByAccountId(account.accountId())).containsExactly(item);
 		assertThat(notificationRepository.findByAccountIdAndNotificationId(account.accountId(), item.notificationId()))
 				.contains(item);
@@ -164,6 +167,8 @@ class JdbcNotificationRepositoryTest {
 				notificationId,
 				account.accountId(),
 				account.userId(),
+				event.eventId(),
+				"ALERT_EVENT",
 				event.eventId(),
 				event.sourceType(),
 				event.title(),

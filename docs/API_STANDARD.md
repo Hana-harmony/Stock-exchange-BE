@@ -65,9 +65,10 @@
 ## Market Quote Snapshot
 
 - `GET /api/v1/market/quotes`
-  - `stockCodes`: optional repeated 6-digit stock code. Omit it to use `HANA_OMNILENS_DEFAULT_STOCK_CODES`.
+  - `stockCodes`: optional repeated 6-digit stock code. Omit it to call Hana-OmniLens-API all Korean stock quote endpoint.
   - `market`: optional `KOSPI`, `KOSDAQ`, `KONEX`, `OTHER` filter.
   - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
+  - Calls Hana bulk quote endpoint when `stockCodes` is present and Hana all quote endpoint when it is omitted.
 - `GET /api/v1/market/quotes/{stockCode}`
   - Single stock snapshot for stock detail and mock trade price lookup.
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`

@@ -40,8 +40,9 @@
 - Planned `auth`: session anomaly detection
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
-- Planned `portfolio`: 영속 DB 기반 보유종목, 자체 mock ledger 주문 상태, 평가금액 이력
-- Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 강제 검증, 체결 원장 하드닝
+- `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger 영속화
+- Planned `portfolio`: 평가금액 이력
+- Planned `trade`: 주문 가능 여부 강제 검증, 체결 원장 하드닝
 - Planned `alert`: 영속 이벤트 저장소, replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, delivery retry worker
 - Planned `tax`: object storage 파일 업로드, Hana 세무 상태 동기화, 사후 환수 리스크 worker
@@ -88,6 +89,7 @@
 - `/api/v1/accounts/**`는 Spring Security bearer filter가 token을 검증하고 token accountId와 path accountId 일치를 강제한다. signup/login/token verify와 공개 시장 데이터, alert ingest, Swagger, actuator는 익명 접근을 허용한다.
 - 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 DB account balance와 cash ledger entry를 갱신한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
+- mock holding과 mock trade ledger는 DB에 영속화되며, market quote stream과 tax refund case는 DB holding/trade ledger를 기준으로 계좌별 topic과 매도 실현손익을 계산한다.
 - watchlist는 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다. 현재 API는 로컬 개발용 인메모리 저장소를 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 저장·매칭한다.
 - 종목 상세 화면은 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다. 현재 구현은 REST ingest로 저장된 인메모리 이벤트를 조회한다.
@@ -116,4 +118,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- trade/watchlist/alert/notification/tax 영속 저장소, push worker, 웹 푸시는 미구현이다.
+- watchlist/alert/notification/tax 영속 저장소, push worker, 웹 푸시는 미구현이다.

@@ -39,6 +39,7 @@
 | `AUTH_001` | 409 | Username already exists |
 | `ACCOUNT_001` | 404 | Mock USD account not found |
 | `WATCHLIST_001` | 404 | Watchlist item not found |
+| `ALERT_001` | 404 | Alert event not found |
 | `MARKET_001` | 502 | Hana OmniLens market upstream unavailable |
 | `TRADE_001` | 409 | Mock USD account has insufficient balance |
 | `TRADE_002` | 409 | Mock holding has insufficient quantity |

@@ -12,6 +12,8 @@ public interface TradeRepository {
 
 	List<MockHolding> findHoldings(String accountId);
 
+	List<MockHolding> findHoldingsByStockCodes(List<String> stockCodes);
+
 	void saveHolding(MockHolding holding);
 
 	void saveTrade(MockTradeLedgerEntry trade);

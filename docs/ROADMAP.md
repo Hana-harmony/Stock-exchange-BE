@@ -35,7 +35,7 @@
 - 이벤트 저장소와 idempotency key: REST ingest 기반 인메모리 구현 완료, WebSocket 수신/영속화 예정
 - 보유종목/watchlist 대상자 매칭: REST ingest 기반 매칭 구현 완료, 이벤트 worker 예정
 - push provider 연동
-- 알림함 API
+- 알림함 API: 인메모리 조회/읽음 처리 구현 완료, push delivery 상태/영속화 예정
 
 ## M4 세무 전산화
 - 세무 서류 업로드와 object storage 연동

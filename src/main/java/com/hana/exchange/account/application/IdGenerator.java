@@ -28,6 +28,10 @@ public class IdGenerator {
 		return "TRD-" + randomToken();
 	}
 
+	public String newNotificationId() {
+		return "NTF-" + randomToken();
+	}
+
 	private String randomToken() {
 		StringBuilder token = new StringBuilder(RANDOM_LENGTH);
 		for (int index = 0; index < RANDOM_LENGTH; index++) {

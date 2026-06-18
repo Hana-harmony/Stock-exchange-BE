@@ -9,7 +9,8 @@ public record ExchangeBackendProperties(
 		String baseUrl,
 		String apiKey,
 		Duration quoteCacheTtl,
-		Duration quoteCacheStaleTtl
+		Duration quoteCacheStaleTtl,
+		Stream stream
 ) {
 	public ExchangeBackendProperties {
 		if (quoteCacheTtl == null) {
@@ -17,6 +18,53 @@ public record ExchangeBackendProperties(
 		}
 		if (quoteCacheStaleTtl == null) {
 			quoteCacheStaleTtl = Duration.ofSeconds(30);
+		}
+		if (stream == null) {
+			stream = Stream.defaults();
+		}
+	}
+
+	public record Stream(
+			boolean quoteEnabled,
+			String quotePath,
+			String quoteCurrency,
+			boolean quoteReplayEnabled,
+			Duration reconnectInitialDelay,
+			Duration reconnectMaxDelay,
+			int backpressureBufferSize,
+			Duration drainInterval
+	) {
+		public Stream {
+			if (quotePath == null || quotePath.isBlank()) {
+				quotePath = "/ws/market/quotes";
+			}
+			if (quoteCurrency == null || quoteCurrency.isBlank()) {
+				quoteCurrency = "USD";
+			}
+			if (reconnectInitialDelay == null || reconnectInitialDelay.isNegative() || reconnectInitialDelay.isZero()) {
+				reconnectInitialDelay = Duration.ofSeconds(1);
+			}
+			if (reconnectMaxDelay == null || reconnectMaxDelay.compareTo(reconnectInitialDelay) < 0) {
+				reconnectMaxDelay = Duration.ofSeconds(30);
+			}
+			if (backpressureBufferSize <= 0) {
+				backpressureBufferSize = 1000;
+			}
+			if (drainInterval == null || drainInterval.isNegative() || drainInterval.isZero()) {
+				drainInterval = Duration.ofMillis(50);
+			}
+		}
+
+		public static Stream defaults() {
+			return new Stream(
+					false,
+					"/ws/market/quotes",
+					"USD",
+					true,
+					Duration.ofSeconds(1),
+					Duration.ofSeconds(30),
+					1000,
+					Duration.ofMillis(50));
 		}
 	}
 }

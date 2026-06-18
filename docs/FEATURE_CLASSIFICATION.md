@@ -13,13 +13,13 @@
 | Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Done |
 | 단건 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
 | 전체/시장별/다건/watchlist/보유종목 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
-| 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket 제공 | Stock-exchange-BE | Partial |
+| 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket 제공 | Stock-exchange-BE | Done |
 | KRW 가격과 USD 환산 가격을 FE에 함께 전달 | Stock-exchange-BE | Partial |
 | 환율 기준시각/출처/stale flag 전달 | Stock-exchange-BE | Partial |
 | Hana-OmniLens-API의 KRX 기반 과거 시세 API 조회 | Stock-exchange-BE | Partial |
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Partial |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Done |
-| Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Partial |
+| Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Done |
 | 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
 | watchlist 관심종목 API와 알림 대상 입력 데이터 | Stock-exchange-BE | Done |
 | KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |

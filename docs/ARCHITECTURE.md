@@ -84,7 +84,7 @@
 - Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 현지통화 가격을 모두 포함해야 하며, Stock-exchange-BE는 snapshot 응답에서 `fxRate`, `fxRateTime`, `fxRateSource`, `fxStale`을 FE 표시 형식으로 전달한다.
 - 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다. Hana가 명시적 `fxRate`를 주지 않는 경우에만 KRW/현지통화 가격으로 fallback 산출한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
-- Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API를 FE 차트 응답 형식으로 재가공한다. 현재 BE client/proxy 계약은 구현되어 있고, Hana의 KRX history 수집/DB/API 완성은 별도 단계다.
+- Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API를 FE 차트 응답 형식으로 재가공한다. BE client/proxy와 Flutter chart 응답 계약은 구현되어 있으며, 모든 국내주식 KRX history 수집/정규화/DB/API 완성은 Hana-OmniLens-API 레포 책임이다.
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 주문 가능 여부 API는 Hana-OmniLens-API orderability boundary를 호출해 외국인 한도, 거래정지, VI, 상/하한가 상태를 mock 주문 전 경고/차단 사유로 제공한다.
 - mock 주문 실행 API도 같은 orderability boundary를 다시 확인하며, 차단 사유가 있으면 자체 ledger 기록 전에 `TRADE_003`으로 거절한다.

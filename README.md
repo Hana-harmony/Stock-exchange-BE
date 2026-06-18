@@ -15,6 +15,7 @@ curl http://localhost:3000/actuator/health
 curl http://localhost:3000/api/v1/market/quotes
 curl "http://localhost:3000/api/v1/market/quotes?stockCodes=005930&stockCodes=000660&market=KOSPI&currency=USD"
 curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
+curl "http://localhost:3000/api/v1/market/stocks/005930/chart?from=2026-06-01&to=2026-06-18&interval=1d&currency=USD"
 curl -X POST http://localhost:3000/api/v1/market/stream/quotes \
   -H 'Content-Type: application/json' \
   -d '{"stockCode":"005930","stockName":"Samsung Electronics","market":"KOSPI","currentPriceKrw":75000,"changeRate":1.25,"volume":1000000,"localCurrency":"USD","localCurrencyPrice":54.00,"fxRate":0.00072,"fxRateTime":"2026-06-18T06:00:00Z","fxStale":false,"marketDataTime":"2026-06-18T06:00:01Z","source":"HANA_OMNILENS_API_STREAM"}'
@@ -67,6 +68,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`
 - `GET /api/v1/market/quotes?stockCodes=005930&market=KOSPI&currency=USD`
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`
+- `GET /api/v1/market/stocks/{stockCode}/chart?from=2026-06-01&to=2026-06-18&interval=1d&currency=USD`
 - `POST /api/v1/market/stream/quotes`
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist?currency=USD`
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
@@ -75,7 +77,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, 종목 검색, KRX 기반 과거 시세, 호가, orderability, tax refund status 조회 예정
+- REST: 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, KRX 기반 과거 차트 client/proxy 구현, 종목 검색, 호가, orderability, tax refund status 조회 예정
 - WebSocket: 뉴스·공시 알림과 market quote stream 구독/재배포
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`

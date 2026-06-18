@@ -64,6 +64,16 @@
   - Account portfolio holding quote snapshot. Empty holdings return `quoteCount: 0`.
 - Quote payload includes KRW price, requested local currency price, derived FX rate, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.
 
+## Market Chart
+
+- `GET /api/v1/market/stocks/{stockCode}/chart`
+  - `from`: required ISO date.
+  - `to`: required ISO date.
+  - `interval`: optional `1d`, `1w`, `1mo`. Defaults to `1d`.
+  - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
+- Stock-exchange-BE calls Hana-OmniLens-API `/api/v1/market/stocks/{stockCode}/history` and reformats KRX history for the Flutter chart.
+- Chart points include KRW OHLCV, trading value, adjusted flag, and requested local currency OHLC.
+
 ## Market Quote WebSocket
 
 - STOMP endpoints:

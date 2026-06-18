@@ -18,8 +18,8 @@
 - 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket stream: FE topic publish 구현 완료, Hana stream client/replay/backpressure 예정
 - KRW 가격과 USD 환산 가격 동시 제공
 - 환율 기준시각/출처/stale flag FE 전달
-- Hana-OmniLens-API KRX 기반 과거 시세 API client
-- FE용 과거 시세 차트 REST API
+- Hana-OmniLens-API KRX 기반 과거 시세 API client: BE client/proxy 계약 구현 완료, Hana KRX history API 완성 예정
+- FE용 과거 시세 차트 REST API: KRW/현지통화 OHLCV 응답 구현 완료, 실제 Hana history 연동 smoke 예정
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책: FE publisher 계약 구현 완료, upstream 구독/운영정책 예정
 - 보유종목과 watchlist 모델: watchlist 인메모리 API 구현 완료, 보유종목은 mock 거래 portfolio로 부분 구현

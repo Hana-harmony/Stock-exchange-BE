@@ -69,6 +69,8 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `GET /api/v1/stocks/{stockCode}/intelligence`
 - `GET /api/v1/accounts/{accountId}/notifications`
 - `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`
+- `POST /api/v1/accounts/{accountId}/tax/refund-cases`
+- `GET /api/v1/accounts/{accountId}/tax/refund-status`
 - `GET /api/v1/stocks/search?query=samsung&market=KOSPI&currency=USD&limit=10`
 - `GET /api/v1/stocks/{stockCode}?currency=USD`
 - `GET /api/v1/market/quotes?stockCodes=005930&market=KOSPI&currency=USD`
@@ -82,7 +84,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, 호가, tax refund status 조회 예정
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정
 - WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/매칭 구현
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -114,7 +116,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 17. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
 18. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
 19. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 읽음 상태를 관리한다. 실제 push provider 발송은 다음 단계에서 수행한다.
-20. 세무 서류 업로드와 거래원장 데이터를 Hana-OmniLens-API의 세무 상태 계약과 동기화하고 환급/선지급 상태를 사용자에게 제공한다.
+20. 세무 서류 metadata와 거래원장 데이터를 tax refund case로 묶고, mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. 실제 파일 저장, Hana-OmniLens-API 세무 상태 sync, 환급금 지급은 다음 단계에서 연결한다.
 
 ## 문서
 - [아키텍처](docs/ARCHITECTURE.md)

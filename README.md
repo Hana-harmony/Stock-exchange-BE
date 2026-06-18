@@ -14,6 +14,9 @@ docker compose -f compose.local.yml up --build
 curl http://localhost:3000/actuator/health
 curl http://localhost:3000/api/v1/market/quotes
 curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
+curl -X POST http://localhost:3000/api/v1/auth/signup \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"local_trader","password":"localPass123!"}'
 ```
 
 기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다.
@@ -45,9 +48,13 @@ curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
 - Gradle Wrapper
 - Hana-OmniLens-API와 동일한 `api / application / domain / config` 패키지 구조
 - `GET /actuator/health`
+- `POST /api/v1/auth/signup`
+- `GET /api/v1/accounts/{accountId}`
+- `POST /api/v1/accounts/{accountId}/deposits`
 - `GET /api/v1/market/quotes`
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
+- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 단건 실시간 시세 snapshot 구현, 종목 검색/다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability, tax refund status 조회 예정
@@ -65,8 +72,8 @@ curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
 5. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 사용자 권한과 watchlist/portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다.
 6. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
 7. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Hana-OmniLens-API에서 시세, 외국인 보유율, VI, 상·하한가 상태를 조회한다.
-8. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다.
-9. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시킨다.
+8. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
+9. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
 10. 사용자가 모의 주문을 입력하면 현재 가격, 외국인 한도, VI/제한가격 상태를 기준으로 주문 가능 여부와 경고를 계산하고 BE 내부 원장에 가짜 매수·매도를 기록한다.
 11. 매도 체결로 계산된 실현손익과 거래원장 항목은 세무 환급/선지급 기능의 입력 데이터로 연결한다.
 12. Hana-OmniLens-API의 뉴스·공시 WebSocket 이벤트를 수신해 이벤트 저장소에 적재한다.

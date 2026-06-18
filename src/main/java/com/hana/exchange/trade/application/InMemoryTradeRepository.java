@@ -33,6 +33,15 @@ public class InMemoryTradeRepository implements TradeRepository {
 	}
 
 	@Override
+	public List<MockHolding> findHoldingsByStockCodes(List<String> stockCodes) {
+		return holdingsByAccountAndStock.values()
+				.stream()
+				.filter(holding -> stockCodes.contains(holding.stockCode()))
+				.sorted(Comparator.comparing(MockHolding::accountId).thenComparing(MockHolding::stockCode))
+				.toList();
+	}
+
+	@Override
 	public void saveHolding(MockHolding holding) {
 		String key = key(holding.accountId(), holding.stockCode());
 		if (holding.quantity() == 0) {

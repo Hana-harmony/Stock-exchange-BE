@@ -32,8 +32,8 @@
 
 ## M3 뉴스·공시 알림
 - Hana-OmniLens-API WebSocket client
-- 이벤트 저장소와 idempotency key
-- 보유종목/watchlist 대상자 매칭: watchlist 입력 API 구현 완료, 이벤트 매칭 worker 예정
+- 이벤트 저장소와 idempotency key: REST ingest 기반 인메모리 구현 완료, WebSocket 수신/영속화 예정
+- 보유종목/watchlist 대상자 매칭: REST ingest 기반 매칭 구현 완료, 이벤트 worker 예정
 - push provider 연동
 - 알림함 API
 

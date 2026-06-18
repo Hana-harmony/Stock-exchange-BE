@@ -25,6 +25,15 @@ public class InMemoryWatchlistRepository implements WatchlistRepository {
 	}
 
 	@Override
+	public List<WatchlistItem> findItemsByStockCodes(List<String> stockCodes) {
+		return itemsByAccountAndStock.values()
+				.stream()
+				.filter(item -> stockCodes.contains(item.stockCode()))
+				.sorted(Comparator.comparing(WatchlistItem::accountId).thenComparing(WatchlistItem::stockCode))
+				.toList();
+	}
+
+	@Override
 	public Optional<WatchlistItem> findItem(String accountId, String stockCode) {
 		return Optional.ofNullable(itemsByAccountAndStock.get(key(accountId, stockCode)));
 	}

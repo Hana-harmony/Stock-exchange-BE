@@ -13,6 +13,7 @@ public record MarketQuoteTickMessage(
 		String localCurrencyPrice,
 		String fxRate,
 		Instant fxRateTime,
+		String fxRateSource,
 		boolean fxStale,
 		Instant marketDataTime,
 		String source,

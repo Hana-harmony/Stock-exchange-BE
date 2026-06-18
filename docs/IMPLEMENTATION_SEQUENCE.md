@@ -73,7 +73,7 @@
 - 종목 검색/상세 API는 Hana-OmniLens-API를 proxy해 영어명, USD 가격, 외국인 보유율, VI, 상/하한가, orderable flag를 제공한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
 - 전체 한국 주식 REST snapshot은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 `stockCodes`가 있는 snapshot은 Hana bulk quote endpoint를 사용한다.
-- quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status와 `fxStale=true`를 포함한다.
+- quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status, `fxRateTime`, `fxRateSource`, `fxStale=true`를 포함한다.
 - watchlist와 보유종목 REST snapshot은 계좌별 DB 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
 - Hana-OmniLens-API market quote WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.

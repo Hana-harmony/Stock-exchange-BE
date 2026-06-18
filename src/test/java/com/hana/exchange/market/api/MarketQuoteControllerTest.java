@@ -93,6 +93,10 @@ class MarketQuoteControllerTest {
 						"KRW",
 						new BigDecimal("54.00"),
 						"USD",
+						new BigDecimal("0.00073"),
+						Instant.parse("2026-06-18T05:59:30Z"),
+						"HANA_FX_RATE_API",
+						true,
 						50000000L,
 						new BigDecimal("54.5"),
 						new BigDecimal("72.3"),
@@ -115,8 +119,10 @@ class MarketQuoteControllerTest {
 				.andExpect(jsonPath("$.data.quotes[0].volume").value(1000000))
 				.andExpect(jsonPath("$.data.quotes[0].localCurrency").value("USD"))
 				.andExpect(jsonPath("$.data.quotes[0].localCurrencyPrice").value("54"))
-				.andExpect(jsonPath("$.data.quotes[0].fxRate").value("0.00072"))
-				.andExpect(jsonPath("$.data.quotes[0].fxStale").value(false));
+				.andExpect(jsonPath("$.data.quotes[0].fxRate").value("0.00073"))
+				.andExpect(jsonPath("$.data.quotes[0].fxRateTime").value("2026-06-18T05:59:30Z"))
+				.andExpect(jsonPath("$.data.quotes[0].fxRateSource").value("HANA_FX_RATE_API"))
+				.andExpect(jsonPath("$.data.quotes[0].fxStale").value(true));
 	}
 
 	@Test

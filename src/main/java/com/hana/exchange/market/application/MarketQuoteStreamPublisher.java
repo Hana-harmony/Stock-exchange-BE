@@ -80,6 +80,7 @@ public class MarketQuoteStreamPublisher {
 				toText(request.localCurrencyPrice()),
 				toText(request.fxRate()),
 				request.fxRateTime(),
+				request.fxRateSource(),
 				request.fxStale(),
 				request.marketDataTime(),
 				request.source(),

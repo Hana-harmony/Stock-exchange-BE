@@ -21,6 +21,8 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
+import com.hana.exchange.market.client.OmniLensMarketQuote;
+import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -31,6 +33,9 @@ class MarketChartControllerTest {
 
 	@MockitoBean
 	private OmniLensMarketHistoryClient historyClient;
+
+	@MockitoBean
+	private OmniLensMarketQuoteClient quoteClient;
 
 	@Test
 	void chartProxiesOmniLensKrxHistoryForFlutterChart() throws Exception {
@@ -43,9 +48,10 @@ class MarketChartControllerTest {
 						"KRW",
 						"USD",
 						List.of(
-								point("2026-06-17", "74000", "75200", "73800", "75000", "53.28", "54.14", "53.14", "54.00"),
-								point("2026-06-18", "75000", "76100", "74700", "75800", "54.00", "54.79", "53.78", "54.58")),
-						"HANA_OMNILENS_KRX_HISTORY"));
+								point("2026-06-17", "74000", "75200", "73800", "75000"),
+								point("2026-06-18", "75000", "76100", "74700", "75800")),
+						"KRX_OPEN_API_DAILY_TRADE"));
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
 
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
 						.param("from", "2026-06-17")
@@ -54,7 +60,7 @@ class MarketChartControllerTest {
 						.param("currency", "USD"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
-				.andExpect(jsonPath("$.data.dataSource").value("HANA_OMNILENS_KRX_HISTORY"))
+				.andExpect(jsonPath("$.data.dataSource").value("KRX_OPEN_API_DAILY_TRADE"))
 				.andExpect(jsonPath("$.data.stockCode").value("005930"))
 				.andExpect(jsonPath("$.data.interval").value("1d"))
 				.andExpect(jsonPath("$.data.baseCurrency").value("KRW"))
@@ -83,6 +89,40 @@ class MarketChartControllerTest {
 	}
 
 	@Test
+	void chartAggregatesWeeklyOhlcvForFlutterChart() throws Exception {
+		LocalDate from = LocalDate.parse("2026-06-15");
+		LocalDate to = LocalDate.parse("2026-06-16");
+		when(historyClient.getHistory("005930", from, to, "1w", "USD"))
+				.thenReturn(new OmniLensMarketHistoryResponse(
+						"005930",
+						"1w",
+						"KRW",
+						"USD",
+						List.of(
+								point("2026-06-15", "74000", "75200", "73800", "75000"),
+								point("2026-06-16", "75000", "76100", "74700", "75800")),
+						"KRX_OPEN_API_DAILY_TRADE"));
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+						.param("from", "2026-06-15")
+						.param("to", "2026-06-16")
+						.param("interval", "1w")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.interval").value("1w"))
+				.andExpect(jsonPath("$.data.pointCount").value(1))
+				.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-15"))
+				.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("74000"))
+				.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("76100"))
+				.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("73800"))
+				.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75800"))
+				.andExpect(jsonPath("$.data.points[0].closeLocalCurrencyPrice").value("54.576"))
+				.andExpect(jsonPath("$.data.points[0].volume").value(2000000))
+				.andExpect(jsonPath("$.data.points[0].tradingValueKrw").value("150000000000"));
+	}
+
+	@Test
 	void chartRejectsInvalidRangeAndParameters() throws Exception {
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
 						.param("from", "2026-06-18")
@@ -106,23 +146,44 @@ class MarketChartControllerTest {
 			String openKrw,
 			String highKrw,
 			String lowKrw,
-			String closeKrw,
-			String openLocal,
-			String highLocal,
-			String lowLocal,
-			String closeLocal) {
+			String closeKrw) {
 		return new OmniLensMarketHistoryPoint(
 				LocalDate.parse(tradeDate),
 				new BigDecimal(openKrw),
 				new BigDecimal(highKrw),
 				new BigDecimal(lowKrw),
 				new BigDecimal(closeKrw),
-				new BigDecimal(openLocal),
-				new BigDecimal(highLocal),
-				new BigDecimal(lowLocal),
-				new BigDecimal(closeLocal),
+				null,
+				null,
+				null,
+				null,
 				1000000L,
 				new BigDecimal("75000000000"),
 				true);
+	}
+
+	private OmniLensMarketQuote quote() {
+		return new OmniLensMarketQuote(
+				"005930",
+				"삼성전자",
+				"Samsung Electronics",
+				"KOSPI",
+				new BigDecimal("75000"),
+				new BigDecimal("1.25"),
+				1000000L,
+				new BigDecimal("75000"),
+				"KRW",
+				new BigDecimal("54.00"),
+				"USD",
+				new BigDecimal("0.00072"),
+				null,
+				"HANA_FX_RATE_API",
+				false,
+				50000000L,
+				new BigDecimal("54.5"),
+				new BigDecimal("72.3"),
+				LocalDate.parse("2026-06-18"),
+				null,
+				"HANA_OMNILENS_API");
 	}
 }

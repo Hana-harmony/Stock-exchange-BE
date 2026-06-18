@@ -123,7 +123,7 @@
   - Account watchlist quote snapshot. Empty watchlists return `quoteCount: 0` and do not fall back to the default universe.
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio`
   - Account portfolio holding quote snapshot. Empty holdings return `quoteCount: 0`.
-- Quote payload includes KRW price, requested local currency price, derived FX rate, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.
+- Quote payload includes KRW price, requested local currency price, FX rate, FX rate time, FX rate source, market, change rate, volume, stale flag, and REST/WebSocket transport metadata.
 - Quote snapshot payload includes `cache.status`, `cache.cachedAt`, `cache.expiresAt`, and `cache.staleUntil`.
 - Cache status values:
   - `LIVE`: Stock-exchange-BE called Hana-OmniLens-API and refreshed the short-cache.
@@ -206,7 +206,7 @@
   - `/topic/accounts/{accountId}/market/quotes/portfolio`
 - Local/Hana adapter ingest:
   - `POST /api/v1/market/stream/quotes`
-  - The request contains `stockCode`, `stockName`, `market`, `currentPriceKrw`, `changeRate`, `volume`, `localCurrency`, `localCurrencyPrice`, `fxRate`, `fxRateTime`, `fxStale`, `marketDataTime`, and `source`.
+  - The request contains `stockCode`, `stockName`, `market`, `currentPriceKrw`, `changeRate`, `volume`, `localCurrency`, `localCurrencyPrice`, `fxRate`, `fxRateTime`, `fxRateSource`, `fxStale`, `marketDataTime`, and `source`.
 - The publisher sends the same tick to global, market, stock, matching watchlist account, and matching portfolio account topics.
 - Hana-OmniLens-API quote stream client is controlled by `HANA_OMNILENS_QUOTE_STREAM_ENABLED`. It is disabled by default for local tests and connects to `HANA_OMNILENS_QUOTE_STREAM_PATH`, default `/ws/market/quotes`, when enabled.
 - Reconnect policy uses exponential backoff from `HANA_OMNILENS_STREAM_RECONNECT_INITIAL_DELAY` to `HANA_OMNILENS_STREAM_RECONNECT_MAX_DELAY`.

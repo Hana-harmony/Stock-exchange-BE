@@ -119,7 +119,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - Hana-OmniLens-API REST client는 `HANA_OMNILENS_REST_RETRY_ENABLED`, `HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS`, `HANA_OMNILENS_REST_RETRY_INITIAL_DELAY`, `HANA_OMNILENS_REST_RETRY_MAX_DELAY` 기준으로 transport 실패를 exponential backoff 재시도한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
 - WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/매칭 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 alert와 tax recapture risk delivery 상태 기록 구현, 실패/미발송 notification retry worker 구현, FCM/APNS/web push provider 예정
 - 구독 topic:

@@ -166,9 +166,10 @@ public class MarketQuoteService {
 				quote.volume(),
 				quote.localCurrency(),
 				toText(quote.localCurrencyPrice()),
-				deriveFxRate(quote),
-				quote.marketDataTime(),
-				stale);
+				fxRate(quote),
+				fxRateTime(quote),
+				fxRateSource(quote),
+				stale || quote.fxStale());
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {
@@ -227,5 +228,23 @@ public class MarketQuoteService {
 				.divide(quote.currentPriceKrw(), 10, RoundingMode.HALF_UP)
 				.stripTrailingZeros()
 				.toPlainString();
+	}
+
+	private String fxRate(OmniLensMarketQuote quote) {
+		if (quote.fxRate() != null) {
+			return toText(quote.fxRate());
+		}
+		return deriveFxRate(quote);
+	}
+
+	private Instant fxRateTime(OmniLensMarketQuote quote) {
+		return quote.fxRateTime() == null ? quote.marketDataTime() : quote.fxRateTime();
+	}
+
+	private String fxRateSource(OmniLensMarketQuote quote) {
+		if (quote.fxRateSource() != null && !quote.fxRateSource().isBlank()) {
+			return quote.fxRateSource();
+		}
+		return quote.source();
 	}
 }

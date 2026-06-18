@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.watchlist.domain.WatchlistItem;
 
 @Repository
+@Profile("memory")
 public class InMemoryWatchlistRepository implements WatchlistRepository {
 
 	private final Map<String, WatchlistItem> itemsByAccountAndStock = new ConcurrentHashMap<>();

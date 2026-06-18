@@ -58,6 +58,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `DELETE /api/v1/accounts/{accountId}/watchlist/{stockCode}`
 - `POST /api/v1/alerts/events`
 - `GET /api/v1/alerts/events/{eventId}/targets`
+- `GET /api/v1/stocks/{stockCode}/intelligence`
 - `GET /api/v1/accounts/{accountId}/notifications`
 - `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`
 - `GET /api/v1/market/quotes`
@@ -88,8 +89,9 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 12. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
 13. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 저장하고 idempotency key로 중복 처리를 수행한다. 현재 구현은 WebSocket client 전 단계의 REST ingest 계약이다.
 14. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
-15. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 읽음 상태를 관리한다. 실제 push provider 발송과 종목별 인텔리전스 피드 갱신은 다음 단계에서 수행한다.
-16. 세무 서류 업로드와 거래원장 데이터를 Hana-OmniLens-API의 세무 상태 계약과 동기화하고 환급/선지급 상태를 사용자에게 제공한다.
+15. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL을 인텔리전스 피드로 조회한다.
+16. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 읽음 상태를 관리한다. 실제 push provider 발송은 다음 단계에서 수행한다.
+17. 세무 서류 업로드와 거래원장 데이터를 Hana-OmniLens-API의 세무 상태 계약과 동기화하고 환급/선지급 상태를 사용자에게 제공한다.
 
 ## 문서
 - [아키텍처](docs/ARCHITECTURE.md)

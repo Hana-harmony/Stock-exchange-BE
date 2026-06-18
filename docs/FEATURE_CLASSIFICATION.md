@@ -36,7 +36,7 @@
 | 이벤트 저장과 중복 제거 | Stock-exchange-BE | Partial |
 | `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Partial |
 | 앱 푸시/웹 알림/알림함 저장 | Stock-exchange-BE | Partial |
-| 종목별 인텔리전스 피드 API | Stock-exchange-BE | Planned |
+| 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done |
 
 ## 3. 세무 전산화 및 환급금 선지급
 

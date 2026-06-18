@@ -8,6 +8,10 @@ public record AlertEventMatchResult(
 		List<AlertTargetResponse> targets,
 		Instant matchedAt
 ) {
+	public int targetCount() {
+		return targets.size();
+	}
+
 	public AlertEventMatchResponse toResponse() {
 		return new AlertEventMatchResponse(
 				event.eventId(),
@@ -23,7 +27,7 @@ public record AlertEventMatchResult(
 				event.riskLevel(),
 				event.watchlistTarget(),
 				event.holderTarget(),
-				targets.size(),
+				targetCount(),
 				targets,
 				matchedAt);
 	}

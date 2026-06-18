@@ -1,5 +1,7 @@
 package com.hana.exchange.alert.application;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +25,15 @@ public class InMemoryAlertEventRepository implements AlertEventRepository {
 	@Override
 	public Optional<AlertEventMatchResult> findByEventId(String eventId) {
 		return Optional.ofNullable(resultsByEventId.get(eventId));
+	}
+
+	@Override
+	public List<AlertEventMatchResult> findByStockCode(String stockCode) {
+		return resultsByEventId.values()
+				.stream()
+				.filter(result -> result.event().matchingStockCodes().contains(stockCode))
+				.sorted(Comparator.comparing((AlertEventMatchResult result) -> result.event().publishedAt()).reversed())
+				.toList();
 	}
 
 	@Override

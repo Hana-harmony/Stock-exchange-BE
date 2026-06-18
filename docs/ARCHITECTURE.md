@@ -5,13 +5,14 @@
 - 최종투자자별 세무 서류 업로드, mock 거래원장/매도 실현손익 매칭, 환급/선지급 상태 표시를 위한 현지 데이터 계층을 제공한다.
 
 ## 서비스 구성
-- `market/api`: FE용 전체/시장별/watchlist/보유종목/단건 실시간 시세 REST API
-- `market/application`: Hana-OmniLens-API snapshot/stream을 현지 사용자 컨텍스트에 맞게 조합하는 application service
+- `market/api`: FE용 단건 실시간 시세 REST API와 전체/시장별/watchlist/보유종목 시세 계약
+- `market/application`: Hana-OmniLens-API snapshot을 현지 사용자 컨텍스트에 맞게 조합하는 application service
 - `market/domain`: quote snapshot, transport, KRW/USD 표시 field 등 market 계약 record
+- `market/client`: Hana-OmniLens-API 단건 실시간 시세 REST client
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
 - Planned `auth`: 아이디/비밀번호 기반 간편 회원가입과 로그인
 - Planned `account`: 회원가입 시 mock USD cash account 생성, 달러 충전, 잔고 이력
-- Planned `market/client`: Hana-OmniLens-API 종목 검색, 단건/다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability API client
+- Planned `market/client`: Hana-OmniLens-API 종목 검색, 다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability API client
 - Planned `market/stream`: FE용 전체/시장별/watchlist/보유종목/단건 실시간 시세 WebSocket stream
 - Planned `market/cache`: Hana-OmniLens-API snapshot을 현지 거래소 화면 요구사항에 맞게 짧게 캐시하는 layer
 - Planned `portfolio`: 사용자 보유종목, 평가금액, watchlist, 자체 mock ledger 주문 상태
@@ -40,8 +41,8 @@
 - REST snapshot은 초기 로딩, 전체 목록, 검색, 새로고침, WebSocket 재연결 복구에 사용한다.
 - WebSocket stream은 장중 가격, 호가, 등락률, VI/상·하한가 상태 변화처럼 화면에서 즉시 움직여야 하는 데이터에 사용한다.
 - KIS 원천 WebSocket은 Hana-OmniLens-API가 구독하고, Stock-exchange-BE는 Hana의 quote snapshot/stream을 받아 FE용 REST와 WebSocket으로 재배포한다.
-- Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 USD 가격을 모두 포함해야 하며, Stock-exchange-BE는 이를 임의 재계산하지 않고 FE 표시 형식으로 전달한다.
-- 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다.
+- Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 USD 가격을 모두 포함해야 하며, Stock-exchange-BE는 단건 snapshot에서 이를 FE 표시 형식으로 전달한다.
+- 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다. 현재 단건 snapshot은 Hana 가격을 기준으로 환율 값을 산출하고 `fxStale=false`로 응답한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 과거 시세 API를 FE 차트 응답 형식으로 재가공한다.
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
@@ -53,4 +54,5 @@
 
 ## 현재 구현 상태
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
-- 실제 Hana-OmniLens-API client, DB schema, market WebSocket stream, alert WebSocket client, push worker는 미구현이다.
+- `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
+- 다건/전체 quote REST, DB schema, market WebSocket stream, alert WebSocket client, push worker는 미구현이다.

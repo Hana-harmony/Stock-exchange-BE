@@ -6,12 +6,13 @@
 - Spring Boot API server scaffold
 - 영어권 사용자와 USD 기준 서비스 계약 명시
 - DB schema 초안
-- Hana-OmniLens-API REST client
+- Hana-OmniLens-API 단건 quote REST client
 - 환경별 secret 관리
 - Gradle Wrapper와 CI
 
 ## M2 시장 데이터와 모의 주문
 - 종목 검색/상세 proxy API
+- 단건 종목 실시간 시세 REST snapshot API
 - 전체 종목 실시간 시세 REST API
 - 시장별/다건/watchlist/보유종목 실시간 시세 REST API
 - 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket stream

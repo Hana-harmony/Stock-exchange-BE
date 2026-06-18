@@ -1,5 +1,7 @@
 # 구현 로드맵
 
+전체 구현 순서와 단계별 완료 기준은 `docs/IMPLEMENTATION_SEQUENCE.md`를 따른다.
+
 ## M1 현지 거래소 백엔드 하네스
 - Spring Boot API server scaffold
 - 영어권 사용자와 USD 기준 서비스 계약 명시

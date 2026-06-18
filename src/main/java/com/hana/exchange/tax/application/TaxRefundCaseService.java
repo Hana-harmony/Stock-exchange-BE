@@ -18,6 +18,8 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.tax.client.OmniLensTaxStatusClient;
 import com.hana.exchange.tax.client.OmniLensTaxStatusSyncRequest;
 import com.hana.exchange.tax.client.OmniLensTaxStatusSyncResponse;
+import com.hana.exchange.tax.domain.TaxDocument;
+import com.hana.exchange.tax.domain.TaxDocumentType;
 import com.hana.exchange.tax.domain.TaxMatchedTradeResponse;
 import com.hana.exchange.tax.domain.TaxRefundCase;
 import com.hana.exchange.tax.domain.TaxRefundCaseCreateRequest;
@@ -38,6 +40,7 @@ public class TaxRefundCaseService {
 	private final AccountRepository accountRepository;
 	private final TradeRepository tradeRepository;
 	private final TaxRefundCaseRepository taxRefundCaseRepository;
+	private final TaxDocumentRepository taxDocumentRepository;
 	private final IdGenerator idGenerator;
 	private final AuditEventService auditEventService;
 	private final OmniLensTaxStatusClient omniLensTaxStatusClient;
@@ -46,12 +49,14 @@ public class TaxRefundCaseService {
 			AccountRepository accountRepository,
 			TradeRepository tradeRepository,
 			TaxRefundCaseRepository taxRefundCaseRepository,
+			TaxDocumentRepository taxDocumentRepository,
 			IdGenerator idGenerator,
 			AuditEventService auditEventService,
 			OmniLensTaxStatusClient omniLensTaxStatusClient) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.taxRefundCaseRepository = taxRefundCaseRepository;
+		this.taxDocumentRepository = taxDocumentRepository;
 		this.idGenerator = idGenerator;
 		this.auditEventService = auditEventService;
 		this.omniLensTaxStatusClient = omniLensTaxStatusClient;
@@ -59,6 +64,8 @@ public class TaxRefundCaseService {
 
 	public TaxRefundCaseResponse createOrReplace(String accountId, TaxRefundCaseCreateRequest request) {
 		MockUsdAccount account = account(accountId);
+		validateDocument(account, request.residenceCertificateDocumentId(), TaxDocumentType.RESIDENCE_CERTIFICATE);
+		validateDocument(account, request.reducedTaxApplicationDocumentId(), TaxDocumentType.REDUCED_TAX_APPLICATION);
 		List<MockTradeLedgerEntry> matchedTrades = matchedSellTrades(accountId, request.taxYear());
 		TaxSummary summary = summarize(matchedTrades);
 		Instant now = Instant.now();
@@ -73,6 +80,8 @@ public class TaxRefundCaseService {
 				request.treatyCountry(),
 				request.residenceCertificateFileName(),
 				request.reducedTaxApplicationFileName(),
+				request.residenceCertificateDocumentId(),
+				request.reducedTaxApplicationDocumentId(),
 				request.advancePaymentRequested(),
 				status(summary),
 				summary.totalSellAmountUsd(),
@@ -135,6 +144,8 @@ public class TaxRefundCaseService {
 				account.accountId(),
 				account.userId(),
 				now.atZone(ZoneOffset.UTC).getYear(),
+				null,
+				null,
 				null,
 				null,
 				null,
@@ -215,6 +226,8 @@ public class TaxRefundCaseService {
 				taxCase.treatyCountry(),
 				taxCase.residenceCertificateFileName(),
 				taxCase.reducedTaxApplicationFileName(),
+				taxCase.residenceCertificateDocumentId(),
+				taxCase.reducedTaxApplicationDocumentId(),
 				taxCase.advancePaymentRequested(),
 				taxCase.status(),
 				USD,
@@ -257,6 +270,20 @@ public class TaxRefundCaseService {
 				taxCase.advancePaymentEligible(),
 				taxCase.matchedTradeIds(),
 				Instant.now());
+	}
+
+	private void validateDocument(
+			MockUsdAccount account,
+			String documentId,
+			TaxDocumentType expectedType) {
+		if (documentId == null || documentId.isBlank()) {
+			return;
+		}
+		TaxDocument document = taxDocumentRepository.findByDocumentId(documentId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.TAX_DOCUMENT_NOT_FOUND));
+		if (!document.accountId().equals(account.accountId()) || document.documentType() != expectedType) {
+			throw new BusinessException(ErrorCode.TAX_DOCUMENT_INVALID);
+		}
 	}
 
 	private TaxRefundCaseStatus syncStatus(String status) {

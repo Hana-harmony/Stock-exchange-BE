@@ -52,7 +52,8 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 		int updated = jdbcTemplate.update(
 				"UPDATE tax_refund_cases "
 						+ "SET treaty_country = ?, residence_certificate_file_name = ?, "
-						+ "reduced_tax_application_file_name = ?, advance_payment_requested = ?, status = ?, "
+						+ "reduced_tax_application_file_name = ?, residence_certificate_document_id = ?, "
+						+ "reduced_tax_application_document_id = ?, advance_payment_requested = ?, status = ?, "
 						+ "total_sell_amount_usd = ?, realized_profit_usd = ?, realized_loss_usd = ?, "
 						+ "net_realized_pnl_usd = ?, taxable_realized_pnl_usd = ?, estimated_withholding_tax_usd = ?, "
 						+ "estimated_treaty_tax_usd = ?, estimated_refund_usd = ?, advance_payment_eligible = ?, "
@@ -60,6 +61,8 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 				taxCase.treatyCountry(),
 				taxCase.residenceCertificateFileName(),
 				taxCase.reducedTaxApplicationFileName(),
+				taxCase.residenceCertificateDocumentId(),
+				taxCase.reducedTaxApplicationDocumentId(),
 				taxCase.advancePaymentRequested(),
 				taxCase.status().name(),
 				taxCase.totalSellAmountUsd(),
@@ -84,11 +87,12 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 		jdbcTemplate.update(
 				"INSERT INTO tax_refund_cases "
 						+ "(case_id, account_id, user_id, tax_year, treaty_country, residence_certificate_file_name, "
-						+ "reduced_tax_application_file_name, advance_payment_requested, status, total_sell_amount_usd, "
+						+ "reduced_tax_application_file_name, residence_certificate_document_id, "
+						+ "reduced_tax_application_document_id, advance_payment_requested, status, total_sell_amount_usd, "
 						+ "realized_profit_usd, realized_loss_usd, net_realized_pnl_usd, taxable_realized_pnl_usd, "
 						+ "estimated_withholding_tax_usd, estimated_treaty_tax_usd, estimated_refund_usd, "
 						+ "advance_payment_eligible, created_at, updated_at) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				taxCase.caseId(),
 				taxCase.accountId(),
 				taxCase.userId(),
@@ -96,6 +100,8 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 				taxCase.treatyCountry(),
 				taxCase.residenceCertificateFileName(),
 				taxCase.reducedTaxApplicationFileName(),
+				taxCase.residenceCertificateDocumentId(),
+				taxCase.reducedTaxApplicationDocumentId(),
 				taxCase.advancePaymentRequested(),
 				taxCase.status().name(),
 				taxCase.totalSellAmountUsd(),
@@ -134,6 +140,8 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 				resultSet.getString("treaty_country"),
 				resultSet.getString("residence_certificate_file_name"),
 				resultSet.getString("reduced_tax_application_file_name"),
+				resultSet.getString("residence_certificate_document_id"),
+				resultSet.getString("reduced_tax_application_document_id"),
 				resultSet.getBoolean("advance_payment_requested"),
 				TaxRefundCaseStatus.valueOf(resultSet.getString("status")),
 				resultSet.getBigDecimal("total_sell_amount_usd"),
@@ -160,7 +168,8 @@ public class JdbcTaxRefundCaseRepository implements TaxRefundCaseRepository {
 
 	private String caseSelect() {
 		return "SELECT case_id, account_id, user_id, tax_year, treaty_country, residence_certificate_file_name, "
-				+ "reduced_tax_application_file_name, advance_payment_requested, status, total_sell_amount_usd, "
+				+ "reduced_tax_application_file_name, residence_certificate_document_id, "
+				+ "reduced_tax_application_document_id, advance_payment_requested, status, total_sell_amount_usd, "
 				+ "realized_profit_usd, realized_loss_usd, net_realized_pnl_usd, taxable_realized_pnl_usd, "
 				+ "estimated_withholding_tax_usd, estimated_treaty_tax_usd, estimated_refund_usd, "
 				+ "advance_payment_eligible, created_at, updated_at FROM tax_refund_cases";

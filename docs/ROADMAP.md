@@ -39,7 +39,7 @@
 - 종목별 인텔리전스 피드 API: REST ingest와 WebSocket 이벤트 수신 기반 DB 조회 구현 완료, FE 연동 smoke 예정
 
 ## M4 세무 전산화
-- 세무 서류 metadata 접수와 DB tax refund case 저장 구현 완료, object storage 연동 예정
+- 세무 서류 upload endpoint, 로컬 object storage adapter, DB metadata와 tax refund case 연결 구현 완료
 - mock 거래원장/sub-ledger와 매도 실현손익 DB 매칭 구현 완료
 - Hana-OmniLens-API 세무 상태 동기화 구현 완료
 - 환급/선지급 상태 API: mock 세무 케이스 상태, 예상 환급액/선지급 가능 여부, Hana 상태 sync 구현 완료

@@ -40,6 +40,10 @@ public class IdGenerator {
 		return "TAX-" + randomToken();
 	}
 
+	public String newTaxDocumentId() {
+		return "TDOC-" + randomToken();
+	}
+
 	public String newAuditEventId() {
 		return "AUD-" + randomToken();
 	}

@@ -78,7 +78,7 @@
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
 - Hana-OmniLens-API market quote WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.
 - Stock-exchange-BE 과거 차트 API는 Hana-OmniLens-API의 KRX 기반 history API를 proxy/reformat하며, KRX 수집과 저장은 Hana-OmniLens-API가 담당한다.
-- Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
+- Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API와 quote FX metadata를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공하고, `1w`/`1mo` interval은 BE에서 집계한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
 - mock 주문 실행 API는 같은 orderability boundary를 다시 확인하고, 차단 사유가 있으면 DB ledger 기록 전에 주문을 거절한다.
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.

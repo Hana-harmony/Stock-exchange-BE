@@ -4,6 +4,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -60,9 +63,11 @@ public class TradeService {
 
 	public PortfolioResponse getPortfolio(String accountId) {
 		MockUsdAccount account = account(accountId);
-		List<HoldingResponse> holdings = tradeRepository.findHoldings(accountId)
+		List<MockHolding> currentHoldings = tradeRepository.findHoldings(accountId);
+		Map<String, OmniLensMarketQuote> quotesByStockCode = quoteMap(currentHoldings);
+		List<HoldingResponse> holdings = currentHoldings
 				.stream()
-				.map(this::toHoldingResponse)
+				.map(holding -> toHoldingResponse(holding, quotesByStockCode.get(holding.stockCode())))
 				.toList();
 		List<TradeExecutionResponse> recentTrades = tradeRepository.findRecentTrades(accountId, RECENT_TRADE_LIMIT)
 				.stream()
@@ -72,12 +77,21 @@ public class TradeService {
 				.stream()
 				.map(MockTradeLedgerEntry::realizedPnlUsd)
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal totalMarketValue = holdings.stream()
+				.map(holding -> new BigDecimal(holding.marketValueUsd()))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		BigDecimal unrealizedPnl = holdings.stream()
+				.map(holding -> new BigDecimal(holding.unrealizedPnlUsd()))
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
 		return new PortfolioResponse(
 				account.userId(),
 				account.accountId(),
 				USD,
 				moneyText(account.cashBalanceUsd()),
+				moneyText(totalMarketValue),
+				moneyText(account.cashBalanceUsd().add(totalMarketValue)),
 				moneyText(realizedPnl),
+				moneyText(unrealizedPnl),
 				TRADING_MODE,
 				holdings,
 				recentTrades,
@@ -177,13 +191,33 @@ public class TradeService {
 				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
 	}
 
-	private HoldingResponse toHoldingResponse(MockHolding holding) {
+	private Map<String, OmniLensMarketQuote> quoteMap(List<MockHolding> holdings) {
+		if (holdings.isEmpty()) {
+			return Map.of();
+		}
+		List<String> stockCodes = holdings.stream()
+				.map(MockHolding::stockCode)
+				.toList();
+		return quoteClient.getQuotes(stockCodes, USD)
+				.stream()
+				.collect(Collectors.toMap(OmniLensMarketQuote::stockCode, Function.identity()));
+	}
+
+	private HoldingResponse toHoldingResponse(MockHolding holding, OmniLensMarketQuote quote) {
+		BigDecimal currentPrice = quote == null ? holding.averagePriceUsd() : money(quote.localCurrencyPrice());
+		BigDecimal marketValue = money(currentPrice.multiply(BigDecimal.valueOf(holding.quantity())));
+		BigDecimal unrealizedPnl = money(marketValue.subtract(holding.costBasisUsd()));
 		return new HoldingResponse(
 				holding.stockCode(),
 				holding.stockName(),
 				holding.quantity(),
 				moneyText(holding.averagePriceUsd()),
 				moneyText(holding.costBasisUsd()),
+				moneyText(currentPrice),
+				moneyText(marketValue),
+				moneyText(unrealizedPnl),
+				rateText(unrealizedPnl, holding.costBasisUsd()),
+				quote == null ? null : quote.marketDataTime(),
 				holding.updatedAt());
 	}
 
@@ -222,5 +256,14 @@ public class TradeService {
 
 	private String moneyText(BigDecimal value) {
 		return money(value).toPlainString();
+	}
+
+	private String rateText(BigDecimal pnl, BigDecimal costBasis) {
+		if (costBasis.signum() == 0) {
+			return "0.00";
+		}
+		return pnl.multiply(BigDecimal.valueOf(100))
+				.divide(costBasis, 2, RoundingMode.HALF_UP)
+				.toPlainString();
 	}
 }

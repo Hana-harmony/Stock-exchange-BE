@@ -76,6 +76,7 @@
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
 - Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
+- portfolio API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 - 보유종목과 watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 

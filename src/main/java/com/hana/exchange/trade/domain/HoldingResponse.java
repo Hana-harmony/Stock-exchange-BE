@@ -8,6 +8,11 @@ public record HoldingResponse(
 		long quantity,
 		String averagePriceUsd,
 		String costBasisUsd,
+		String currentPriceUsd,
+		String marketValueUsd,
+		String unrealizedPnlUsd,
+		String unrealizedPnlRate,
+		Instant marketDataTime,
 		Instant updatedAt
 ) {
 }

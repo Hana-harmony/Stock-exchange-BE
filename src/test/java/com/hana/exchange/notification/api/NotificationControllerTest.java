@@ -53,6 +53,10 @@ class NotificationControllerTest {
 				.andExpect(jsonPath("$.data.notifications[0].originalUrl").value("https://news.example.com/original"))
 				.andExpect(jsonPath("$.data.notifications[0].matchedStockCodes[0]").value("111111"))
 				.andExpect(jsonPath("$.data.notifications[0].matchReasons[0]").value("WATCHLIST"))
+				.andExpect(jsonPath("$.data.notifications[0].deliveryStatus").value("DELIVERED"))
+				.andExpect(jsonPath("$.data.notifications[0].deliveryProvider").value("LOCAL_NOOP_PUSH"))
+				.andExpect(jsonPath("$.data.notifications[0].deliveryAttemptCount").value(1))
+				.andExpect(jsonPath("$.data.notifications[0].deliveredAt").exists())
 				.andExpect(jsonPath("$.data.notifications[0].read").value(false));
 	}
 

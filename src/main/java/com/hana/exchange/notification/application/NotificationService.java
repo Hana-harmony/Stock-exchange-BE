@@ -12,6 +12,8 @@ import com.hana.exchange.alert.domain.AlertTargetResponse;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.notification.domain.NotificationInboxResponse;
+import com.hana.exchange.notification.domain.NotificationDeliveryResult;
+import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
 import com.hana.exchange.notification.domain.NotificationItem;
 import com.hana.exchange.notification.domain.NotificationItemResponse;
 
@@ -21,14 +23,17 @@ public class NotificationService {
 	private final AccountRepository accountRepository;
 	private final NotificationRepository notificationRepository;
 	private final IdGenerator idGenerator;
+	private final PushNotificationSender pushNotificationSender;
 
 	public NotificationService(
 			AccountRepository accountRepository,
 			NotificationRepository notificationRepository,
-			IdGenerator idGenerator) {
+			IdGenerator idGenerator,
+			PushNotificationSender pushNotificationSender) {
 		this.accountRepository = accountRepository;
 		this.notificationRepository = notificationRepository;
 		this.idGenerator = idGenerator;
+		this.pushNotificationSender = pushNotificationSender;
 	}
 
 	public void storeAlertNotifications(AlertEvent event, List<AlertTargetResponse> targets) {
@@ -36,7 +41,7 @@ public class NotificationService {
 			if (notificationRepository.existsForEventAndAccount(event.eventId(), target.accountId())) {
 				continue;
 			}
-			notificationRepository.save(new NotificationItem(
+			NotificationItem pendingNotification = new NotificationItem(
 					idGenerator.newNotificationId(),
 					target.accountId(),
 					target.userId(),
@@ -48,9 +53,16 @@ public class NotificationService {
 					event.stockCode(),
 					event.matchingStockCodes(),
 					target.matchReasons(),
+					NotificationDeliveryStatus.PENDING,
+					null,
+					0,
+					null,
+					null,
 					false,
 					Instant.now(),
-					null));
+					null);
+			NotificationDeliveryResult deliveryResult = pushNotificationSender.send(pendingNotification);
+			notificationRepository.save(pendingNotification.markDelivery(deliveryResult));
 		}
 	}
 
@@ -91,6 +103,11 @@ public class NotificationService {
 				item.primaryStockCode(),
 				item.matchedStockCodes(),
 				item.matchReasons(),
+				item.deliveryStatus(),
+				item.deliveryProvider(),
+				item.deliveryAttemptCount(),
+				item.deliveredAt(),
+				item.lastDeliveryError(),
 				item.read(),
 				item.createdAt(),
 				item.readAt());

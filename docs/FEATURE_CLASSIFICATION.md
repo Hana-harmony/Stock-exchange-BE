@@ -52,3 +52,12 @@
 | Hana-OmniLens-API 세무 상태 조회/동기화 | Stock-exchange-BE | Planned |
 | 환급/선지급 상태와 사후 환수 리스크 알림 | Stock-exchange-BE | Partial |
 | 국세청 경정청구 실제 제출 | Hana/업무 운영 시스템 | Out of scope until compliance approval |
+
+## 4. 운영 감사와 보안
+
+| 기능 | 책임 | 상태 |
+| --- | --- | --- |
+| 주문 체결 감사 이벤트 저장과 조회 | Stock-exchange-BE | Done |
+| notification 읽음 감사 이벤트 저장과 조회 | Stock-exchange-BE | Done |
+| tax refund case 생성/갱신 감사 이벤트 저장과 조회 | Stock-exchange-BE | Done |
+| 감사 로그 개인정보 마스킹과 보존 정책 | Stock-exchange-BE | Planned |

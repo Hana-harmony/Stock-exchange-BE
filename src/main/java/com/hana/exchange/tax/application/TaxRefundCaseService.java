@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import com.hana.exchange.account.application.AccountRepository;
 import com.hana.exchange.account.application.IdGenerator;
 import com.hana.exchange.account.domain.MockUsdAccount;
+import com.hana.exchange.audit.application.AuditEventService;
+import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.tax.domain.TaxMatchedTradeResponse;
@@ -34,16 +36,19 @@ public class TaxRefundCaseService {
 	private final TradeRepository tradeRepository;
 	private final TaxRefundCaseRepository taxRefundCaseRepository;
 	private final IdGenerator idGenerator;
+	private final AuditEventService auditEventService;
 
 	public TaxRefundCaseService(
 			AccountRepository accountRepository,
 			TradeRepository tradeRepository,
 			TaxRefundCaseRepository taxRefundCaseRepository,
-			IdGenerator idGenerator) {
+			IdGenerator idGenerator,
+			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.taxRefundCaseRepository = taxRefundCaseRepository;
 		this.idGenerator = idGenerator;
+		this.auditEventService = auditEventService;
 	}
 
 	public TaxRefundCaseResponse createOrReplace(String accountId, TaxRefundCaseCreateRequest request) {
@@ -77,6 +82,16 @@ public class TaxRefundCaseService {
 				existingCase == null ? now : existingCase.createdAt(),
 				now);
 		taxRefundCaseRepository.save(taxCase);
+		auditEventService.record(
+				taxCase.accountId(),
+				taxCase.userId(),
+				AuditEventType.TAX_REFUND_CASE_UPSERTED,
+				"TAX_REFUND_CASE",
+				taxCase.caseId(),
+				"Tax year " + taxCase.taxYear()
+						+ " status=" + taxCase.status().name()
+						+ " estimatedRefundUsd=" + moneyText(taxCase.estimatedRefundUsd()),
+				taxCase.updatedAt());
 		return toResponse(taxCase, matchedTrades);
 	}
 

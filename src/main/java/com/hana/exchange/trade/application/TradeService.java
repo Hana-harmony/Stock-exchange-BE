@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import com.hana.exchange.account.application.AccountRepository;
 import com.hana.exchange.account.application.IdGenerator;
 import com.hana.exchange.account.domain.MockUsdAccount;
+import com.hana.exchange.audit.application.AuditEventService;
+import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
@@ -36,16 +38,19 @@ public class TradeService {
 	private final TradeRepository tradeRepository;
 	private final OmniLensMarketQuoteClient quoteClient;
 	private final IdGenerator idGenerator;
+	private final AuditEventService auditEventService;
 
 	public TradeService(
 			AccountRepository accountRepository,
 			TradeRepository tradeRepository,
 			OmniLensMarketQuoteClient quoteClient,
-			IdGenerator idGenerator) {
+			IdGenerator idGenerator,
+			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.quoteClient = quoteClient;
 		this.idGenerator = idGenerator;
+		this.auditEventService = auditEventService;
 	}
 
 	public TradeExecutionResponse execute(String accountId, TradeOrderRequest request) {
@@ -125,6 +130,7 @@ public class TradeService {
 		accountRepository.saveAccount(updatedAccount);
 		tradeRepository.saveHolding(updatedHolding);
 		tradeRepository.saveTrade(trade);
+		recordTradeAudit(trade);
 		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
 	}
 
@@ -157,7 +163,21 @@ public class TradeService {
 		accountRepository.saveAccount(updatedAccount);
 		tradeRepository.saveHolding(updatedHolding);
 		tradeRepository.saveTrade(trade);
+		recordTradeAudit(trade);
 		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
+	}
+
+	private void recordTradeAudit(MockTradeLedgerEntry trade) {
+		auditEventService.record(
+				trade.accountId(),
+				trade.userId(),
+				AuditEventType.TRADE_EXECUTED,
+				"TRADE",
+				trade.tradeId(),
+				trade.side().name() + " " + trade.quantity() + " " + trade.stockCode()
+						+ " grossUsd=" + moneyText(trade.grossAmountUsd())
+						+ " realizedPnlUsd=" + moneyText(trade.realizedPnlUsd()),
+				trade.executedAt());
 	}
 
 	private MockTradeLedgerEntry tradeLedger(

@@ -36,6 +36,9 @@
 - `tax/api`: 계좌별 tax refund case 생성과 최신 환급 상태 조회 REST API
 - `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장 service
 - `tax/domain`: 세무 서류 metadata, matched trade, refund status, estimated tax/refund 계약 record
+- `audit/api`: 계좌별 최근 감사 이벤트 조회 REST API
+- `audit/application`: 주문 체결, notification 읽음 처리, tax refund case 생성/갱신 이벤트 저장 service
+- `audit/domain`: audit event type, subject, summary, occurredAt 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, profile별 runtime 설정
 - Planned `auth`: session anomaly detection
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
@@ -46,7 +49,7 @@
 - Planned `alert`: replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, delivery retry worker
 - Planned `tax`: object storage 파일 업로드, Hana 세무 상태 동기화, 사후 환수 리스크 worker
-- Planned `audit`: 사용자별 알림/주문/세무 상태 변경 이력
+- `audit/persistence`: Flyway schema와 JDBC repository 기반 사용자별 알림/주문/세무 상태 변경 이력 영속화
 
 ## 패키지 원칙
 - `Hana-OmniLens-API`와 동일하게 기능별 package 안에 `api`, `application`, `domain`을 둔다.
@@ -110,6 +113,7 @@
 - `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과와 원문 링크를 최신순으로 제공한다.
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - notification 응답은 push `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, `lastDeliveryError`를 포함한다.
+- `GET /api/v1/accounts/{accountId}/audit/events`는 계좌별 최근 주문 체결, notification 읽음 처리, tax refund case 생성/갱신 감사 이벤트를 최신순으로 제공한다.
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.
 - `GET /api/v1/market/quotes?stockCodes=...&market=...&currency=USD`는 Hana all/bulk quote endpoint와 시장 필터 기준으로 KRW/USD 시세 목록 snapshot을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
@@ -118,4 +122,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- push worker, 웹 푸시, 세무 파일 object storage, Hana 세무 상태 sync는 미구현이다.
+- push worker, 웹 푸시, 세무 파일 object storage, Hana 세무 상태 sync, audit masking/retention policy는 미구현이다.

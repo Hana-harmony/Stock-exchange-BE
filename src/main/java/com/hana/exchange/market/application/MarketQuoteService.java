@@ -20,6 +20,8 @@ import com.hana.exchange.market.application.MarketQuoteCache.CachedQuotes;
 @Service
 public class MarketQuoteService {
 
+	private static final List<String> ALL_KOREAN_STOCKS_CACHE_KEY = List.of("__ALL_KOREAN_STOCKS__");
+
 	private final OmniLensMarketQuoteClient omniLensMarketQuoteClient;
 	private final MarketQuoteCache marketQuoteCache;
 	private final ExchangeBackendProperties properties;
@@ -55,8 +57,11 @@ public class MarketQuoteService {
 			String currency,
 			String marketCoverage,
 			boolean useDefaultUniverse) {
-		List<String> resolvedStockCodes = resolveStockCodes(stockCodes, useDefaultUniverse);
-		CachedQuotes cachedQuotes = resolvedStockCodes.isEmpty()
+		boolean allKoreanStocks = useDefaultUniverse && (stockCodes == null || stockCodes.isEmpty());
+		List<String> resolvedStockCodes = allKoreanStocks ? List.of() : resolveStockCodes(stockCodes);
+		CachedQuotes cachedQuotes = allKoreanStocks
+				? getAllQuotesWithCache(currency)
+				: resolvedStockCodes.isEmpty()
 				? emptyQuotes()
 				: getQuotesWithCache(resolvedStockCodes, currency);
 		String normalizedMarket = normalizeMarket(market);
@@ -100,6 +105,11 @@ public class MarketQuoteService {
 				.orElseGet(() -> fetchQuotesWithStaleFallback(stockCodes, currency));
 	}
 
+	private CachedQuotes getAllQuotesWithCache(String currency) {
+		return marketQuoteCache.getFresh(ALL_KOREAN_STOCKS_CACHE_KEY, currency)
+				.orElseGet(() -> fetchAllQuotesWithStaleFallback(currency));
+	}
+
 	private CachedQuotes getQuoteWithCache(String stockCode, String currency) {
 		List<String> stockCodes = List.of(stockCode);
 		return marketQuoteCache.getFresh(stockCodes, currency)
@@ -111,6 +121,15 @@ public class MarketQuoteService {
 			return marketQuoteCache.put(stockCodes, currency, omniLensMarketQuoteClient.getQuotes(stockCodes, currency));
 		} catch (BusinessException exception) {
 			return marketQuoteCache.getStale(stockCodes, currency)
+					.orElseThrow(() -> exception);
+		}
+	}
+
+	private CachedQuotes fetchAllQuotesWithStaleFallback(String currency) {
+		try {
+			return marketQuoteCache.put(ALL_KOREAN_STOCKS_CACHE_KEY, currency, omniLensMarketQuoteClient.getAllQuotes(currency));
+		} catch (BusinessException exception) {
+			return marketQuoteCache.getStale(ALL_KOREAN_STOCKS_CACHE_KEY, currency)
 					.orElseThrow(() -> exception);
 		}
 	}
@@ -163,14 +182,11 @@ public class MarketQuoteService {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
 	}
 
-	private List<String> resolveStockCodes(List<String> requestedStockCodes, boolean useDefaultUniverse) {
-		List<String> source = useDefaultUniverse && (requestedStockCodes == null || requestedStockCodes.isEmpty())
-				? properties.defaultStockCodes()
-				: requestedStockCodes;
-		if (source == null) {
+	private List<String> resolveStockCodes(List<String> requestedStockCodes) {
+		if (requestedStockCodes == null) {
 			return List.of();
 		}
-		Set<String> deduplicated = new LinkedHashSet<>(source);
+		Set<String> deduplicated = new LinkedHashSet<>(requestedStockCodes);
 		return deduplicated.stream()
 				.filter(StringUtils::hasText)
 				.toList();
@@ -185,7 +201,7 @@ public class MarketQuoteService {
 
 	private String marketCoverage(List<String> requestedStockCodes) {
 		if (requestedStockCodes == null || requestedStockCodes.isEmpty()) {
-			return "CONFIGURED_KOREAN_STOCK_UNIVERSE";
+			return "ALL_KOREAN_STOCKS";
 		}
 		return "REQUESTED_STOCK_CODES";
 	}

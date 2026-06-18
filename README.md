@@ -82,7 +82,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건 실시간 시세 snapshot 구현, 설정된 국내주식 universe/다건/시장별 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, 호가, tax refund status 조회 예정
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, 호가, tax refund status 조회 예정
 - WebSocket: 뉴스·공시 알림과 market quote stream 구독/재배포
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -98,7 +98,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 1. Hana-OmniLens-API의 KIS 기반 단건 실시간 시세 snapshot을 조회해 FE에 공통 응답 형식으로 전달한다.
 2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 cache에 반영한다.
 3. Stock-exchange-BE는 Hana가 내려준 `currentPriceKrw`, `localCurrencyPrice`, `localCurrency`, `fxRate`, `fxRateTime`, `fxRateSource`를 보존해 FE에 전달한다.
-4. FE가 설정된 전체 universe, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 현재 전체 universe는 `HANA_OMNILENS_DEFAULT_STOCK_CODES` 설정값을 사용하고, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다. Hana-OmniLens-API bulk/all quote가 추가되면 client 경계에서 교체한다.
+4. FE가 전체 한국 주식, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 전체 목록은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 종목 목록은 bulk quote endpoint를 사용하며, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다.
 5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. 현재 구현은 `POST /api/v1/market/stream/quotes`로 동일 publisher를 검증하며, Hana-OmniLens-API stream client가 붙으면 같은 publisher를 호출한다.
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.

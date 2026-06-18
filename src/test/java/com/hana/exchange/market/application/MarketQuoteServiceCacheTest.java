@@ -68,7 +68,6 @@ class MarketQuoteServiceCacheTest {
 		ExchangeBackendProperties properties = new ExchangeBackendProperties(
 				"http://localhost:8080",
 				"",
-				List.of("005930"),
 				Duration.ofSeconds(3),
 				Duration.ofSeconds(30));
 		return new MarketQuoteService(

@@ -6,6 +6,10 @@ public interface OmniLensMarketQuoteClient {
 
 	OmniLensMarketQuote getQuote(String stockCode, String currency);
 
+	default List<OmniLensMarketQuote> getAllQuotes(String currency) {
+		return List.of();
+	}
+
 	default List<OmniLensMarketQuote> getQuotes(List<String> stockCodes, String currency) {
 		return stockCodes.stream()
 				.map(stockCode -> getQuote(stockCode, currency))

@@ -40,6 +40,7 @@
 | `ACCOUNT_001` | 404 | Mock USD account not found |
 | `MARKET_001` | 502 | Hana OmniLens market upstream unavailable |
 | `TRADE_001` | 409 | Mock USD account has insufficient balance |
+| `TRADE_002` | 409 | Mock holding has insufficient quantity |
 
 ## Swagger
 

@@ -192,3 +192,11 @@
   - `SKIPPED`: delivery was intentionally skipped.
 - Current provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
 - External mobile/web push providers and retry workers are planned hardening work.
+
+## Audit Events
+
+- `GET /api/v1/accounts/{accountId}/audit/events`
+  - Returns recent account audit events in newest-first order.
+  - Current event types are `TRADE_EXECUTED`, `NOTIFICATION_READ`, and `TAX_REFUND_CASE_UPSERTED`.
+  - Each item includes `auditEventId`, `eventType`, `subjectType`, `subjectId`, `summary`, and `occurredAt`.
+  - The endpoint is protected by the same bearer account ownership rule as other `/api/v1/accounts/**` APIs.

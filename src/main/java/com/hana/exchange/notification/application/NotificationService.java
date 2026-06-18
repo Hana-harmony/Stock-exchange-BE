@@ -9,6 +9,8 @@ import com.hana.exchange.account.application.AccountRepository;
 import com.hana.exchange.account.application.IdGenerator;
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertTargetResponse;
+import com.hana.exchange.audit.application.AuditEventService;
+import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.notification.domain.NotificationInboxResponse;
@@ -24,16 +26,19 @@ public class NotificationService {
 	private final NotificationRepository notificationRepository;
 	private final IdGenerator idGenerator;
 	private final PushNotificationSender pushNotificationSender;
+	private final AuditEventService auditEventService;
 
 	public NotificationService(
 			AccountRepository accountRepository,
 			NotificationRepository notificationRepository,
 			IdGenerator idGenerator,
-			PushNotificationSender pushNotificationSender) {
+			PushNotificationSender pushNotificationSender,
+			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.notificationRepository = notificationRepository;
 		this.idGenerator = idGenerator;
 		this.pushNotificationSender = pushNotificationSender;
+		this.auditEventService = auditEventService;
 	}
 
 	public void storeAlertNotifications(AlertEvent event, List<AlertTargetResponse> targets) {
@@ -84,6 +89,14 @@ public class NotificationService {
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_NOT_FOUND));
 		NotificationItem readItem = item.markRead(Instant.now());
 		notificationRepository.save(readItem);
+		auditEventService.record(
+				readItem.accountId(),
+				readItem.userId(),
+				AuditEventType.NOTIFICATION_READ,
+				"NOTIFICATION",
+				readItem.notificationId(),
+				"Read notification for event " + readItem.eventId(),
+				readItem.readAt());
 		return toResponse(readItem);
 	}
 

@@ -52,4 +52,4 @@
 - retry/backoff
 - WebSocket reconnect/replay
 - push 중복 방지와 delivery retry worker
-- 세무/금융 데이터 접근 로그
+- 세무/금융 데이터 접근 로그: 주문 체결, notification 읽음, tax refund case 변경 감사 이벤트 DB 저장과 조회 API 구현 완료, 개인정보 마스킹/보존 정책 예정

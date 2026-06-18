@@ -40,6 +40,10 @@ public class IdGenerator {
 		return "TAX-" + randomToken();
 	}
 
+	public String newAuditEventId() {
+		return "AUD-" + randomToken();
+	}
+
 	private String randomToken() {
 		StringBuilder token = new StringBuilder(RANDOM_LENGTH);
 		for (int index = 0; index < RANDOM_LENGTH; index++) {

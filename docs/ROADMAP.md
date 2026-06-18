@@ -5,7 +5,7 @@
 ## M1 현지 거래소 백엔드 하네스
 - Spring Boot API server scaffold
 - 영어권 사용자와 USD 기준 서비스 계약 명시
-- DB schema 초안
+- DB schema 초안: Flyway 기반 user/account/cash ledger/refresh session schema 구현 완료
 - Hana-OmniLens-API 단건 quote REST client
 - 환경별 secret 관리
 - Gradle Wrapper와 CI
@@ -23,8 +23,8 @@
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책: 기본 3초 fresh cache, 30초 stale fallback, 응답 cache metadata 구현 완료
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책: 기본 비활성화 설정과 upstream WebSocket client 구현 완료, 실제 Hana endpoint 연동 smoke 예정
 - 보유종목과 watchlist 모델: watchlist 인메모리 API 구현 완료, 보유종목은 mock 거래 portfolio로 부분 구현
-- 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: 인메모리 API, local JWT 발급/검증, refresh token/session rotation, Spring Security bearer filter 구현 완료, 영속화 예정
-- 실제 결제 없는 mock 달러 충전: 인메모리 cash ledger 구현 완료, 영속 ledger 예정
+- 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: JDBC/Flyway 기반 user/account 저장, local JWT 발급/검증, refresh token/session rotation, Spring Security bearer filter 구현 완료
+- 실제 결제 없는 mock 달러 충전: DB cash ledger 구현 완료
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: 인메모리 API 구현 완료, 영속 ledger 예정
 - 평균단가, 평가손익, 매도 실현손익 계산: 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익 구현 완료
 - 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산: Hana orderability client와 mock 주문 전 경고 API 구현 완료, 실제 Hana 연동 smoke 예정
@@ -47,7 +47,7 @@
 
 ## M5 운영 하드닝
 - auth context 기반 계좌 API 보호: `/api/v1/accounts/**` bearer token 검증과 accountId path 매칭 구현 완료
-- refresh token/session rotation 구현 완료, refresh session 영속화 예정
+- refresh token/session rotation과 refresh session DB 영속화 구현 완료
 - rate limit
 - retry/backoff
 - WebSocket reconnect/replay

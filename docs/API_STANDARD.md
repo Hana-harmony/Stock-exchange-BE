@@ -51,6 +51,9 @@
 | `TRADE_002` | 409 | Mock holding has insufficient quantity |
 | `TAX_001` | 404 | Tax refund case not found |
 | `TAX_002` | 502 | Tax refund status sync failed |
+| `TAX_003` | 400 | Tax document is invalid |
+| `TAX_004` | 404 | Tax document not found |
+| `TAX_005` | 500 | Tax document storage failed |
 
 ## Swagger
 
@@ -159,10 +162,16 @@
 
 ## Tax Refund
 
+- `POST /api/v1/accounts/{accountId}/tax/documents`
+  - Multipart upload endpoint for residence certificate and reduced tax application files.
+  - Request fields: `documentType` (`RESIDENCE_CERTIFICATE` or `REDUCED_TAX_APPLICATION`) and `file`.
+  - Stores the file through the configured tax document storage adapter and persists metadata in `tax_documents`.
+  - Configure local storage with `EXCHANGE_TAX_DOCUMENT_STORAGE_ROOT` and `EXCHANGE_TAX_DOCUMENT_MAX_FILE_SIZE_BYTES`.
+  - Returns `documentId`, original file name, content type, size, SHA-256, storage key, and created time.
 - `POST /api/v1/accounts/{accountId}/tax/refund-cases`
   - Creates or replaces a tax refund case for a mock USD account and tax year.
-  - Request fields: `taxYear`, `treatyCountry`, `residenceCertificateFileName`, `reducedTaxApplicationFileName`, `advancePaymentRequested`.
-  - File fields are metadata only in the current implementation. Object storage upload is planned.
+  - Request fields: `taxYear`, `treatyCountry`, `residenceCertificateFileName`, `reducedTaxApplicationFileName`, optional `residenceCertificateDocumentId`, optional `reducedTaxApplicationDocumentId`, and `advancePaymentRequested`.
+  - When document IDs are provided, the service verifies that the uploaded documents belong to the account and match the expected document type.
   - The service matches internal mock `SELL` ledger entries for the requested tax year.
   - It returns total sell amount, realized profit, realized loss, net realized PnL, taxable realized PnL, estimated local withholding tax, estimated treaty tax, estimated refund, matched trades, and advance payment eligibility.
 - `GET /api/v1/accounts/{accountId}/tax/refund-status`

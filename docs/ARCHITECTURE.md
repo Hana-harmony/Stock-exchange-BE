@@ -49,7 +49,8 @@
 - Planned `trade`: 체결 원장 하드닝
 - Planned `alert`: replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, provider별 retry/backoff hardening
-- Planned `tax`: object storage 파일 업로드, 사후 환수 리스크 worker
+- `tax`: object storage 파일 업로드, 세무 문서 metadata, tax refund case 연결
+- Planned `tax`: 사후 환수 리스크 worker
 - `audit/persistence`: Flyway schema와 JDBC repository 기반 사용자별 알림/주문/세무 상태 변경 이력 영속화와 retention purge
 
 ## 패키지 원칙
@@ -127,4 +128,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- 웹 푸시와 세무 파일 object storage는 미구현이다. Hana REST retry/backoff, notification retry worker, audit retention worker는 기본 설정으로 구현되어 통합 환경에서 활성화할 수 있다.
+- 웹 푸시와 외부 object storage provider는 미구현이다. 세무 파일은 로컬 object storage adapter로 저장하며, Hana REST retry/backoff, notification retry worker, audit retention worker는 기본 설정으로 구현되어 통합 환경에서 활성화할 수 있다.

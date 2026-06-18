@@ -11,6 +11,8 @@ public record TaxRefundCaseCreateRequest(
 		@NotBlank @Pattern(regexp = "[A-Z]{2}") String treatyCountry,
 		@NotBlank String residenceCertificateFileName,
 		@NotBlank String reducedTaxApplicationFileName,
+		String residenceCertificateDocumentId,
+		String reducedTaxApplicationDocumentId,
 		boolean advancePaymentRequested
 ) {
 }

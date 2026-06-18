@@ -10,6 +10,10 @@ public interface AccountRepository {
 
 	boolean existsByUsername(String username);
 
+	Optional<ExchangeUser> findUserByUsername(String username);
+
+	Optional<MockUsdAccount> findAccountByUserId(String userId);
+
 	void saveNewAccount(ExchangeUser user, MockUsdAccount account);
 
 	Optional<MockUsdAccount> findAccount(String accountId);

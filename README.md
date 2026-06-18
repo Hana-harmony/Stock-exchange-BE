@@ -24,6 +24,9 @@ curl -X POST http://localhost:3000/api/v1/market/stream/quotes \
 curl -X POST http://localhost:3000/api/v1/auth/signup \
   -H 'Content-Type: application/json' \
   -d '{"username":"local_trader","password":"localPass123!"}'
+curl -X POST http://localhost:3000/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"local_trader","password":"localPass123!"}'
 ```
 
 기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
@@ -56,6 +59,8 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - Hana-OmniLens-API와 동일한 `api / application / domain / config` 패키지 구조
 - `GET /actuator/health`
 - `POST /api/v1/auth/signup`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/token/verify`
 - `GET /api/v1/accounts/{accountId}`
 - `POST /api/v1/accounts/{accountId}/deposits`
 - `POST /api/v1/accounts/{accountId}/trades`
@@ -81,7 +86,7 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
 - STOMP `/ws/market`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
-- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 영속 DB schema와 마이그레이션은 별도 단계에서 추가한다.
+- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT를 발급한다. 영속 DB schema, 마이그레이션, Spring Security filter enforcement는 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정

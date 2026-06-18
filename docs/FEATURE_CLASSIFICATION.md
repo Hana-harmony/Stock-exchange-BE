@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Spring Boot API 하네스 | Stock-exchange-BE | Partial |
 | 영어권 현지 사용자와 USD 기준 서비스 목표 | Stock-exchange-BE | Planned |
-| 아이디/비밀번호 기반 간편 회원가입 | Stock-exchange-BE | Partial |
+| 아이디/비밀번호 기반 간편 회원가입/로그인 | Stock-exchange-BE | Partial |
 | 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Done |
 | 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |

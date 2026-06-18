@@ -67,6 +67,73 @@ class AccountControllerTest {
 	}
 
 	@Test
+	void loginIssuesBearerTokenAndVerifyTokenReturnsClaims() throws Exception {
+		String accountId = signUpAndGetAccountId("LoginTrader01");
+		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "LoginTrader01",
+								  "password": "localPass123!"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.username").value("logintrader01"))
+				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+				.andExpect(jsonPath("$.data.accessToken", notNullValue()))
+				.andExpect(jsonPath("$.data.issuedAt", notNullValue()))
+				.andExpect(jsonPath("$.data.expiresAt", notNullValue()))
+				.andReturn();
+
+		String accessToken = JsonPath.read(login.getResponse().getContentAsString(), "$.data.accessToken");
+		mockMvc.perform(post("/api/v1/auth/token/verify")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "accessToken": "%s"
+								}
+								""".formatted(accessToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.valid").value(true))
+				.andExpect(jsonPath("$.data.username").value("logintrader01"))
+				.andExpect(jsonPath("$.data.accountId").value(accountId))
+				.andExpect(jsonPath("$.data.issuedAt", notNullValue()))
+				.andExpect(jsonPath("$.data.expiresAt", notNullValue()));
+	}
+
+	@Test
+	void loginRejectsInvalidPassword() throws Exception {
+		signUpAndGetAccountId("BadLoginTrader01");
+
+		mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "BadLoginTrader01",
+								  "password": "wrongPass123!"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("AUTH_002"));
+	}
+
+	@Test
+	void verifyTokenRejectsTamperedToken() throws Exception {
+		mockMvc.perform(post("/api/v1/auth/token/verify")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "accessToken": "bad.token.value"
+								}
+								"""))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("AUTH_003"));
+	}
+
+	@Test
 	void depositUsdIncreasesMockCashBalance() throws Exception {
 		String accountId = signUpAndGetAccountId("DepositTrader01");
 

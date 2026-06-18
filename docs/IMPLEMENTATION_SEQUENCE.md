@@ -67,6 +67,7 @@
 ## 5. Stock-exchange-BE 구현
 - Java Spring Boot 구조를 유지하고 Hana-OmniLens-API와 유사한 계층 구조를 사용한다.
 - 아이디/비밀번호 회원가입과 mock USD 계좌 생성을 구현한다.
+- 로그인 API는 PBKDF2 password verify와 local JWT 발급/검증 계약을 제공하고, 인증 filter와 refresh token은 별도 hardening 단계로 확장한다.
 - 실제 결제 없는 달러 충전과 자체 mock ledger 기반 매수·매도를 구현한다.
 - 종목 검색/상세 API는 Hana-OmniLens-API를 proxy해 영어명, USD 가격, 외국인 보유율, VI, 상/하한가, orderable flag를 제공한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.

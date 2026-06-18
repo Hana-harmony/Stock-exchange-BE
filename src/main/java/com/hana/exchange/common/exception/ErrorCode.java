@@ -8,6 +8,8 @@ public enum ErrorCode {
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_003", "Resource not found"),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_999", "Internal server error"),
 	USERNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_001", "Username already exists"),
+	INVALID_LOGIN_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH_002", "Invalid username or password"),
+	INVALID_AUTH_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_003", "Invalid auth token"),
 	MOCK_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT_001", "Mock USD account not found"),
 	WATCHLIST_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "WATCHLIST_001", "Watchlist item not found"),
 	ALERT_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ALERT_001", "Alert event not found"),

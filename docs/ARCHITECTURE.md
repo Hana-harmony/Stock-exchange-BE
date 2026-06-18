@@ -43,7 +43,7 @@
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger 영속화
 - Planned `portfolio`: 평가금액 이력
 - Planned `trade`: 주문 가능 여부 강제 검증, 체결 원장 하드닝
-- Planned `alert`: 영속 이벤트 저장소, replay/retry worker hardening
+- Planned `alert`: replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, delivery retry worker
 - Planned `tax`: object storage 파일 업로드, Hana 세무 상태 동기화, 사후 환수 리스크 worker
 - Planned `audit`: 사용자별 알림/주문/세무 상태 변경 이력
@@ -91,8 +91,8 @@
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - mock holding과 mock trade ledger는 DB에 영속화되며, market quote stream과 tax refund case는 DB holding/trade ledger를 기준으로 계좌별 topic과 매도 실현손익을 계산한다.
 - watchlist는 DB에 영속화되며 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다.
-- WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 저장·매칭한다.
-- 종목 상세 화면은 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다. 현재 구현은 REST ingest로 저장된 인메모리 이벤트를 조회한다.
+- WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 DB에 이벤트와 매칭 결과를 저장한다.
+- 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다.
 - 매칭된 alert target은 계좌별 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다. 현재 구현은 로컬 개발용 인메모리 저장소를 사용한다.
 - notification은 provider 추상화와 delivery 상태를 보관한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, FCM/APNS/web push provider와 retry worker는 별도 단계다.
 - 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공한다.
@@ -118,4 +118,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- alert/notification/tax 영속 저장소, push worker, 웹 푸시는 미구현이다.
+- notification/tax 영속 저장소, push worker, 웹 푸시는 미구현이다.

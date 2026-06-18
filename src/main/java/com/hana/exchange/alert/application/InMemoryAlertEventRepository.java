@@ -6,12 +6,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertEventMatchResult;
 
 @Repository
+@Profile("memory")
 public class InMemoryAlertEventRepository implements AlertEventRepository {
 
 	private final Map<String, AlertEventMatchResult> resultsByEventId = new ConcurrentHashMap<>();

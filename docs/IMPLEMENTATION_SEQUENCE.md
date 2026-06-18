@@ -73,14 +73,14 @@
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
 - 전체 한국 주식 REST snapshot은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 `stockCodes`가 있는 snapshot은 Hana bulk quote endpoint를 사용한다.
 - quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status와 `fxStale=true`를 포함한다.
-- watchlist와 보유종목 REST snapshot은 계좌별 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
+- watchlist와 보유종목 REST snapshot은 계좌별 DB 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
 - Hana-OmniLens-API market quote WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
 - Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
-- 보유종목과 watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
+- DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
 - notification은 provider 추상화와 delivery 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.

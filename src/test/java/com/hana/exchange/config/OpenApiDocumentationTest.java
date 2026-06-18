@@ -29,6 +29,8 @@ class OpenApiDocumentationTest {
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/deposits']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/trades']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/portfolio']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/watchlist']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/watchlist/{stockCode}']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/quotes']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/quotes/{stockCode}']", notNullValue()));
 	}

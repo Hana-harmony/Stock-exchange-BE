@@ -21,6 +21,7 @@
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Planned |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Planned |
 | 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
+| watchlist 관심종목 API와 알림 대상 입력 데이터 | Stock-exchange-BE | Done |
 | KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |
 | 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Partial |
 | 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산 | Stock-exchange-BE | Planned |

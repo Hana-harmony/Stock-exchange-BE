@@ -50,6 +50,18 @@
 - Swagger UI: `/swagger-ui/index.html`
 - OpenAPI JSON: `/v3/api-docs`
 
+## Stock Search And Detail
+
+- `GET /api/v1/stocks/search`
+  - `query`: required search text.
+  - `market`: optional `KOSPI`, `KOSDAQ`, `KONEX`, `OTHER` filter.
+  - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
+  - `limit`: optional result limit from 1 to 50. Defaults to 20.
+- `GET /api/v1/stocks/{stockCode}`
+  - Stock detail for the FE stock detail screen.
+  - Returns English display name, KRW price, requested local currency price, foreign ownership metrics, VI state, price limit state, trading halt, and orderable flag.
+- Stock search/detail calls Hana-OmniLens-API and returns the common response envelope.
+
 ## Market Quote Snapshot
 
 - `GET /api/v1/market/quotes`

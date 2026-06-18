@@ -30,6 +30,7 @@
 ## 2. API 계약 우선 고정
 - Hana-OmniLens-API와 Stock-exchange-BE 사이의 시장 데이터 계약을 먼저 고정한다.
 - 실시간 시세는 WebSocket stream을 기본으로 하고, REST snapshot은 초기 로딩, 복구, 캐시 조회 용도로 사용한다.
+- Stock-exchange-BE FE용 quote stream topic은 전체, 시장별, 종목별, 계좌별 watchlist, 계좌별 보유종목 단위로 제공한다.
 - 과거 차트 데이터는 Hana-OmniLens-API가 KRX 기반으로 수집·정규화·저장한 데이터를 REST로 제공한다.
 - 시세 응답은 원화 가격과 실시간 환율이 적용된 USD 가격을 함께 제공한다.
 - 뉴스와 공시 분석 이벤트는 원문 링크, 번역, 요약, 감성, 중요도, 리스크, 관련 종목, 중복 키를 포함한다.
@@ -68,7 +69,11 @@
 - 아이디/비밀번호 회원가입과 mock USD 계좌 생성을 구현한다.
 - 실제 결제 없는 달러 충전과 자체 mock ledger 기반 매수·매도를 구현한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
+- 전체 한국 주식 REST snapshot은 Hana-OmniLens-API bulk/all quote가 완성되기 전까지 설정된 `HANA_OMNILENS_DEFAULT_STOCK_CODES` universe와 요청 `stockCodes` 조합으로 단계 구현한다.
+- watchlist와 보유종목 REST snapshot은 계좌별 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
+- watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
+- Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - 보유종목과 watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 
@@ -107,7 +112,8 @@
 - 1차 PR은 작업 브랜치에서 `feature`로 올린다.
 - 체크 통과 후 `feature`에 merge한다.
 - 2차 PR은 `feature`에서 `main`으로 올린다.
-- 체크 통과 후 `main`에 merge하고 작업 브랜치를 삭제한다.
+- 체크 통과 후 `main`에 merge하고 작업 브랜치만 삭제한다.
+- `feature`는 개발 통합 브랜치이므로 삭제하지 않는다.
 
 완료 기준:
 - PR 설명에 구현 범위, 검증 결과, 남은 리스크가 한글로 정리되어 있다.

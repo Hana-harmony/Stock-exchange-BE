@@ -16,3 +16,4 @@ hana:
     api:
       base-url: ${HANA_OMNILENS_API_BASE_URL:http://localhost:8080}
       api-key: ${HANA_OMNILENS_API_KEY:}
+      default-stock-codes: ${HANA_OMNILENS_DEFAULT_STOCK_CODES:005930,000660,035420,005380,035720,207940}

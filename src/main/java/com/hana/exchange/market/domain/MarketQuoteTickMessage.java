@@ -1,0 +1,22 @@
+package com.hana.exchange.market.domain;
+
+import java.time.Instant;
+
+public record MarketQuoteTickMessage(
+		String stockCode,
+		String stockName,
+		String market,
+		String currentPriceKrw,
+		String changeRate,
+		long volume,
+		String localCurrency,
+		String localCurrencyPrice,
+		String fxRate,
+		Instant fxRateTime,
+		boolean fxStale,
+		Instant marketDataTime,
+		String source,
+		String transport,
+		Instant publishedAt
+) {
+}

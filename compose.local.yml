@@ -7,6 +7,7 @@ services:
       SERVER_PORT: "3000"
       HANA_OMNILENS_API_BASE_URL: http://host.docker.internal:8080
       HANA_OMNILENS_API_KEY: ""
+      HANA_OMNILENS_DEFAULT_STOCK_CODES: "005930,000660,035420,005380,035720,207940"
     ports:
       - "3000:3000"
     healthcheck:

@@ -57,7 +57,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - 전체/다건/단건 한국 주식 실시간 시세 REST API 제공
 - 전체/시장별/watchlist/보유종목 한국 주식 실시간 시세 WebSocket 제공
 - KRW 가격과 실시간 환율 적용 USD 가격을 함께 FE에 제공
-- Hana-OmniLens-API의 KRX 기반 과거 시세 DB를 조회해 FE용 과거 시세 API 제공
+- Hana-OmniLens-API의 KRX 기반 과거 시세 API를 조회해 FE용 과거 시세 API 제공
 - KIS 모의투자 API를 사용하지 않는 자체 mock ledger 기반 가짜 매수·매도/자산 평가 로직
 - 실제 결제 없이 금액 입력만으로 mock USD 잔고를 증가시키는 달러 충전 기능
 - 외국인 한도, 거래정지, VI, 상·하한가 상태 기반 주문 가능 여부 안내와 mock 주문 실행 차단

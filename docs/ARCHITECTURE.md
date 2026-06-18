@@ -26,6 +26,7 @@
 - `alert/api`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 REST ingest, target 조회, 종목별 인텔리전스 피드 API
 - `alert/application`: idempotency key 기반 이벤트 저장, watchlist/holder 대상자 매칭, 종목별 분석 피드 조합 service
 - `alert/domain`: alert event, matched target, source link, AI 분석 metadata 계약 record
+- `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer worker
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
 - `notification/application`: matched alert target 기반 notification 저장과 중복 방지 service
 - `notification/domain`: notification inbox, original URL, match reason, read state 계약 record
@@ -35,7 +36,7 @@
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
 - Planned `portfolio`: 영속 DB 기반 보유종목, 자체 mock ledger 주문 상태, 평가금액 이력
 - Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 강제 검증, 체결 원장 하드닝
-- Planned `alert`: Hana-OmniLens-API WebSocket client, 영속 이벤트 저장소, replay/retry worker
+- Planned `alert`: 영속 이벤트 저장소, replay/retry worker hardening
 - Planned `notification`: push provider 발송, 웹 푸시, delivery retry worker
 - Planned `tax`: 세무 서류 업로드 metadata, 거래원장/sub-ledger 매칭, 환급 상태 동기화
 - Planned `audit`: 사용자별 알림/주문/세무 상태 변경 이력
@@ -79,7 +80,7 @@
 - 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 재시작 시 사라지는 인메모리 ledger entry를 사용한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - watchlist는 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다. 현재 API는 로컬 개발용 인메모리 저장소를 사용한다.
-- WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest를 통해 동일한 payload를 저장·매칭한다.
+- WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 저장·매칭한다.
 - 종목 상세 화면은 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다. 현재 구현은 REST ingest로 저장된 인메모리 이벤트를 조회한다.
 - 매칭된 alert target은 계좌별 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다. 현재 구현은 로컬 개발용 인메모리 저장소를 사용한다.
 - 세무 기능은 거주자증명서, 제한세율신청서, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다.
@@ -92,6 +93,7 @@
 - `GET /api/v1/accounts/{accountId}/trades/orderability`는 Hana-OmniLens-API orderability 결과를 이용해 mock 주문 전 차단 사유와 경고를 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
+- Hana alert WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공하고 수신 payload를 동일한 alert ingest service로 전달한다.
 - `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과와 원문 링크를 최신순으로 제공한다.
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.
@@ -102,4 +104,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- 로그인/JWT, 영속 DB schema, alert WebSocket client, push worker, 웹 푸시는 미구현이다.
+- 로그인/JWT, 영속 DB schema, push worker, 웹 푸시는 미구현이다.

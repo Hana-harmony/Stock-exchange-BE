@@ -29,6 +29,9 @@ public record ExchangeBackendProperties(
 			String quotePath,
 			String quoteCurrency,
 			boolean quoteReplayEnabled,
+			boolean alertEnabled,
+			String alertPath,
+			boolean alertReplayEnabled,
 			Duration reconnectInitialDelay,
 			Duration reconnectMaxDelay,
 			int backpressureBufferSize,
@@ -40,6 +43,9 @@ public record ExchangeBackendProperties(
 			}
 			if (quoteCurrency == null || quoteCurrency.isBlank()) {
 				quoteCurrency = "USD";
+			}
+			if (alertPath == null || alertPath.isBlank()) {
+				alertPath = "/ws/alerts/events";
 			}
 			if (reconnectInitialDelay == null || reconnectInitialDelay.isNegative() || reconnectInitialDelay.isZero()) {
 				reconnectInitialDelay = Duration.ofSeconds(1);
@@ -60,6 +66,9 @@ public record ExchangeBackendProperties(
 					false,
 					"/ws/market/quotes",
 					"USD",
+					true,
+					false,
+					"/ws/alerts/events",
 					true,
 					Duration.ofSeconds(1),
 					Duration.ofSeconds(30),

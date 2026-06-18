@@ -22,7 +22,10 @@ public enum ErrorCode {
 	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity"),
 	MOCK_ORDER_BLOCKED(HttpStatus.CONFLICT, "TRADE_003", "Mock order is blocked by orderability rules"),
 	TAX_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_001", "Tax refund case not found"),
-	TAX_STATUS_SYNC_FAILED(HttpStatus.BAD_GATEWAY, "TAX_002", "Tax refund status sync failed");
+	TAX_STATUS_SYNC_FAILED(HttpStatus.BAD_GATEWAY, "TAX_002", "Tax refund status sync failed"),
+	TAX_DOCUMENT_INVALID(HttpStatus.BAD_REQUEST, "TAX_003", "Tax document is invalid"),
+	TAX_DOCUMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_004", "Tax document not found"),
+	TAX_DOCUMENT_STORAGE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "TAX_005", "Tax document storage failed");
 
 	private final HttpStatus status;
 	private final String code;

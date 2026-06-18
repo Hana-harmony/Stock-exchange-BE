@@ -11,6 +11,8 @@ public record TaxRefundCaseResponse(
 		String treatyCountry,
 		String residenceCertificateFileName,
 		String reducedTaxApplicationFileName,
+		String residenceCertificateDocumentId,
+		String reducedTaxApplicationDocumentId,
 		boolean advancePaymentRequested,
 		TaxRefundCaseStatus status,
 		String currency,

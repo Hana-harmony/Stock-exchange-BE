@@ -3,16 +3,22 @@ package com.hana.exchange.tax.api;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 
+import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.hana.exchange.common.api.ApiResponse;
+import com.hana.exchange.tax.application.TaxDocumentService;
 import com.hana.exchange.tax.application.TaxRefundCaseService;
+import com.hana.exchange.tax.domain.TaxDocumentType;
+import com.hana.exchange.tax.domain.TaxDocumentUploadResponse;
 import com.hana.exchange.tax.domain.TaxRefundCaseCreateRequest;
 import com.hana.exchange.tax.domain.TaxRefundCaseResponse;
 
@@ -28,9 +34,20 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public class TaxRefundCaseController {
 
 	private final TaxRefundCaseService taxRefundCaseService;
+	private final TaxDocumentService taxDocumentService;
 
-	public TaxRefundCaseController(TaxRefundCaseService taxRefundCaseService) {
+	public TaxRefundCaseController(TaxRefundCaseService taxRefundCaseService, TaxDocumentService taxDocumentService) {
 		this.taxRefundCaseService = taxRefundCaseService;
+		this.taxDocumentService = taxDocumentService;
+	}
+
+	@PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "Upload a tax document to local object storage")
+	public ApiResponse<TaxDocumentUploadResponse> uploadDocument(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
+			@RequestParam TaxDocumentType documentType,
+			@RequestParam MultipartFile file) {
+		return ApiResponse.success(taxDocumentService.upload(accountId, documentType, file));
 	}
 
 	@PostMapping("/refund-cases")

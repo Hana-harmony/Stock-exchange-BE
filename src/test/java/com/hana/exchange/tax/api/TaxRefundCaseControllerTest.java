@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,8 +26,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
@@ -103,6 +106,68 @@ class TaxRefundCaseControllerTest {
 				.andExpect(jsonPath("$.data.status").value("READY_FOR_HANA_SYNC"))
 				.andExpect(jsonPath("$.data.estimatedRefundUsd").value("1.40"))
 				.andExpect(jsonPath("$.data.matchedTradeCount").value(1));
+	}
+
+	@Test
+	void uploadTaxDocumentsAndAttachThemToRefundCase() throws Exception {
+		int taxYear = Year.now(ZoneOffset.UTC).getValue();
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "TaxDocUpload01");
+		String residenceDocumentId = uploadDocument(
+				session,
+				"RESIDENCE_CERTIFICATE",
+				"residence.pdf",
+				"residence certificate".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+		String reducedTaxDocumentId = uploadDocument(
+				session,
+				"REDUCED_TAX_APPLICATION",
+				"reduced-tax.pdf",
+				"reduced tax application".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "taxYear": %d,
+								  "treatyCountry": "US",
+								  "residenceCertificateFileName": "residence.pdf",
+								  "reducedTaxApplicationFileName": "reduced-tax.pdf",
+								  "residenceCertificateDocumentId": "%s",
+								  "reducedTaxApplicationDocumentId": "%s",
+								  "advancePaymentRequested": true
+								}
+								""".formatted(taxYear, residenceDocumentId, reducedTaxDocumentId)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.residenceCertificateDocumentId").value(residenceDocumentId))
+				.andExpect(jsonPath("$.data.reducedTaxApplicationDocumentId").value(reducedTaxDocumentId));
+	}
+
+	@Test
+	void createRefundCaseRejectsDocumentOwnedByAnotherAccount() throws Exception {
+		int taxYear = Year.now(ZoneOffset.UTC).getValue();
+		AuthSession owner = AuthTestSupport.signUpAndLogin(mockMvc, "TaxDocOwner01");
+		AuthSession requester = AuthTestSupport.signUpAndLogin(mockMvc, "TaxDocRequester01");
+		String residenceDocumentId = uploadDocument(
+				owner,
+				"RESIDENCE_CERTIFICATE",
+				"owner-residence.pdf",
+				"owner residence certificate".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/tax/refund-cases", requester.accountId())
+						.header(HttpHeaders.AUTHORIZATION, requester.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "taxYear": %d,
+								  "treatyCountry": "US",
+								  "residenceCertificateFileName": "owner-residence.pdf",
+								  "reducedTaxApplicationFileName": "reduced-tax.pdf",
+								  "residenceCertificateDocumentId": "%s",
+								  "advancePaymentRequested": true
+								}
+								""".formatted(taxYear, residenceDocumentId)))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("TAX_003"));
 	}
 
 	@Test
@@ -241,6 +306,30 @@ class TaxRefundCaseControllerTest {
 				  "advancePaymentRequested": %s
 				}
 				""".formatted(taxYear, advancePaymentRequested);
+	}
+
+	private String uploadDocument(
+			AuthSession session,
+			String documentType,
+			String fileName,
+			byte[] content) throws Exception {
+		MockMultipartFile file = new MockMultipartFile(
+				"file",
+				fileName,
+				"application/pdf",
+				content);
+		MvcResult result = mockMvc.perform(multipart("/api/v1/accounts/{accountId}/tax/documents", session.accountId())
+						.file(file)
+						.param("documentType", documentType)
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.documentId").isNotEmpty())
+				.andExpect(jsonPath("$.data.documentType").value(documentType))
+				.andExpect(jsonPath("$.data.originalFileName").value(fileName))
+				.andExpect(jsonPath("$.data.sizeBytes").value(content.length))
+				.andExpect(jsonPath("$.data.storageKey").isNotEmpty())
+				.andReturn();
+		return JsonPath.read(result.getResponse().getContentAsString(), "$.data.documentId");
 	}
 
 	private OmniLensMarketQuote quote(String stockCode, String stockNameEn, String usdPrice) {

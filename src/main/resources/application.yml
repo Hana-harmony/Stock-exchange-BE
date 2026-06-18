@@ -24,6 +24,12 @@ exchange:
     token-signing-key: ${EXCHANGE_AUTH_TOKEN_SIGNING_KEY:local-dev-token-signing-key-change-before-prod}
     access-token-ttl: ${EXCHANGE_AUTH_ACCESS_TOKEN_TTL:12h}
     refresh-token-ttl: ${EXCHANGE_AUTH_REFRESH_TOKEN_TTL:14d}
+  notification:
+    push:
+      worker-enabled: ${EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED:false}
+      batch-size: ${EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE:50}
+      max-attempt-count: ${EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT:3}
+      fixed-delay: ${EXCHANGE_NOTIFICATION_PUSH_FIXED_DELAY:30s}
 
 hana:
   omnilens:

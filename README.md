@@ -49,7 +49,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
   -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}"
 ```
 
-기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
+기본 포트는 `3000`이다. `compose.local.yml`은 PostgreSQL 16과 API를 함께 띄우며, Flyway가 사용자, mock USD 계좌, 현금 원장, refresh session schema를 자동 적용한다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
 
 ## 범위
 - 아이디/비밀번호 기반 현지 사용자 가입, mock USD 계좌, 보유종목, watchlist 관리
@@ -77,6 +77,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - Spring Boot 3.5.x
 - Gradle Wrapper
 - Hana-OmniLens-API와 동일한 `api / application / domain / config` 패키지 구조
+- PostgreSQL local compose, H2 test datasource, Flyway migration
 - `GET /actuator/health`
 - `POST /api/v1/auth/signup`
 - `POST /api/v1/auth/login`
@@ -108,9 +109,9 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
 - STOMP `/ws/market`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
-- 현재 mock 사용자, mock USD 계좌, refresh session 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT와 refresh token을 발급한다.
+- 현재 mock 사용자, mock USD 계좌, mock cash ledger, refresh session 저장소는 Flyway schema와 JDBC repository로 영속화하며, 로그인 API는 HMAC 기반 local JWT와 refresh token을 발급한다.
 - refresh API는 기존 refresh session을 revoke하고 새 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다.
-- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. 영속 DB schema, 마이그레이션, refresh session 영속화는 별도 단계에서 추가한다.
+- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade, watchlist, alert, notification, tax 저장소 영속화는 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정
@@ -135,7 +136,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. `POST /api/v1/market/stream/quotes`는 local adapter smoke용 ingest 계약이고, Hana-OmniLens-API stream client도 동일 publisher를 호출한다.
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API를 호출해 차트 응답으로 재가공한다.
 8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, 외국인 보유율, VI, 상·하한가 상태를 제공한다.
-9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 인메모리 계좌 저장소를 사용한다.
+9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 Flyway/JDBC 기반 계좌 저장소를 사용한다.
 10. 사용자가 로그인하면 HMAC 기반 bearer token을 발급하고, 계좌별 API는 Spring Security filter가 token 검증과 accountId 일치 여부를 확인한다.
 11. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.
 12. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.

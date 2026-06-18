@@ -37,8 +37,8 @@
 - `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장 service
 - `tax/domain`: 세무 서류 metadata, matched trade, refund status, estimated tax/refund 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, profile별 runtime 설정
-- Planned `auth`: refresh token 영속화와 session anomaly detection
-- Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
+- Planned `auth`: session anomaly detection
+- `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
 - Planned `portfolio`: 영속 DB 기반 보유종목, 자체 mock ledger 주문 상태, 평가금액 이력
 - Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 강제 검증, 체결 원장 하드닝
@@ -82,11 +82,11 @@
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 주문 가능 여부 API는 Hana-OmniLens-API orderability boundary를 호출해 외국인 한도, 거래정지, VI, 상/하한가 상태를 mock 주문 전 경고/차단 사유로 제공한다.
 - 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.
-- 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 로컬 개발용 인메모리 저장소에 계좌를 생성한다.
+- 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 Flyway/JDBC 기반 DB 저장소에 사용자와 계좌를 저장한다.
 - 로그인 API는 저장된 PBKDF2 hash를 검증하고 HMAC 기반 local JWT와 refresh token을 발급한다. token verify API는 FE session context가 사용할 userId, username, accountId, expiry를 반환한다.
-- refresh token API는 active refresh session을 검증한 뒤 이전 session을 revoke하고 새 access token과 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다. 현재 refresh session 저장소는 로컬 개발용 인메모리 구현이며 token 원문 대신 SHA-256 hash를 저장한다.
+- refresh token API는 active refresh session을 검증한 뒤 이전 session을 revoke하고 새 access token과 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다. 현재 refresh session 저장소는 DB 구현이며 token 원문 대신 SHA-256 hash를 저장한다.
 - `/api/v1/accounts/**`는 Spring Security bearer filter가 token을 검증하고 token accountId와 path accountId 일치를 강제한다. signup/login/token verify와 공개 시장 데이터, alert ingest, Swagger, actuator는 익명 접근을 허용한다.
-- 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 재시작 시 사라지는 인메모리 ledger entry를 사용한다.
+- 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 DB account balance와 cash ledger entry를 갱신한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - watchlist는 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다. 현재 API는 로컬 개발용 인메모리 저장소를 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 저장·매칭한다.
@@ -116,4 +116,4 @@
 - `GET /api/v1/accounts/{accountId}/market/quotes/watchlist`와 `/portfolio`는 계좌별 관심종목/보유종목 기준 KRW/USD 시세 목록 snapshot을 제공한다.
 - `POST /api/v1/market/stream/quotes`는 local adapter가 quote tick을 FE WebSocket topic으로 publish하는 ingest 계약을 제공한다.
 - Hana market WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공한다.
-- 영속 DB schema, refresh token 영속화, push worker, 웹 푸시는 미구현이다.
+- trade/watchlist/alert/notification/tax 영속 저장소, push worker, 웹 푸시는 미구현이다.

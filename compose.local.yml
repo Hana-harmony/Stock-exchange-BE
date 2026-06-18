@@ -1,10 +1,32 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stock-exchange-postgres
+    environment:
+      POSTGRES_DB: stock_exchange
+      POSTGRES_USER: stock_exchange
+      POSTGRES_PASSWORD: stock_exchange
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stock_exchange -d stock_exchange"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
+
   api:
     build:
       context: .
     container_name: stock-exchange-be
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       SERVER_PORT: "3000"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/stock_exchange
+      SPRING_DATASOURCE_USERNAME: stock_exchange
+      SPRING_DATASOURCE_PASSWORD: stock_exchange
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
       EXCHANGE_AUTH_TOKEN_SIGNING_KEY: local-dev-token-signing-key-change-before-prod
       EXCHANGE_AUTH_ACCESS_TOKEN_TTL: 12h
       EXCHANGE_AUTH_REFRESH_TOKEN_TTL: 14d

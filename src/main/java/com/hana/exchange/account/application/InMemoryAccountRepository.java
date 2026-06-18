@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.account.domain.ExchangeUser;
@@ -11,6 +12,7 @@ import com.hana.exchange.account.domain.MockCashLedgerEntry;
 import com.hana.exchange.account.domain.MockUsdAccount;
 
 @Repository
+@Profile("memory")
 public class InMemoryAccountRepository implements AccountRepository {
 
 	private final Map<String, ExchangeUser> usersByUsername = new ConcurrentHashMap<>();

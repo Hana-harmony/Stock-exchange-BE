@@ -59,6 +59,21 @@ public class JdbcNotificationRepository implements NotificationRepository {
 	}
 
 	@Override
+	public List<NotificationItem> findRetryableForDelivery(int limit, int maxAttemptCount) {
+		return jdbcTemplate.query(
+				itemSelect()
+						+ " WHERE delivery_attempt_count < ? "
+						+ "AND delivery_status IN (?, ?) "
+						+ "ORDER BY created_at ASC "
+						+ "LIMIT ?",
+				(resultSet, rowNumber) -> item(resultSet),
+				maxAttemptCount,
+				NotificationDeliveryStatus.PENDING.name(),
+				NotificationDeliveryStatus.FAILED.name(),
+				limit);
+	}
+
+	@Override
 	public List<NotificationItem> findByAccountId(String accountId) {
 		return jdbcTemplate.query(
 				itemSelect() + " WHERE account_id = ? ORDER BY created_at DESC",

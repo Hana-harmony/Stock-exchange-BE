@@ -33,8 +33,8 @@
 ## M3 뉴스·공시 알림
 - Hana-OmniLens-API WebSocket client: 기본 비활성화 설정, reconnect, replay, backpressure buffer 구현 완료
 - 이벤트 저장소와 idempotency key: REST ingest와 WebSocket 수신 기반 DB 저장 구현 완료
-- 보유종목/watchlist 대상자 매칭: REST ingest와 WebSocket 수신 기반 DB match result 저장 구현 완료, push worker 예정
-- push provider 연동: `LOCAL_NOOP_PUSH` provider abstraction과 delivery 상태 구현 완료, FCM/APNS/web push provider 예정
+- 보유종목/watchlist 대상자 매칭: REST ingest와 WebSocket 수신 기반 DB match result 저장과 notification push worker 구현 완료
+- push provider 연동: `LOCAL_NOOP_PUSH` provider abstraction, delivery 상태, 실패/미발송 retry worker 구현 완료, FCM/APNS/web push provider 예정
 - 알림함 API: DB 조회/읽음 처리와 push delivery 상태 저장 구현 완료, FCM/APNS/web push provider 예정
 - 종목별 인텔리전스 피드 API: REST ingest와 WebSocket 이벤트 수신 기반 DB 조회 구현 완료, FE 연동 smoke 예정
 
@@ -51,5 +51,5 @@
 - rate limit
 - retry/backoff
 - WebSocket reconnect/replay
-- push 중복 방지와 delivery retry worker
+- push provider retry/backoff hardening과 외부 provider delivery retry policy
 - 세무/금융 데이터 접근 로그: 주문 체결, notification 읽음, tax refund case 변경 감사 이벤트 DB 저장과 조회 API 구현 완료, 개인정보 마스킹/보존 정책 예정

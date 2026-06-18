@@ -194,7 +194,8 @@
   - `FAILED`: provider returned a failure result.
   - `SKIPPED`: delivery was intentionally skipped.
 - Current provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
-- External mobile/web push providers and retry workers are planned hardening work.
+- Retry worker is enabled with `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true` and retries `PENDING`/`FAILED` notifications under `EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT` in `EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE` batches.
+- External mobile/web push providers are planned hardening work.
 
 ## Audit Events
 

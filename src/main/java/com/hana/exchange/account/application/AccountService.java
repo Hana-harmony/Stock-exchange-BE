@@ -9,11 +9,16 @@ import org.springframework.stereotype.Service;
 import com.hana.exchange.account.domain.AccountBalanceResponse;
 import com.hana.exchange.account.domain.DepositUsdRequest;
 import com.hana.exchange.account.domain.ExchangeUser;
+import com.hana.exchange.account.domain.LogoutRequest;
+import com.hana.exchange.account.domain.LogoutResponse;
 import com.hana.exchange.account.domain.LoginRequest;
 import com.hana.exchange.account.domain.LoginResponse;
 import com.hana.exchange.account.domain.MockCashLedgerEntry;
 import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.account.domain.PasswordHash;
+import com.hana.exchange.account.domain.RefreshSession;
+import com.hana.exchange.account.domain.RefreshTokenRequest;
+import com.hana.exchange.account.domain.RefreshTokenResponse;
 import com.hana.exchange.account.domain.SignUpRequest;
 import com.hana.exchange.account.domain.SignUpResponse;
 import com.hana.exchange.account.domain.TokenVerifyRequest;
@@ -31,16 +36,19 @@ public class AccountService {
 	private final IdGenerator idGenerator;
 	private final PasswordHasher passwordHasher;
 	private final AuthTokenService authTokenService;
+	private final RefreshTokenService refreshTokenService;
 
 	public AccountService(
 			AccountRepository accountRepository,
 			IdGenerator idGenerator,
 			PasswordHasher passwordHasher,
-			AuthTokenService authTokenService) {
+			AuthTokenService authTokenService,
+			RefreshTokenService refreshTokenService) {
 		this.accountRepository = accountRepository;
 		this.idGenerator = idGenerator;
 		this.passwordHasher = passwordHasher;
 		this.authTokenService = authTokenService;
+		this.refreshTokenService = refreshTokenService;
 	}
 
 	public SignUpResponse signUp(SignUpRequest request) {
@@ -78,14 +86,18 @@ public class AccountService {
 		MockUsdAccount account = accountRepository.findAccountByUserId(user.userId())
 				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
 		AuthTokenService.IssuedToken token = authTokenService.issue(user, account);
+		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account);
 		return new LoginResponse(
 				user.userId(),
 				user.username(),
 				account.accountId(),
 				token.tokenType(),
 				token.accessToken(),
+				refresh.refreshToken(),
+				refresh.session().sessionId(),
 				token.issuedAt(),
-				token.expiresAt());
+				token.expiresAt(),
+				refresh.session().expiresAt());
 	}
 
 	public TokenVerifyResponse verifyToken(TokenVerifyRequest request) {
@@ -97,6 +109,34 @@ public class AccountService {
 				token.accountId(),
 				token.issuedAt(),
 				token.expiresAt());
+	}
+
+	public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
+		RefreshSession oldSession = refreshTokenService.requireActive(request.refreshToken());
+		ExchangeUser user = accountRepository.findUserById(oldSession.userId())
+				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+		MockUsdAccount account = accountRepository.findAccount(oldSession.accountId())
+				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+		AuthTokenService.IssuedToken accessToken = authTokenService.issue(user, account);
+		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account);
+		refreshTokenService.revoke(oldSession, refresh.session().sessionId());
+		return new RefreshTokenResponse(
+				user.userId(),
+				user.username(),
+				account.accountId(),
+				accessToken.tokenType(),
+				accessToken.accessToken(),
+				refresh.refreshToken(),
+				refresh.session().sessionId(),
+				accessToken.issuedAt(),
+				accessToken.expiresAt(),
+				refresh.session().expiresAt());
+	}
+
+	public LogoutResponse logout(LogoutRequest request) {
+		RefreshSession session = refreshTokenService.requireActive(request.refreshToken());
+		RefreshSession revokedSession = refreshTokenService.revoke(session, null);
+		return new LogoutResponse(true, revokedSession.sessionId(), revokedSession.revokedAt());
 	}
 
 	public AccountBalanceResponse getAccount(String accountId) {

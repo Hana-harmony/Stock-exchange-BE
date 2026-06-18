@@ -24,6 +24,10 @@ public class IdGenerator {
 		return "LED-" + randomToken();
 	}
 
+	public String newSessionId() {
+		return "SES-" + randomToken();
+	}
+
 	public String newTradeId() {
 		return "TRD-" + randomToken();
 	}

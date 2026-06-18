@@ -12,6 +12,8 @@ public interface AccountRepository {
 
 	Optional<ExchangeUser> findUserByUsername(String username);
 
+	Optional<ExchangeUser> findUserById(String userId);
+
 	Optional<MockUsdAccount> findAccountByUserId(String userId);
 
 	void saveNewAccount(ExchangeUser user, MockUsdAccount account);

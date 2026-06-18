@@ -27,16 +27,26 @@ curl -X POST http://localhost:3000/api/v1/auth/signup \
 curl -X POST http://localhost:3000/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"local_trader","password":"localPass123!"}'
-ACCESS_TOKEN="$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
+LOGIN_RESPONSE="$(curl -s -X POST http://localhost:3000/api/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"local_trader","password":"localPass123!"}' | jq -r '.data.accessToken')"
+  -d '{"username":"local_trader","password":"localPass123!"}')"
+ACCESS_TOKEN="$(printf '%s' "${LOGIN_RESPONSE}" | jq -r '.data.accessToken')"
+REFRESH_TOKEN="$(printf '%s' "${LOGIN_RESPONSE}" | jq -r '.data.refreshToken')"
 ACCOUNT_ID="$(curl -s -X POST http://localhost:3000/api/v1/auth/token/verify \
   -H 'Content-Type: application/json' \
   -d "{\"accessToken\":\"${ACCESS_TOKEN}\"}" | jq -r '.data.accountId')"
+REFRESH_RESPONSE="$(curl -s -X POST http://localhost:3000/api/v1/auth/token/refresh \
+  -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}")"
+ACCESS_TOKEN="$(printf '%s' "${REFRESH_RESPONSE}" | jq -r '.data.accessToken')"
+REFRESH_TOKEN="$(printf '%s' "${REFRESH_RESPONSE}" | jq -r '.data.refreshToken')"
 curl -X POST "http://localhost:3000/api/v1/accounts/${ACCOUNT_ID}/deposits" \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'Content-Type: application/json' \
   -d '{"amountUsd":125.50}'
+curl -X POST http://localhost:3000/api/v1/auth/logout \
+  -H 'Content-Type: application/json' \
+  -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}"
 ```
 
 기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
@@ -71,6 +81,8 @@ curl -X POST "http://localhost:3000/api/v1/accounts/${ACCOUNT_ID}/deposits" \
 - `POST /api/v1/auth/signup`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/token/verify`
+- `POST /api/v1/auth/token/refresh`
+- `POST /api/v1/auth/logout`
 - `GET /api/v1/accounts/{accountId}`
 - `POST /api/v1/accounts/{accountId}/deposits`
 - `POST /api/v1/accounts/{accountId}/trades`
@@ -96,8 +108,9 @@ curl -X POST "http://localhost:3000/api/v1/accounts/${ACCOUNT_ID}/deposits" \
 - `GET /api/v1/accounts/{accountId}/market/quotes/portfolio?currency=USD`
 - STOMP `/ws/market`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
-- 현재 mock 사용자와 mock USD 계좌 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT를 발급한다.
-- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. 영속 DB schema, 마이그레이션, refresh token은 별도 단계에서 추가한다.
+- 현재 mock 사용자, mock USD 계좌, refresh session 저장소는 로컬 개발용 인메모리 구현이며, 로그인 API는 HMAC 기반 local JWT와 refresh token을 발급한다.
+- refresh API는 기존 refresh session을 revoke하고 새 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다.
+- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. 영속 DB schema, 마이그레이션, refresh session 영속화는 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정

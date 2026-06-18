@@ -6,6 +6,7 @@ exchange:
   auth:
     token-signing-key: local-test-token-signing-key
     access-token-ttl: 12h
+    refresh-token-ttl: 14d
 
 hana:
   omnilens:

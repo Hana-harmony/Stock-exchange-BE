@@ -14,6 +14,7 @@ import com.hana.exchange.account.domain.MockUsdAccount;
 public class InMemoryAccountRepository implements AccountRepository {
 
 	private final Map<String, ExchangeUser> usersByUsername = new ConcurrentHashMap<>();
+	private final Map<String, ExchangeUser> usersById = new ConcurrentHashMap<>();
 	private final Map<String, String> accountIdByUserId = new ConcurrentHashMap<>();
 	private final Map<String, MockUsdAccount> accountsById = new ConcurrentHashMap<>();
 	private final Map<String, MockCashLedgerEntry> ledgerEntriesById = new ConcurrentHashMap<>();
@@ -29,6 +30,11 @@ public class InMemoryAccountRepository implements AccountRepository {
 	}
 
 	@Override
+	public Optional<ExchangeUser> findUserById(String userId) {
+		return Optional.ofNullable(usersById.get(userId));
+	}
+
+	@Override
 	public Optional<MockUsdAccount> findAccountByUserId(String userId) {
 		return Optional.ofNullable(accountIdByUserId.get(userId))
 				.map(accountsById::get);
@@ -40,6 +46,7 @@ public class InMemoryAccountRepository implements AccountRepository {
 			throw new IllegalStateException("username already exists");
 		}
 		usersByUsername.put(user.username(), user);
+		usersById.put(user.userId(), user);
 		accountsById.put(account.accountId(), account);
 		accountIdByUserId.put(user.userId(), account.accountId());
 	}

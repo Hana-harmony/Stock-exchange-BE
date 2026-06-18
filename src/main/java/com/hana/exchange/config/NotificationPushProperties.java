@@ -1,6 +1,7 @@
 package com.hana.exchange.config;
 
 import java.time.Duration;
+import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -9,7 +10,8 @@ public record NotificationPushProperties(
 		boolean workerEnabled,
 		int batchSize,
 		int maxAttemptCount,
-		Duration fixedDelay
+		Duration fixedDelay,
+		List<String> enabledProviders
 ) {
 	public NotificationPushProperties {
 		if (batchSize <= 0) {
@@ -21,5 +23,12 @@ public record NotificationPushProperties(
 		if (fixedDelay == null || fixedDelay.isNegative() || fixedDelay.isZero()) {
 			fixedDelay = Duration.ofSeconds(30);
 		}
+		if (enabledProviders == null || enabledProviders.isEmpty()) {
+			enabledProviders = List.of("LOCAL_NOOP_PUSH");
+		}
+		enabledProviders = enabledProviders.stream()
+				.filter(provider -> provider != null && !provider.isBlank())
+				.map(String::trim)
+				.toList();
 	}
 }

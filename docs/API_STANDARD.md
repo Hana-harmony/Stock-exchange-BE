@@ -233,9 +233,11 @@
   - `DELIVERED`: provider accepted or locally confirmed the delivery.
   - `FAILED`: provider returned a failure result.
   - `SKIPPED`: delivery was intentionally skipped.
-- Current provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
+- Default provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
+- Configure provider routing with `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`, for example `LOCAL_NOOP_PUSH`, `FCM_PUSH`, `APNS_PUSH`, or `WEB_PUSH`.
+- FCM/APNS/web push providers record `SKIPPED` until external credentials and device/subscription tokens are connected.
 - Retry worker is enabled with `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true` and retries `PENDING`/`FAILED` notifications under `EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT` in `EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE` batches.
-- External mobile/web push providers are planned hardening work.
+- External mobile/web push credential and token delivery integration remains planned hardening work.
 
 ## Audit Events
 

@@ -9,6 +9,8 @@ public interface NotificationRepository {
 
 	boolean existsForEventAndAccount(String eventId, String accountId);
 
+	boolean existsForSubjectAndAccount(String subjectType, String subjectId, String accountId);
+
 	void save(NotificationItem item);
 
 	List<NotificationItem> findRetryableForDelivery(int limit, int maxAttemptCount);

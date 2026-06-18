@@ -31,10 +31,10 @@
 - `alert/domain`: alert event, matched target, source link, AI 분석 metadata 계약 record
 - `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer worker
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
-- `notification/application`: matched alert target 기반 notification 저장, push provider 경계, delivery 상태 기록, 중복 방지 service, 실패/미발송 retry worker
-- `notification/domain`: notification inbox, original URL, match reason, delivery state, read state 계약 record
+- `notification/application`: matched alert target와 tax recapture risk 기반 notification 저장, push provider 경계, delivery 상태 기록, 중복 방지 service, 실패/미발송 retry worker
+- `notification/domain`: notification inbox, subject, original URL, match reason, delivery state, read state 계약 record
 - `tax/api`: 계좌별 tax refund case 생성, 최신 환급 상태 조회, Hana 세무 상태 sync REST API
-- `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장과 Hana status sync service
+- `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장, Hana status sync, 사후 환수 리스크 notification 연동 service
 - `tax/client`: Hana-OmniLens-API 세무 상태 sync REST client
 - `tax/domain`: 세무 서류 metadata, matched trade, refund status, estimated tax/refund 계약 record
 - `audit/api`: 계좌별 최근 감사 이벤트 조회 REST API
@@ -50,7 +50,7 @@
 - Planned `alert`: replay/retry worker hardening
 - Planned `notification`: FCM/APNS/web push provider 발송, provider별 retry/backoff hardening
 - `tax`: object storage 파일 업로드, 세무 문서 metadata, tax refund case 연결
-- Planned `tax`: 사후 환수 리스크 worker
+- `tax`: Hana status sync 기반 사후 환수 리스크 notification
 - `audit/persistence`: Flyway schema와 JDBC repository 기반 사용자별 알림/주문/세무 상태 변경 이력 영속화와 retention purge
 
 ## 패키지 원칙
@@ -100,9 +100,9 @@
 - watchlist는 DB에 영속화되며 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 DB에 이벤트와 매칭 결과를 저장한다.
 - 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다.
-- 매칭된 alert target은 계좌별 DB 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다.
+- 매칭된 alert target과 Hana 세무 sync에서 반환된 사후 환수 리스크는 계좌별 DB 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다.
 - notification은 provider 추상화와 delivery 상태를 보관한다. 현재 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, 실패/미발송 notification은 `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true`일 때 retry worker가 batch size와 max attempt 설정 기준으로 재전송한다. FCM/APNS/web push provider는 별도 단계다.
-- 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별 DB tax refund case로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다.
+- 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별 DB tax refund case로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다. Hana sync 결과가 `RECAPTURE_RISK`이면 tax case subject 기반 인앱 notification을 한 번 저장한다.
 
 ## 현재 구현 상태
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.

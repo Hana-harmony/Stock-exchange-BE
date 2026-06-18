@@ -36,6 +36,17 @@ public class JdbcNotificationRepository implements NotificationRepository {
 	}
 
 	@Override
+	public boolean existsForSubjectAndAccount(String subjectType, String subjectId, String accountId) {
+		Integer count = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM notification_items WHERE subject_type = ? AND subject_id = ? AND account_id = ?",
+				Integer.class,
+				subjectType,
+				subjectId,
+				accountId);
+		return count != null && count > 0;
+	}
+
+	@Override
 	@Transactional
 	public void save(NotificationItem item) {
 		int updated = jdbcTemplate.update(
@@ -95,14 +106,16 @@ public class JdbcNotificationRepository implements NotificationRepository {
 	private void insert(NotificationItem item) {
 		jdbcTemplate.update(
 				"INSERT INTO notification_items "
-						+ "(notification_id, account_id, user_id, event_id, source_type, title, summary, original_url, "
+						+ "(notification_id, account_id, user_id, event_id, subject_type, subject_id, source_type, title, summary, original_url, "
 						+ "primary_stock_code, delivery_status, delivery_provider, delivery_attempt_count, "
 						+ "delivered_at, last_delivery_error, read, created_at, read_at) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				item.notificationId(),
 				item.accountId(),
 				item.userId(),
 				item.eventId(),
+				item.subjectType(),
+				item.subjectId(),
 				item.sourceType(),
 				item.title(),
 				item.summary(),
@@ -147,6 +160,8 @@ public class JdbcNotificationRepository implements NotificationRepository {
 				resultSet.getString("account_id"),
 				resultSet.getString("user_id"),
 				resultSet.getString("event_id"),
+				resultSet.getString("subject_type"),
+				resultSet.getString("subject_id"),
 				resultSet.getString("source_type"),
 				resultSet.getString("title"),
 				resultSet.getString("summary"),
@@ -181,7 +196,8 @@ public class JdbcNotificationRepository implements NotificationRepository {
 	}
 
 	private String itemSelect() {
-		return "SELECT notification_id, account_id, user_id, event_id, source_type, title, summary, original_url, "
+		return "SELECT notification_id, account_id, user_id, event_id, subject_type, subject_id, "
+				+ "source_type, title, summary, original_url, "
 				+ "primary_stock_code, delivery_status, delivery_provider, delivery_attempt_count, "
 				+ "delivered_at, last_delivery_error, read, created_at, read_at FROM notification_items";
 	}

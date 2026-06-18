@@ -80,6 +80,8 @@ class NotificationServiceTest {
 				"ACC-RETRY-001",
 				"USR-RETRY-001",
 				eventId,
+				"ALERT_EVENT",
+				eventId,
 				"DISCLOSURE",
 				"Samsung disclosure update",
 				"Translated AI summary",

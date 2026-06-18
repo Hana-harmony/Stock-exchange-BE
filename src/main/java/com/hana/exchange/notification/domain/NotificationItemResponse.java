@@ -6,6 +6,8 @@ import java.util.List;
 public record NotificationItemResponse(
 		String notificationId,
 		String eventId,
+		String subjectType,
+		String subjectId,
 		String sourceType,
 		String title,
 		String summary,

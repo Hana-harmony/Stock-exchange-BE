@@ -18,6 +18,7 @@ import com.hana.exchange.notification.domain.NotificationDeliveryResult;
 import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
 import com.hana.exchange.notification.domain.NotificationItem;
 import com.hana.exchange.notification.domain.NotificationItemResponse;
+import com.hana.exchange.tax.domain.TaxRefundCase;
 
 @Service
 public class NotificationService {
@@ -51,6 +52,8 @@ public class NotificationService {
 					target.accountId(),
 					target.userId(),
 					event.eventId(),
+					"ALERT_EVENT",
+					event.eventId(),
 					event.sourceType(),
 					event.title(),
 					event.summary(),
@@ -69,6 +72,37 @@ public class NotificationService {
 			NotificationDeliveryResult deliveryResult = sendSafely(pendingNotification);
 			notificationRepository.save(pendingNotification.markDelivery(deliveryResult));
 		}
+	}
+
+	public void storeTaxRecaptureRiskNotification(TaxRefundCase taxCase) {
+		if (notificationRepository.existsForSubjectAndAccount("TAX_REFUND_CASE", taxCase.caseId(), taxCase.accountId())) {
+			return;
+		}
+		NotificationItem pendingNotification = new NotificationItem(
+				idGenerator.newNotificationId(),
+				taxCase.accountId(),
+				taxCase.userId(),
+				null,
+				"TAX_REFUND_CASE",
+				taxCase.caseId(),
+				"TAX_RECAPTURE_RISK",
+				"Tax refund recapture risk",
+				"Your tax refund case for " + taxCase.taxYear()
+						+ " has been flagged for post-payment recapture review.",
+				"",
+				null,
+				List.of(),
+				List.of("TAX_RECAPTURE_RISK"),
+				NotificationDeliveryStatus.PENDING,
+				null,
+				0,
+				null,
+				null,
+				false,
+				Instant.now(),
+				null);
+		NotificationDeliveryResult deliveryResult = sendSafely(pendingNotification);
+		notificationRepository.save(pendingNotification.markDelivery(deliveryResult));
 	}
 
 	public int dispatchRetryablePushNotifications(int batchSize, int maxAttemptCount) {
@@ -117,6 +151,8 @@ public class NotificationService {
 		return new NotificationItemResponse(
 				item.notificationId(),
 				item.eventId(),
+				item.subjectType(),
+				item.subjectId(),
 				item.sourceType(),
 				item.title(),
 				item.summary(),

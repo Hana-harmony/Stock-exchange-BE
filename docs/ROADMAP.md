@@ -43,7 +43,7 @@
 - 세무 서류 upload endpoint, 로컬 object storage adapter, DB metadata와 tax refund case 연결 구현 완료
 - mock 거래원장/sub-ledger와 매도 실현손익 DB 매칭 구현 완료
 - Hana-OmniLens-API 세무 상태 동기화 구현 완료
-- 환급/선지급 상태 API: mock 세무 케이스 상태, 예상 환급액/선지급 가능 여부, Hana 상태 sync 구현 완료
+- 환급/선지급 상태 API: mock 세무 케이스 상태, 예상 환급액/선지급 가능 여부, Hana 상태 sync, `RECAPTURE_RISK` 인앱 알림 구현 완료
 - audit log와 개인정보 마스킹/보존 정책 구현 완료
 
 ## M5 운영 하드닝

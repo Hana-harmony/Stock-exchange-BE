@@ -32,6 +32,10 @@ public class IdGenerator {
 		return "NTF-" + randomToken();
 	}
 
+	public String newTaxCaseId() {
+		return "TAX-" + randomToken();
+	}
+
 	private String randomToken() {
 		StringBuilder token = new StringBuilder(RANDOM_LENGTH);
 		for (int index = 0; index < RANDOM_LENGTH; index++) {

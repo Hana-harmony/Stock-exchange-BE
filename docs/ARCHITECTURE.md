@@ -30,6 +30,9 @@
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
 - `notification/application`: matched alert target 기반 notification 저장과 중복 방지 service
 - `notification/domain`: notification inbox, original URL, match reason, read state 계약 record
+- `tax/api`: 계좌별 tax refund case 생성과 최신 환급 상태 조회 REST API
+- `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장 service
+- `tax/domain`: 세무 서류 metadata, matched trade, refund status, estimated tax/refund 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
 - Planned `auth`: 로그인, 세션/JWT, 인증 context
 - Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
@@ -38,7 +41,7 @@
 - Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 강제 검증, 체결 원장 하드닝
 - Planned `alert`: 영속 이벤트 저장소, replay/retry worker hardening
 - Planned `notification`: push provider 발송, 웹 푸시, delivery retry worker
-- Planned `tax`: 세무 서류 업로드 metadata, 거래원장/sub-ledger 매칭, 환급 상태 동기화
+- Planned `tax`: object storage 파일 업로드, Hana 세무 상태 동기화, 사후 환수 리스크 worker
 - Planned `audit`: 사용자별 알림/주문/세무 상태 변경 이력
 
 ## 패키지 원칙
@@ -83,7 +86,7 @@
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 저장·매칭한다.
 - 종목 상세 화면은 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다. 현재 구현은 REST ingest로 저장된 인메모리 이벤트를 조회한다.
 - 매칭된 alert target은 계좌별 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다. 현재 구현은 로컬 개발용 인메모리 저장소를 사용한다.
-- 세무 기능은 거주자증명서, 제한세율신청서, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다.
+- 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공한다.
 
 ## 현재 구현 상태
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
@@ -94,6 +97,7 @@
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
 - Hana alert WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공하고 수신 payload를 동일한 alert ingest service로 전달한다.
+- `POST /api/v1/accounts/{accountId}/tax/refund-cases`와 `GET /api/v1/accounts/{accountId}/tax/refund-status`는 mock 매도 실현손익 기반 세무 케이스, 문서 metadata, 예상 환급액, 선지급 가능 여부를 제공한다.
 - `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과와 원문 링크를 최신순으로 제공한다.
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.

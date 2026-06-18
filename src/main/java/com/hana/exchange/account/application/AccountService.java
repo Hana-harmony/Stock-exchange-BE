@@ -23,6 +23,8 @@ import com.hana.exchange.account.domain.SignUpRequest;
 import com.hana.exchange.account.domain.SignUpResponse;
 import com.hana.exchange.account.domain.TokenVerifyRequest;
 import com.hana.exchange.account.domain.TokenVerifyResponse;
+import com.hana.exchange.audit.application.AuditEventService;
+import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 
@@ -37,18 +39,21 @@ public class AccountService {
 	private final PasswordHasher passwordHasher;
 	private final AuthTokenService authTokenService;
 	private final RefreshTokenService refreshTokenService;
+	private final AuditEventService auditEventService;
 
 	public AccountService(
 			AccountRepository accountRepository,
 			IdGenerator idGenerator,
 			PasswordHasher passwordHasher,
 			AuthTokenService authTokenService,
-			RefreshTokenService refreshTokenService) {
+			RefreshTokenService refreshTokenService,
+			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.idGenerator = idGenerator;
 		this.passwordHasher = passwordHasher;
 		this.authTokenService = authTokenService;
 		this.refreshTokenService = refreshTokenService;
+		this.auditEventService = auditEventService;
 	}
 
 	public SignUpResponse signUp(SignUpRequest request) {
@@ -76,7 +81,7 @@ public class AccountService {
 		return toSignUpResponse(user, account);
 	}
 
-	public LoginResponse login(LoginRequest request) {
+	public LoginResponse login(LoginRequest request, String clientIp, String userAgent) {
 		String normalizedUsername = request.username().trim().toLowerCase();
 		ExchangeUser user = accountRepository.findUserByUsername(normalizedUsername)
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS));
@@ -86,7 +91,7 @@ public class AccountService {
 		MockUsdAccount account = accountRepository.findAccountByUserId(user.userId())
 				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
 		AuthTokenService.IssuedToken token = authTokenService.issue(user, account);
-		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account);
+		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account, clientIp, userAgent);
 		return new LoginResponse(
 				user.userId(),
 				user.username(),
@@ -111,14 +116,15 @@ public class AccountService {
 				token.expiresAt());
 	}
 
-	public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
+	public RefreshTokenResponse refreshToken(RefreshTokenRequest request, String clientIp, String userAgent) {
 		RefreshSession oldSession = refreshTokenService.requireActive(request.refreshToken());
 		ExchangeUser user = accountRepository.findUserById(oldSession.userId())
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
 		MockUsdAccount account = accountRepository.findAccount(oldSession.accountId())
 				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
+		recordSessionAnomalyIfNeeded(oldSession, clientIp, userAgent);
 		AuthTokenService.IssuedToken accessToken = authTokenService.issue(user, account);
-		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account);
+		RefreshTokenService.IssuedRefreshSession refresh = refreshTokenService.issue(user, account, clientIp, userAgent);
 		refreshTokenService.revoke(oldSession, refresh.session().sessionId());
 		return new RefreshTokenResponse(
 				user.userId(),
@@ -164,6 +170,23 @@ public class AccountService {
 	private MockUsdAccount account(String accountId) {
 		return accountRepository.findAccount(accountId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
+	}
+
+	private void recordSessionAnomalyIfNeeded(RefreshSession session, String clientIp, String userAgent) {
+		boolean ipChanged = !session.issuedIpAddress().equals(clientIp);
+		boolean userAgentChanged = !session.issuedUserAgent().equals(userAgent);
+		if (!ipChanged && !userAgentChanged) {
+			return;
+		}
+		auditEventService.record(
+				session.accountId(),
+				session.userId(),
+				AuditEventType.AUTH_SESSION_ANOMALY_DETECTED,
+				"REFRESH_SESSION",
+				session.sessionId(),
+				"Refresh session context changed: ipChanged=" + ipChanged
+						+ " userAgentChanged=" + userAgentChanged,
+				Instant.now());
 	}
 
 	private SignUpResponse toSignUpResponse(ExchangeUser user, MockUsdAccount account) {

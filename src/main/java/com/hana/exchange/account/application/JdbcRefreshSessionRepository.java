@@ -26,21 +26,26 @@ public class JdbcRefreshSessionRepository implements RefreshSessionRepository {
 	public void save(RefreshSession refreshSession) {
 		int updated = jdbcTemplate.update(
 				"UPDATE refresh_sessions "
-						+ "SET revoked_at = ?, replaced_by_session_id = ? "
+						+ "SET issued_ip_address = ?, issued_user_agent = ?, revoked_at = ?, replaced_by_session_id = ? "
 						+ "WHERE session_id = ?",
+				refreshSession.issuedIpAddress(),
+				refreshSession.issuedUserAgent(),
 				nullableTimestamp(refreshSession.revokedAt()),
 				refreshSession.replacedBySessionId(),
 				refreshSession.sessionId());
 		if (updated == 0) {
 			jdbcTemplate.update(
 					"INSERT INTO refresh_sessions "
-							+ "(session_id, user_id, account_id, refresh_token_hash, issued_at, "
+							+ "(session_id, user_id, account_id, refresh_token_hash, issued_ip_address, "
+							+ "issued_user_agent, issued_at, "
 							+ "expires_at, revoked_at, replaced_by_session_id) "
-							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 					refreshSession.sessionId(),
 					refreshSession.userId(),
 					refreshSession.accountId(),
 					refreshSession.refreshTokenHash(),
+					refreshSession.issuedIpAddress(),
+					refreshSession.issuedUserAgent(),
 					timestamp(refreshSession.issuedAt()),
 					timestamp(refreshSession.expiresAt()),
 					nullableTimestamp(refreshSession.revokedAt()),
@@ -51,7 +56,8 @@ public class JdbcRefreshSessionRepository implements RefreshSessionRepository {
 	@Override
 	public Optional<RefreshSession> findByRefreshTokenHash(String refreshTokenHash) {
 		return jdbcTemplate.query(
-				"SELECT session_id, user_id, account_id, refresh_token_hash, issued_at, expires_at, "
+				"SELECT session_id, user_id, account_id, refresh_token_hash, issued_ip_address, issued_user_agent, "
+						+ "issued_at, expires_at, "
 						+ "revoked_at, replaced_by_session_id "
 						+ "FROM refresh_sessions WHERE refresh_token_hash = ?",
 				(resultSet, rowNumber) -> refreshSession(resultSet),
@@ -66,6 +72,8 @@ public class JdbcRefreshSessionRepository implements RefreshSessionRepository {
 				resultSet.getString("user_id"),
 				resultSet.getString("account_id"),
 				resultSet.getString("refresh_token_hash"),
+				resultSet.getString("issued_ip_address"),
+				resultSet.getString("issued_user_agent"),
 				instant(resultSet, "issued_at"),
 				instant(resultSet, "expires_at"),
 				nullableInstant(resultSet, "revoked_at"),

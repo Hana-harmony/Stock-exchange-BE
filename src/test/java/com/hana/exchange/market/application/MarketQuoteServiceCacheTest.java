@@ -69,7 +69,8 @@ class MarketQuoteServiceCacheTest {
 				"http://localhost:8080",
 				"",
 				Duration.ofSeconds(3),
-				Duration.ofSeconds(30));
+				Duration.ofSeconds(30),
+				ExchangeBackendProperties.Stream.defaults());
 		return new MarketQuoteService(
 				quoteClient,
 				new MarketQuoteCache(properties, clock),

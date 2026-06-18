@@ -18,3 +18,12 @@ hana:
       api-key: ${HANA_OMNILENS_API_KEY:}
       quote-cache-ttl: ${HANA_OMNILENS_QUOTE_CACHE_TTL:3s}
       quote-cache-stale-ttl: ${HANA_OMNILENS_QUOTE_CACHE_STALE_TTL:30s}
+      stream:
+        quote-enabled: ${HANA_OMNILENS_QUOTE_STREAM_ENABLED:false}
+        quote-path: ${HANA_OMNILENS_QUOTE_STREAM_PATH:/ws/market/quotes}
+        quote-currency: ${HANA_OMNILENS_QUOTE_STREAM_CURRENCY:USD}
+        quote-replay-enabled: ${HANA_OMNILENS_QUOTE_STREAM_REPLAY_ENABLED:true}
+        reconnect-initial-delay: ${HANA_OMNILENS_QUOTE_STREAM_RECONNECT_INITIAL_DELAY:1s}
+        reconnect-max-delay: ${HANA_OMNILENS_QUOTE_STREAM_RECONNECT_MAX_DELAY:30s}
+        backpressure-buffer-size: ${HANA_OMNILENS_QUOTE_STREAM_BACKPRESSURE_BUFFER_SIZE:1000}
+        drain-interval: ${HANA_OMNILENS_QUOTE_STREAM_DRAIN_INTERVAL:50ms}

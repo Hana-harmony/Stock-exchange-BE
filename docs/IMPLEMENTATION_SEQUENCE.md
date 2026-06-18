@@ -74,6 +74,7 @@
 - quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status와 `fxStale=true`를 포함한다.
 - watchlist와 보유종목 REST snapshot은 계좌별 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
+- Hana-OmniLens-API market quote WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.
 - 과거 차트 데이터는 Hana-OmniLens-API의 KRX 기반 API를 사용한다.
 - Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.

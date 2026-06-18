@@ -9,3 +9,12 @@ hana:
       api-key: ""
       quote-cache-ttl: 0s
       quote-cache-stale-ttl: 0s
+      stream:
+        quote-enabled: false
+        quote-path: /ws/market/quotes
+        quote-currency: USD
+        quote-replay-enabled: true
+        reconnect-initial-delay: 1s
+        reconnect-max-delay: 30s
+        backpressure-buffer-size: 1000
+        drain-interval: 50ms

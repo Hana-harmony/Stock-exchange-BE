@@ -15,13 +15,16 @@
 - `trade/api`: KIS 모의투자 API를 쓰지 않는 mock 매수·매도와 portfolio REST API
 - `trade/application`: Hana-OmniLens-API quote 가격을 이용한 내부 mock ledger, 평균단가, 실현손익 계산 service
 - `trade/domain`: holding, trade ledger, portfolio response 계약 record
+- `watchlist/api`: 계좌별 watchlist 조회, 추가, 삭제 REST API
+- `watchlist/application`: Hana-OmniLens-API quote metadata 확인과 watchlist alert target 저장 service
+- `watchlist/domain`: watchlist item과 response 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
 - Planned `auth`: 로그인, 세션/JWT, 인증 context
 - Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
 - Planned `market/client`: Hana-OmniLens-API 종목 검색, 다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability API client
 - Planned `market/stream`: FE용 전체/시장별/watchlist/보유종목/단건 실시간 시세 WebSocket stream
 - Planned `market/cache`: Hana-OmniLens-API snapshot을 현지 거래소 화면 요구사항에 맞게 짧게 캐시하는 layer
-- Planned `portfolio`: 사용자 보유종목, 평가금액, watchlist, 자체 mock ledger 주문 상태
+- Planned `portfolio`: 사용자 보유종목, 평가금액, 자체 mock ledger 주문 상태
 - Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 경고, 외국인 한도/VI/상·하한가 검증
 - Planned `alert`: Hana-OmniLens-API WebSocket client, 이벤트 저장, 대상자 매칭
 - Planned `notification`: 푸시 대상자 매칭, 알림함 저장, 푸시 발송
@@ -56,6 +59,7 @@
 - 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 로컬 개발용 인메모리 저장소에 계좌를 생성한다.
 - 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 재시작 시 사라지는 인메모리 ledger entry를 사용한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
+- watchlist는 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다. 현재 API는 로컬 개발용 인메모리 저장소를 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다.
 - 세무 기능은 거주자증명서, 제한세율신청서, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다.
 
@@ -64,5 +68,6 @@
 - `POST /api/v1/auth/signup`은 아이디/비밀번호 가입과 mock USD 계좌 생성을 공통 응답 형식으로 제공한다.
 - `GET /api/v1/accounts/{accountId}`와 `POST /api/v1/accounts/{accountId}/deposits`는 mock USD 잔고 조회와 실제 결제 없는 달러 충전을 제공한다.
 - `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 매도 실현손익을 제공한다.
+- `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
-- 로그인/JWT, 영속 DB schema, orderability 경고, 다건/전체 quote REST, market WebSocket stream, alert WebSocket client, push worker는 미구현이다.
+- 로그인/JWT, 영속 DB schema, orderability 경고, 다건/전체 quote REST, market WebSocket stream, alert WebSocket client, watchlist/보유종목 대상자 매칭 worker, push worker는 미구현이다.

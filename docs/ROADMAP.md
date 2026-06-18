@@ -22,7 +22,7 @@
 - FE용 과거 시세 차트 REST API
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책
-- 보유종목과 watchlist 모델
+- 보유종목과 watchlist 모델: watchlist 인메모리 API 구현 완료, 보유종목은 mock 거래 portfolio로 부분 구현
 - 아이디/비밀번호 회원가입과 mock USD 계좌 생성: 인메모리 API 구현 완료, 로그인/영속화 예정
 - 실제 결제 없는 mock 달러 충전: 인메모리 cash ledger 구현 완료, 영속 ledger 예정
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: 인메모리 API 구현 완료, 영속 ledger 예정
@@ -33,7 +33,7 @@
 ## M3 뉴스·공시 알림
 - Hana-OmniLens-API WebSocket client
 - 이벤트 저장소와 idempotency key
-- 보유종목/watchlist 대상자 매칭
+- 보유종목/watchlist 대상자 매칭: watchlist 입력 API 구현 완료, 이벤트 매칭 worker 예정
 - push provider 연동
 - 알림함 API
 

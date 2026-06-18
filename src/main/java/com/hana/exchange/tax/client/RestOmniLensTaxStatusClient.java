@@ -6,6 +6,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import com.hana.exchange.common.client.OmniLensRestRetryer;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.config.ExchangeBackendProperties;
@@ -18,16 +19,21 @@ public class RestOmniLensTaxStatusClient implements OmniLensTaxStatusClient {
 
 	private final RestClient restClient;
 	private final ExchangeBackendProperties properties;
+	private final OmniLensRestRetryer retryer;
 
-	public RestOmniLensTaxStatusClient(RestClient omniLensRestClient, ExchangeBackendProperties properties) {
+	public RestOmniLensTaxStatusClient(
+			RestClient omniLensRestClient,
+			ExchangeBackendProperties properties,
+			OmniLensRestRetryer retryer) {
 		this.restClient = omniLensRestClient;
 		this.properties = properties;
+		this.retryer = retryer;
 	}
 
 	@Override
 	public OmniLensTaxStatusSyncResponse sync(OmniLensTaxStatusSyncRequest request) {
 		try {
-			OmniLensApiResponse<OmniLensTaxStatusSyncResponse> response = restClient.post()
+			OmniLensApiResponse<OmniLensTaxStatusSyncResponse> response = retryer.execute("tax.syncStatus", () -> restClient.post()
 					.uri("/api/v1/tax/refund-cases/sync")
 					.headers(headers -> {
 						if (StringUtils.hasText(properties.apiKey())) {
@@ -37,7 +43,7 @@ public class RestOmniLensTaxStatusClient implements OmniLensTaxStatusClient {
 					.body(request)
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
-					});
+					}));
 
 			if (response == null || !response.success() || response.data() == null) {
 				throw new BusinessException(ErrorCode.TAX_STATUS_SYNC_FAILED);

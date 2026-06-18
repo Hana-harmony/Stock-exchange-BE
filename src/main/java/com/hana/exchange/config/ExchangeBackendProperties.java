@@ -10,6 +10,7 @@ public record ExchangeBackendProperties(
 		String apiKey,
 		Duration quoteCacheTtl,
 		Duration quoteCacheStaleTtl,
+		Retry retry,
 		Stream stream
 ) {
 	public ExchangeBackendProperties {
@@ -19,8 +20,34 @@ public record ExchangeBackendProperties(
 		if (quoteCacheStaleTtl == null) {
 			quoteCacheStaleTtl = Duration.ofSeconds(30);
 		}
+		if (retry == null) {
+			retry = Retry.defaults();
+		}
 		if (stream == null) {
 			stream = Stream.defaults();
+		}
+	}
+
+	public record Retry(
+			boolean enabled,
+			int maxAttempts,
+			Duration initialDelay,
+			Duration maxDelay
+	) {
+		public Retry {
+			if (maxAttempts <= 0) {
+				maxAttempts = 3;
+			}
+			if (initialDelay == null || initialDelay.isNegative()) {
+				initialDelay = Duration.ofMillis(100);
+			}
+			if (maxDelay == null || maxDelay.compareTo(initialDelay) < 0) {
+				maxDelay = Duration.ofSeconds(1);
+			}
+		}
+
+		public static Retry defaults() {
+			return new Retry(true, 3, Duration.ofMillis(100), Duration.ofSeconds(1));
 		}
 	}
 

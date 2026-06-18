@@ -6,6 +6,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import com.hana.exchange.common.client.OmniLensRestRetryer;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.config.ExchangeBackendProperties;
@@ -18,16 +19,21 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 
 	private final RestClient restClient;
 	private final ExchangeBackendProperties properties;
+	private final OmniLensRestRetryer retryer;
 
-	public RestOmniLensStockClient(RestClient omniLensRestClient, ExchangeBackendProperties properties) {
+	public RestOmniLensStockClient(
+			RestClient omniLensRestClient,
+			ExchangeBackendProperties properties,
+			OmniLensRestRetryer retryer) {
 		this.restClient = omniLensRestClient;
 		this.properties = properties;
+		this.retryer = retryer;
 	}
 
 	@Override
 	public OmniLensStockSearchResponse search(String query, String market, String currency, int limit) {
 		try {
-			OmniLensApiResponse<OmniLensStockSearchResponse> response = restClient.get()
+			OmniLensApiResponse<OmniLensStockSearchResponse> response = retryer.execute("stock.search", () -> restClient.get()
 					.uri(uriBuilder -> uriBuilder
 							.path("/api/v1/market/stocks/search")
 							.queryParam("query", query)
@@ -42,7 +48,7 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 					})
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
-					});
+					}));
 			return data(response);
 		} catch (RestClientException exception) {
 			throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE, exception.getMessage());
@@ -52,7 +58,7 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 	@Override
 	public OmniLensStockDetailResponse getDetail(String stockCode, String currency) {
 		try {
-			OmniLensApiResponse<OmniLensStockDetailResponse> response = restClient.get()
+			OmniLensApiResponse<OmniLensStockDetailResponse> response = retryer.execute("stock.getDetail", () -> restClient.get()
 					.uri(uriBuilder -> uriBuilder
 							.path("/api/v1/market/stocks/{stockCode}/detail")
 							.queryParam("currency", currency)
@@ -64,7 +70,7 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 					})
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
-					});
+					}));
 			return data(response);
 		} catch (RestClientException exception) {
 			throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE, exception.getMessage());

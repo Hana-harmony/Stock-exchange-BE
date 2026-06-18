@@ -49,7 +49,7 @@
 - auth context 기반 계좌 API 보호: `/api/v1/accounts/**` bearer token 검증과 accountId path 매칭 구현 완료
 - refresh token/session rotation과 refresh session DB 영속화 구현 완료
 - rate limit 구현 완료
-- retry/backoff
+- Hana-OmniLens-API REST client retry/backoff 구현 완료
 - WebSocket reconnect/replay
 - push provider retry/backoff hardening과 외부 provider delivery retry policy
 - 세무/금융 데이터 접근 로그: 주문 체결, notification 읽음, tax refund case 변경 감사 이벤트 DB 저장과 조회 API, 개인정보 마스킹/보존 정책 구현 완료

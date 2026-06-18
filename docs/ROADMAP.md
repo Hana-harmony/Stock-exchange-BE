@@ -13,8 +13,8 @@
 ## M2 시장 데이터와 모의 주문
 - 종목 검색/상세 proxy API
 - 단건 종목 실시간 시세 REST snapshot API
-- 전체 종목 실시간 시세 REST API
-- 시장별/다건/watchlist/보유종목 실시간 시세 REST API
+- 전체 종목 실시간 시세 REST API: 설정 universe 기반 구현 완료, Hana bulk/all quote client 예정
+- 시장별/다건/watchlist/보유종목 실시간 시세 REST API: 시장별/다건 구현 완료, watchlist/보유종목 전용 view 예정
 - 전체/시장별/watchlist/보유종목 실시간 시세 WebSocket stream
 - KRW 가격과 USD 환산 가격 동시 제공
 - 환율 기준시각/출처/stale flag FE 전달

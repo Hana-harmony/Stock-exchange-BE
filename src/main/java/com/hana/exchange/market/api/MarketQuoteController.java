@@ -1,13 +1,16 @@
 package com.hana.exchange.market.api;
 
+import java.util.List;
+
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.validation.annotation.Validated;
-
-import jakarta.validation.constraints.Pattern;
 
 import com.hana.exchange.common.api.ApiResponse;
 import com.hana.exchange.market.application.MarketQuoteService;
@@ -29,9 +32,12 @@ public class MarketQuoteController {
 	}
 
 	@GetMapping("/quotes")
-	@Operation(summary = "Get Korean stock quote snapshot contract")
-	public ApiResponse<MarketQuoteSnapshot> getQuotes() {
-		return ApiResponse.success(marketQuoteService.getQuoteSnapshot());
+	@Operation(summary = "Get Korean stock quote snapshots for all, market, or requested stock codes")
+	public ApiResponse<MarketQuoteSnapshot> getQuotes(
+			@RequestParam(required = false) @Size(max = 100) List<@Pattern(regexp = "\\d{6}") String> stockCodes,
+			@RequestParam(required = false) @Pattern(regexp = "KOSPI|KOSDAQ|KONEX|OTHER") String market,
+			@RequestParam(defaultValue = "USD") @Pattern(regexp = "[A-Z]{3}") String currency) {
+		return ApiResponse.success(marketQuoteService.getQuoteSnapshot(stockCodes, market, currency));
 	}
 
 	@GetMapping("/quotes/{stockCode}")

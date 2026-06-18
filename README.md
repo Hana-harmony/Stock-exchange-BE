@@ -13,6 +13,7 @@
 docker compose -f compose.local.yml up --build
 curl http://localhost:3000/actuator/health
 curl http://localhost:3000/api/v1/market/quotes
+curl "http://localhost:3000/api/v1/market/quotes/005930?currency=USD"
 ```
 
 기본 포트는 `3000`이다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다.
@@ -45,10 +46,11 @@ curl http://localhost:3000/api/v1/market/quotes
 - Hana-OmniLens-API와 동일한 `api / application / domain / config` 패키지 구조
 - `GET /actuator/health`
 - `GET /api/v1/market/quotes`
+- `GET /api/v1/market/quotes/{stockCode}?currency=USD`
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색, 단건/다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability, tax refund status 조회
+- REST: 단건 실시간 시세 snapshot 구현, 종목 검색/다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability, tax refund status 조회 예정
 - WebSocket: 뉴스·공시 알림과 market quote stream 구독
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -56,7 +58,7 @@ curl http://localhost:3000/api/v1/market/quotes
 - 인증: 서버 간 요청에서만 `X-HANA-OMNILENS-API-KEY`를 사용하고 프론트엔드에는 노출하지 않는다.
 
 ## 주요 흐름
-1. Hana-OmniLens-API의 KIS 기반 실시간 시세 snapshot을 초기 로딩/복구용으로 조회한다.
+1. Hana-OmniLens-API의 KIS 기반 단건 실시간 시세 snapshot을 조회해 FE에 공통 응답 형식으로 전달한다.
 2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 cache에 반영한다.
 3. Stock-exchange-BE는 Hana가 내려준 `currentPriceKrw`, `localCurrencyPrice`, `localCurrency`, `fxRate`, `fxRateTime`, `fxRateSource`를 보존해 FE에 전달한다.
 4. FE가 전체 종목, 시장별 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다.

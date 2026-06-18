@@ -22,7 +22,7 @@
 - FE용 과거 시세 차트 REST API: KRW/현지통화 OHLCV 응답 구현 완료, 실제 Hana history 연동 smoke 예정
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책: 기본 3초 fresh cache, 30초 stale fallback, 응답 cache metadata 구현 완료
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책: 기본 비활성화 설정과 upstream WebSocket client 구현 완료, 실제 Hana endpoint 연동 smoke 예정
-- 보유종목과 watchlist 모델: 보유종목은 DB holding으로 구현 완료, watchlist는 인메모리 API 구현 완료
+- 보유종목과 watchlist 모델: DB holding과 DB watchlist 구현 완료
 - 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: JDBC/Flyway 기반 user/account 저장, local JWT 발급/검증, refresh token/session rotation, Spring Security bearer filter 구현 완료
 - 실제 결제 없는 mock 달러 충전: DB cash ledger 구현 완료
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: DB trade ledger와 holding 구현 완료

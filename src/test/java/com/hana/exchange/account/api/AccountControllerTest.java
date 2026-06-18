@@ -86,8 +86,11 @@ class AccountControllerTest {
 				.andExpect(jsonPath("$.data.accountId").value(accountId))
 				.andExpect(jsonPath("$.data.tokenType").value("Bearer"))
 				.andExpect(jsonPath("$.data.accessToken", notNullValue()))
+				.andExpect(jsonPath("$.data.refreshToken", notNullValue()))
+				.andExpect(jsonPath("$.data.sessionId", notNullValue()))
 				.andExpect(jsonPath("$.data.issuedAt", notNullValue()))
 				.andExpect(jsonPath("$.data.expiresAt", notNullValue()))
+				.andExpect(jsonPath("$.data.refreshTokenExpiresAt", notNullValue()))
 				.andReturn();
 
 		String accessToken = JsonPath.read(login.getResponse().getContentAsString(), "$.data.accessToken");
@@ -104,6 +107,92 @@ class AccountControllerTest {
 				.andExpect(jsonPath("$.data.accountId").value(accountId))
 				.andExpect(jsonPath("$.data.issuedAt", notNullValue()))
 				.andExpect(jsonPath("$.data.expiresAt", notNullValue()));
+	}
+
+	@Test
+	void refreshTokenRotatesSessionAndRejectsOldRefreshToken() throws Exception {
+		signUpAndGetAccountId("RefreshTrader01");
+		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "RefreshTrader01",
+								  "password": "localPass123!"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+
+		String refreshToken = JsonPath.read(login.getResponse().getContentAsString(), "$.data.refreshToken");
+		String firstSessionId = JsonPath.read(login.getResponse().getContentAsString(), "$.data.sessionId");
+		MvcResult refresh = mockMvc.perform(post("/api/v1/auth/token/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "%s"
+								}
+								""".formatted(refreshToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.username").value("refreshtrader01"))
+				.andExpect(jsonPath("$.data.tokenType").value("Bearer"))
+				.andExpect(jsonPath("$.data.accessToken", notNullValue()))
+				.andExpect(jsonPath("$.data.refreshToken", notNullValue()))
+				.andExpect(jsonPath("$.data.sessionId", notNullValue()))
+				.andExpect(jsonPath("$.data.refreshTokenExpiresAt", notNullValue()))
+				.andReturn();
+
+		String secondSessionId = JsonPath.read(refresh.getResponse().getContentAsString(), "$.data.sessionId");
+		org.assertj.core.api.Assertions.assertThat(secondSessionId).isNotEqualTo(firstSessionId);
+		mockMvc.perform(post("/api/v1/auth/token/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "%s"
+								}
+								""".formatted(refreshToken)))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("AUTH_005"));
+	}
+
+	@Test
+	void logoutRevokesRefreshSession() throws Exception {
+		signUpAndGetAccountId("LogoutTrader01");
+		MvcResult login = mockMvc.perform(post("/api/v1/auth/login")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "username": "LogoutTrader01",
+								  "password": "localPass123!"
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andReturn();
+		String refreshToken = JsonPath.read(login.getResponse().getContentAsString(), "$.data.refreshToken");
+		String sessionId = JsonPath.read(login.getResponse().getContentAsString(), "$.data.sessionId");
+
+		mockMvc.perform(post("/api/v1/auth/logout")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "%s"
+								}
+								""".formatted(refreshToken)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.revoked").value(true))
+				.andExpect(jsonPath("$.data.sessionId").value(sessionId))
+				.andExpect(jsonPath("$.data.revokedAt", notNullValue()));
+
+		mockMvc.perform(post("/api/v1/auth/token/refresh")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "refreshToken": "%s"
+								}
+								""".formatted(refreshToken)))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("AUTH_005"));
 	}
 
 	@Test

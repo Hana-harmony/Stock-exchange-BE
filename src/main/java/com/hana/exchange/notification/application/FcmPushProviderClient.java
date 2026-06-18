@@ -15,6 +15,6 @@ public class FcmPushProviderClient implements PushProviderClient {
 
 	@Override
 	public NotificationDeliveryResult send(NotificationItem notification) {
-		return NotificationDeliveryResult.skipped(provider(), "FCM device token and credentials are not configured");
+		return NotificationDeliveryResult.skipped(provider(), "FCM credentials and send client are not configured");
 	}
 }

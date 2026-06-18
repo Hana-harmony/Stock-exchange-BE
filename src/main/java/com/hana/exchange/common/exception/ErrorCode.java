@@ -17,6 +17,7 @@ public enum ErrorCode {
 	WATCHLIST_ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "WATCHLIST_001", "Watchlist item not found"),
 	ALERT_EVENT_NOT_FOUND(HttpStatus.NOT_FOUND, "ALERT_001", "Alert event not found"),
 	NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_001", "Notification not found"),
+	NOTIFICATION_DEVICE_NOT_FOUND(HttpStatus.NOT_FOUND, "NOTIFICATION_002", "Notification device token not found"),
 	MARKET_UPSTREAM_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "MARKET_001", "Hana OmniLens market upstream is unavailable"),
 	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance"),
 	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity"),

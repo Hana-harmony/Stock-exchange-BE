@@ -62,7 +62,13 @@ class NotificationServiceTest {
 	}
 
 	private NotificationService service(PushNotificationSender pushNotificationSender) {
-		return new NotificationService(null, notificationRepository, null, pushNotificationSender, null);
+		return new NotificationService(
+				null,
+				notificationRepository,
+				new InMemoryNotificationDeviceTokenRepository(),
+				null,
+				pushNotificationSender,
+				null);
 	}
 
 	private NotificationItem saved(String notificationId) {

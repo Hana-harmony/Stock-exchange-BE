@@ -228,6 +228,13 @@
   - Returns in-app notification items and push delivery metadata.
   - Each notification includes `eventId`, `subjectType`, `subjectId`, `sourceType`, `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, and `lastDeliveryError`.
   - Alert notifications use subject `ALERT_EVENT`; tax recapture risk notifications use subject `TAX_REFUND_CASE` and source type `TAX_RECAPTURE_RISK`.
+- `GET /api/v1/accounts/{accountId}/notifications/devices`
+  - Returns registered iOS/Android/web push device tokens for the account with `activeCount`, `totalCount`, and masked token metadata.
+- `POST /api/v1/accounts/{accountId}/notifications/devices`
+  - Registers or refreshes a device token with `platform`, `provider`, `deviceToken`, optional `appVersion`, and optional `locale`.
+  - Responses expose `tokenHash` and `maskedToken`; the original `deviceToken` is not returned.
+- `DELETE /api/v1/accounts/{accountId}/notifications/devices/{deviceTokenId}`
+  - Disables a registered device token without deleting its registration audit state.
 - Delivery statuses:
   - `PENDING`: notification was created but no provider result has been recorded yet.
   - `DELIVERED`: provider accepted or locally confirmed the delivery.
@@ -235,9 +242,9 @@
   - `SKIPPED`: delivery was intentionally skipped.
 - Default provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
 - Configure provider routing with `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`, for example `LOCAL_NOOP_PUSH`, `FCM_PUSH`, `APNS_PUSH`, or `WEB_PUSH`.
-- FCM/APNS/web push providers record `SKIPPED` until external credentials and device/subscription tokens are connected.
+- FCM/APNS/web push providers record `SKIPPED` until external credentials and provider-specific send clients are connected.
 - Retry worker is enabled with `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true` and retries `PENDING`/`FAILED` notifications under `EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT` in `EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE` batches.
-- External mobile/web push credential and token delivery integration remains planned hardening work.
+- External mobile/web push credentials and provider delivery integration remain planned hardening work.
 
 ## Audit Events
 

@@ -36,6 +36,10 @@ public class IdGenerator {
 		return "NTF-" + randomToken();
 	}
 
+	public String newNotificationDeviceId() {
+		return "NTD-" + randomToken();
+	}
+
 	public String newTaxCaseId() {
 		return "TAX-" + randomToken();
 	}

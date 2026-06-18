@@ -111,7 +111,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - GitHub Actions CI: `./gradlew test`, `./gradlew bootJar`
 - 현재 mock 사용자, mock USD 계좌, mock cash ledger, refresh session 저장소는 Flyway schema와 JDBC repository로 영속화하며, 로그인 API는 HMAC 기반 local JWT와 refresh token을 발급한다.
 - refresh API는 기존 refresh session을 revoke하고 새 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다.
-- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade holding/ledger, watchlist, alert event/match result는 Flyway/JDBC로 영속화하며, notification, tax 저장소 영속화는 별도 단계에서 추가한다.
+- `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade holding/ledger, watchlist, alert event/match result, notification inbox는 Flyway/JDBC로 영속화하며, tax 저장소 영속화는 별도 단계에서 추가한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API 구현, 호가와 Hana tax status sync 예정

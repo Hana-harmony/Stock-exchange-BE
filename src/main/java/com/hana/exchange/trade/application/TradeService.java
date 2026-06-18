@@ -1,0 +1,226 @@
+package com.hana.exchange.trade.application;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+
+import com.hana.exchange.account.application.AccountRepository;
+import com.hana.exchange.account.application.IdGenerator;
+import com.hana.exchange.account.domain.MockUsdAccount;
+import com.hana.exchange.common.exception.BusinessException;
+import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.market.client.OmniLensMarketQuote;
+import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.trade.domain.HoldingResponse;
+import com.hana.exchange.trade.domain.MockHolding;
+import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PortfolioResponse;
+import com.hana.exchange.trade.domain.TradeExecutionResponse;
+import com.hana.exchange.trade.domain.TradeOrderRequest;
+import com.hana.exchange.trade.domain.TradeSide;
+
+@Service
+public class TradeService {
+
+	private static final String USD = "USD";
+	private static final String TRADING_MODE = "EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING";
+	private static final int RECENT_TRADE_LIMIT = 20;
+
+	private final AccountRepository accountRepository;
+	private final TradeRepository tradeRepository;
+	private final OmniLensMarketQuoteClient quoteClient;
+	private final IdGenerator idGenerator;
+
+	public TradeService(
+			AccountRepository accountRepository,
+			TradeRepository tradeRepository,
+			OmniLensMarketQuoteClient quoteClient,
+			IdGenerator idGenerator) {
+		this.accountRepository = accountRepository;
+		this.tradeRepository = tradeRepository;
+		this.quoteClient = quoteClient;
+		this.idGenerator = idGenerator;
+	}
+
+	public TradeExecutionResponse execute(String accountId, TradeOrderRequest request) {
+		MockUsdAccount account = account(accountId);
+		OmniLensMarketQuote quote = quoteClient.getQuote(request.stockCode(), USD);
+		BigDecimal executionPriceUsd = money(quote.localCurrencyPrice());
+		BigDecimal grossAmountUsd = money(executionPriceUsd.multiply(BigDecimal.valueOf(request.quantity())));
+		Instant now = Instant.now();
+
+		if (request.side() == TradeSide.BUY) {
+			return buy(account, quote, request.quantity(), executionPriceUsd, grossAmountUsd, now);
+		}
+		return sell(account, quote, request.quantity(), executionPriceUsd, grossAmountUsd, now);
+	}
+
+	public PortfolioResponse getPortfolio(String accountId) {
+		MockUsdAccount account = account(accountId);
+		List<HoldingResponse> holdings = tradeRepository.findHoldings(accountId)
+				.stream()
+				.map(this::toHoldingResponse)
+				.toList();
+		List<TradeExecutionResponse> recentTrades = tradeRepository.findRecentTrades(accountId, RECENT_TRADE_LIMIT)
+				.stream()
+				.map(this::toTradeResponse)
+				.toList();
+		BigDecimal realizedPnl = tradeRepository.findTrades(accountId)
+				.stream()
+				.map(MockTradeLedgerEntry::realizedPnlUsd)
+				.reduce(BigDecimal.ZERO, BigDecimal::add);
+		return new PortfolioResponse(
+				account.userId(),
+				account.accountId(),
+				USD,
+				moneyText(account.cashBalanceUsd()),
+				moneyText(realizedPnl),
+				TRADING_MODE,
+				holdings,
+				recentTrades,
+				Instant.now());
+	}
+
+	private TradeExecutionResponse buy(
+			MockUsdAccount account,
+			OmniLensMarketQuote quote,
+			long quantity,
+			BigDecimal executionPriceUsd,
+			BigDecimal grossAmountUsd,
+			Instant now) {
+		if (account.cashBalanceUsd().compareTo(grossAmountUsd) < 0) {
+			throw new BusinessException(ErrorCode.MOCK_ACCOUNT_INSUFFICIENT_BALANCE);
+		}
+
+		MockHolding currentHolding = tradeRepository.findHolding(account.accountId(), quote.stockCode())
+				.orElse(MockHolding.empty(account.accountId(), account.userId(), quote.stockCode(), displayName(quote), now));
+		MockHolding updatedHolding = currentHolding.buy(quantity, executionPriceUsd, now);
+		MockUsdAccount updatedAccount = account.withdraw(grossAmountUsd, now);
+		MockTradeLedgerEntry trade = tradeLedger(
+				updatedAccount,
+				updatedHolding,
+				TradeSide.BUY,
+				quantity,
+				executionPriceUsd,
+				grossAmountUsd,
+				BigDecimal.ZERO.setScale(2),
+				now);
+		accountRepository.saveAccount(updatedAccount);
+		tradeRepository.saveHolding(updatedHolding);
+		tradeRepository.saveTrade(trade);
+		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
+	}
+
+	private TradeExecutionResponse sell(
+			MockUsdAccount account,
+			OmniLensMarketQuote quote,
+			long quantity,
+			BigDecimal executionPriceUsd,
+			BigDecimal grossAmountUsd,
+			Instant now) {
+		MockHolding currentHolding = tradeRepository.findHolding(account.accountId(), quote.stockCode())
+				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_HOLDING_INSUFFICIENT_QUANTITY));
+		if (currentHolding.quantity() < quantity) {
+			throw new BusinessException(ErrorCode.MOCK_HOLDING_INSUFFICIENT_QUANTITY);
+		}
+
+		BigDecimal realizedPnl = money(executionPriceUsd.subtract(currentHolding.averagePriceUsd())
+				.multiply(BigDecimal.valueOf(quantity)));
+		MockHolding updatedHolding = currentHolding.sell(quantity, now);
+		MockUsdAccount updatedAccount = account.deposit(grossAmountUsd, now);
+		MockTradeLedgerEntry trade = tradeLedger(
+				updatedAccount,
+				updatedHolding,
+				TradeSide.SELL,
+				quantity,
+				executionPriceUsd,
+				grossAmountUsd,
+				realizedPnl,
+				now);
+		accountRepository.saveAccount(updatedAccount);
+		tradeRepository.saveHolding(updatedHolding);
+		tradeRepository.saveTrade(trade);
+		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
+	}
+
+	private MockTradeLedgerEntry tradeLedger(
+			MockUsdAccount account,
+			MockHolding holding,
+			TradeSide side,
+			long quantity,
+			BigDecimal executionPriceUsd,
+			BigDecimal grossAmountUsd,
+			BigDecimal realizedPnlUsd,
+			Instant now) {
+		return new MockTradeLedgerEntry(
+				idGenerator.newTradeId(),
+				account.accountId(),
+				account.userId(),
+				holding.stockCode(),
+				holding.stockName(),
+				side,
+				quantity,
+				executionPriceUsd,
+				grossAmountUsd,
+				realizedPnlUsd,
+				holding.quantity(),
+				holding.averagePriceUsd(),
+				account.cashBalanceUsd(),
+				now);
+	}
+
+	private MockUsdAccount account(String accountId) {
+		return accountRepository.findAccount(accountId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
+	}
+
+	private HoldingResponse toHoldingResponse(MockHolding holding) {
+		return new HoldingResponse(
+				holding.stockCode(),
+				holding.stockName(),
+				holding.quantity(),
+				moneyText(holding.averagePriceUsd()),
+				moneyText(holding.costBasisUsd()),
+				holding.updatedAt());
+	}
+
+	private TradeExecutionResponse toTradeResponse(MockTradeLedgerEntry trade) {
+		return toTradeResponse(trade, trade.cashBalanceUsdAfter());
+	}
+
+	private TradeExecutionResponse toTradeResponse(MockTradeLedgerEntry trade, BigDecimal cashBalanceUsd) {
+		return new TradeExecutionResponse(
+				trade.tradeId(),
+				trade.accountId(),
+				trade.stockCode(),
+				trade.stockName(),
+				trade.side(),
+				trade.quantity(),
+				moneyText(trade.executionPriceUsd()),
+				moneyText(trade.grossAmountUsd()),
+				moneyText(trade.realizedPnlUsd()),
+				trade.remainingQuantity(),
+				moneyText(trade.averagePriceUsdAfter()),
+				moneyText(cashBalanceUsd),
+				TRADING_MODE,
+				trade.executedAt());
+	}
+
+	private String displayName(OmniLensMarketQuote quote) {
+		if (quote.stockNameEn() != null && !quote.stockNameEn().isBlank()) {
+			return quote.stockNameEn();
+		}
+		return quote.stockName();
+	}
+
+	private BigDecimal money(BigDecimal value) {
+		return value.setScale(2, RoundingMode.HALF_UP);
+	}
+
+	private String moneyText(BigDecimal value) {
+		return money(value).toPlainString();
+	}
+}

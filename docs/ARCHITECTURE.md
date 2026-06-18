@@ -9,14 +9,20 @@
 - `market/application`: Hana-OmniLens-API snapshot을 현지 사용자 컨텍스트에 맞게 조합하는 application service
 - `market/domain`: quote snapshot, transport, KRW/USD 표시 field 등 market 계약 record
 - `market/client`: Hana-OmniLens-API 단건 실시간 시세 REST client
+- `account/api`: 아이디/비밀번호 회원가입, mock USD 계좌 조회, 실제 결제 없는 달러 충전 REST API
+- `account/application`: password hash, 사용자 생성, mock USD cash ledger 조합 service
+- `account/domain`: user, mock USD account, cash ledger, account response 계약 record
+- `trade/api`: KIS 모의투자 API를 쓰지 않는 mock 매수·매도와 portfolio REST API
+- `trade/application`: Hana-OmniLens-API quote 가격을 이용한 내부 mock ledger, 평균단가, 실현손익 계산 service
+- `trade/domain`: holding, trade ledger, portfolio response 계약 record
 - `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, profile별 runtime 설정
-- Planned `auth`: 아이디/비밀번호 기반 간편 회원가입과 로그인
-- Planned `account`: 회원가입 시 mock USD cash account 생성, 달러 충전, 잔고 이력
+- Planned `auth`: 로그인, 세션/JWT, 인증 context
+- Planned `account`: 영속 DB 기반 USD cash account와 잔고 이력
 - Planned `market/client`: Hana-OmniLens-API 종목 검색, 다건/전체 실시간 시세 snapshot, KRX 기반 과거 시세, 호가, orderability API client
 - Planned `market/stream`: FE용 전체/시장별/watchlist/보유종목/단건 실시간 시세 WebSocket stream
 - Planned `market/cache`: Hana-OmniLens-API snapshot을 현지 거래소 화면 요구사항에 맞게 짧게 캐시하는 layer
 - Planned `portfolio`: 사용자 보유종목, 평가금액, watchlist, 자체 mock ledger 주문 상태
-- Planned `trade`: KIS 모의투자 API가 아닌 내부 원장 기반 가짜 매수·매도, 평균단가, 실현손익 계산
+- Planned `trade`: 영속 DB 기반 거래원장, 주문 가능 여부 경고, 외국인 한도/VI/상·하한가 검증
 - Planned `alert`: Hana-OmniLens-API WebSocket client, 이벤트 저장, 대상자 매칭
 - Planned `notification`: 푸시 대상자 매칭, 알림함 저장, 푸시 발송
 - Planned `tax`: 세무 서류 업로드 metadata, 거래원장/sub-ledger 매칭, 환급 상태 동기화
@@ -46,13 +52,17 @@
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 과거 시세 API를 FE 차트 응답 형식으로 재가공한다.
 - 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
-- 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다.
-- 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다.
+- 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.
+- 회원가입은 아이디/비밀번호만 받고, 가입 즉시 mock USD 계좌를 생성한다. 현재 API는 비밀번호를 PBKDF2로 해시하고 로컬 개발용 인메모리 저장소에 계좌를 생성한다.
+- 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 재시작 시 사라지는 인메모리 ledger entry를 사용한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다.
 - 세무 기능은 거주자증명서, 제한세율신청서, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별로 연결한다.
 
 ## 현재 구현 상태
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
+- `POST /api/v1/auth/signup`은 아이디/비밀번호 가입과 mock USD 계좌 생성을 공통 응답 형식으로 제공한다.
+- `GET /api/v1/accounts/{accountId}`와 `POST /api/v1/accounts/{accountId}/deposits`는 mock USD 잔고 조회와 실제 결제 없는 달러 충전을 제공한다.
+- `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 매도 실현손익을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공한다.
-- 다건/전체 quote REST, DB schema, market WebSocket stream, alert WebSocket client, push worker는 미구현이다.
+- 로그인/JWT, 영속 DB schema, orderability 경고, 다건/전체 quote REST, market WebSocket stream, alert WebSocket client, push worker는 미구현이다.

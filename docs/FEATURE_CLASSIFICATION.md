@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | Spring Boot API 하네스 | Stock-exchange-BE | Partial |
 | 영어권 현지 사용자와 USD 기준 서비스 목표 | Stock-exchange-BE | Planned |
-| 아이디/비밀번호 기반 간편 회원가입 | Stock-exchange-BE | Planned |
-| 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Planned |
-| 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Planned |
+| 아이디/비밀번호 기반 간편 회원가입 | Stock-exchange-BE | Partial |
+| 회원가입 시 mock USD 계좌 자동 생성 | Stock-exchange-BE | Done |
+| 실제 결제 없는 mock 달러 충전 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단건 시세 조회 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 종목/orderability 조회 | Stock-exchange-BE | Planned |
 | 단건 실시간 시세 REST API 제공 | Stock-exchange-BE | Done |
@@ -20,9 +20,9 @@
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Planned |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Planned |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Planned |
-| 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Planned |
-| KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Planned |
-| 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Planned |
+| 사용자 보유종목, watchlist, 자체 mock 주문 상태 관리 | Stock-exchange-BE | Partial |
+| KIS 모의투자 API가 아닌 BE 내부 원장 기반 가짜 매수·매도 | Stock-exchange-BE | Done |
+| 평균단가, 평가손익, 매도 실현손익 계산 | Stock-exchange-BE | Partial |
 | 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산 | Stock-exchange-BE | Planned |
 | 실시간 평가금액과 주문 경고 API 제공 | Stock-exchange-BE | Planned |
 | 실제 주문 실행, 체결, 정산, 환전 | Out of scope | Out of scope |

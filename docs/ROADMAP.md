@@ -23,10 +23,10 @@
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책
 - Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책
 - 보유종목과 watchlist 모델
-- 아이디/비밀번호 회원가입과 mock USD 계좌 생성
-- 실제 결제 없는 mock 달러 충전
-- KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도
-- 평균단가, 평가손익, 매도 실현손익 계산
+- 아이디/비밀번호 회원가입과 mock USD 계좌 생성: 인메모리 API 구현 완료, 로그인/영속화 예정
+- 실제 결제 없는 mock 달러 충전: 인메모리 cash ledger 구현 완료, 영속 ledger 예정
+- KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: 인메모리 API 구현 완료, 영속 ledger 예정
+- 평균단가, 평가손익, 매도 실현손익 계산: 평균단가/매도 실현손익 구현 완료, 실시간 평가손익 예정
 - 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산
 - 평가금액과 주문 경고 contract test
 

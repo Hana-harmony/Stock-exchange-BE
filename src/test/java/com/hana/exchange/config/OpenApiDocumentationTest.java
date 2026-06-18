@@ -24,6 +24,11 @@ class OpenApiDocumentationTest {
 		mockMvc.perform(get("/v3/api-docs"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.info.title", equalTo("Stock Exchange BE API")))
+				.andExpect(jsonPath("$.paths['/api/v1/auth/signup']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/deposits']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/trades']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/portfolio']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/quotes']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/market/quotes/{stockCode}']", notNullValue()));
 	}

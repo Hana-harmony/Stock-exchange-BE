@@ -7,8 +7,11 @@ public enum ErrorCode {
 	VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "COMMON_002", "Request validation failed"),
 	RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_003", "Resource not found"),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_999", "Internal server error"),
+	USERNAME_ALREADY_EXISTS(HttpStatus.CONFLICT, "AUTH_001", "Username already exists"),
+	MOCK_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "ACCOUNT_001", "Mock USD account not found"),
 	MARKET_UPSTREAM_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "MARKET_001", "Hana OmniLens market upstream is unavailable"),
-	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance");
+	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance"),
+	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity");
 
 	private final HttpStatus status;
 	private final String code;

@@ -114,6 +114,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - refresh API는 기존 refresh session을 revoke하고 새 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다.
 - `/api/v1/accounts/**`는 Spring Security bearer filter로 보호하며, token의 `accountId`와 path의 `accountId`가 일치해야 한다. trade holding/ledger, watchlist, alert event/match result, notification inbox, tax refund case, audit event는 Flyway/JDBC로 영속화한다.
 - 감사 이벤트는 저장 전 이메일, 전화번호, 주민등록번호 형식, 긴 secret/token 형식을 마스킹하며, `EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED=true`에서 보존기간이 지난 이벤트를 정리한다.
+- API rate limit은 `EXCHANGE_RATE_LIMIT_ENABLED=true`에서 `/api/v1/**` 요청에 적용되며, 계좌 path는 accountId 기준, 그 외 요청은 client IP 기준으로 제한한다.
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot 구현, quote short-cache/stale fallback 구현, KRX 기반 과거 차트 client/proxy 구현, orderability warning API 구현, tax refund case/status API와 Hana tax status sync 구현, 호가 예정

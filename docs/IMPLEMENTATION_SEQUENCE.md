@@ -20,6 +20,7 @@
 - Swagger/OpenAPI 문서를 제공한다.
 - 백엔드는 Docker Compose로 로컬 실행과 smoke test가 가능해야 한다.
 - 시크릿은 gitignore된 local 파일이나 환경변수로만 관리한다.
+- 운영 환경에서는 `/api/v1/**` rate limit을 환경변수로 활성화하고 공통 응답 형식의 429 오류를 반환한다.
 
 완료 기준:
 - Spring 백엔드는 `./gradlew test --no-daemon`이 통과한다.

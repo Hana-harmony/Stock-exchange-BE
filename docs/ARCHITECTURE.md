@@ -40,7 +40,7 @@
 - `audit/api`: 계좌별 최근 감사 이벤트 조회 REST API
 - `audit/application`: 주문 체결, notification 읽음 처리, tax refund case 생성/갱신 이벤트 저장, 개인정보 마스킹, 보존기간 정리 service
 - `audit/domain`: audit event type, subject, summary, occurredAt 계약 record
-- `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, profile별 runtime 설정
+- `config`: Hana-OmniLens-API client 설정, WebSocket broker 설정, Spring Security 설정, API rate limit 설정, profile별 runtime 설정
 - Planned `auth`: session anomaly detection
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - Planned `market/client`: Hana-OmniLens-API 호가 API client
@@ -92,6 +92,7 @@
 - 로그인 API는 저장된 PBKDF2 hash를 검증하고 HMAC 기반 local JWT와 refresh token을 발급한다. token verify API는 FE session context가 사용할 userId, username, accountId, expiry를 반환한다.
 - refresh token API는 active refresh session을 검증한 뒤 이전 session을 revoke하고 새 access token과 refresh token으로 rotation한다. logout API는 refresh session을 revoke한다. 현재 refresh session 저장소는 DB 구현이며 token 원문 대신 SHA-256 hash를 저장한다.
 - `/api/v1/accounts/**`는 Spring Security bearer filter가 token을 검증하고 token accountId와 path accountId 일치를 강제한다. signup/login/token verify와 공개 시장 데이터, alert ingest, Swagger, actuator는 익명 접근을 허용한다.
+- API rate limit은 기본 비활성화이며, `EXCHANGE_RATE_LIMIT_ENABLED=true`에서 `/api/v1/**` 요청에 적용된다. 계좌 path는 accountId 기준, 그 외 API path는 client IP 기준으로 고정 window 제한을 수행한다.
 - 달러 충전은 실제 결제 없이 입력 금액만큼 mock USD cash ledger를 증가시킨다. 현재 API는 DB account balance와 cash ledger entry를 갱신한다.
 - 매도 내역과 실현손익은 세무 환급/선지급 화면과 Hana-OmniLens-API 세무 상태 계약에 연결되는 거래원장 입력 데이터로 사용한다.
 - mock holding과 mock trade ledger는 DB에 영속화되며, market quote stream과 tax refund case는 DB holding/trade ledger를 기준으로 계좌별 topic과 매도 실현손익을 계산한다.

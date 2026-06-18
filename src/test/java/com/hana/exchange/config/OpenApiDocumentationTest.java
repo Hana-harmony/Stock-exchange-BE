@@ -25,6 +25,8 @@ class OpenApiDocumentationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.info.title", equalTo("Stock Exchange BE API")))
 				.andExpect(jsonPath("$.paths['/api/v1/auth/signup']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/auth/login']", notNullValue()))
+				.andExpect(jsonPath("$.paths['/api/v1/auth/token/verify']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/deposits']", notNullValue()))
 				.andExpect(jsonPath("$.paths['/api/v1/accounts/{accountId}/trades']", notNullValue()))

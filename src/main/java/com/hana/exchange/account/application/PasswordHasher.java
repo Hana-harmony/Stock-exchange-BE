@@ -2,6 +2,7 @@ package com.hana.exchange.account.application;
 
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.MessageDigest;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 
@@ -29,6 +30,13 @@ public class PasswordHasher {
 		return new PasswordHash(
 				Base64.getEncoder().encodeToString(salt),
 				Base64.getEncoder().encodeToString(hash));
+	}
+
+	public boolean matches(String password, String encodedSalt, String encodedHash) {
+		byte[] salt = Base64.getDecoder().decode(encodedSalt);
+		byte[] expectedHash = Base64.getDecoder().decode(encodedHash);
+		byte[] actualHash = pbkdf2(password.toCharArray(), salt);
+		return MessageDigest.isEqual(expectedHash, actualHash);
 	}
 
 	private byte[] pbkdf2(char[] password, byte[] salt) {

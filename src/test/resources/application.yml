@@ -2,6 +2,11 @@ spring:
   application:
     name: stock-exchange-be-test
 
+exchange:
+  auth:
+    token-signing-key: local-test-token-signing-key
+    access-token-ttl: 12h
+
 hana:
   omnilens:
     api:

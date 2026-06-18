@@ -11,6 +11,11 @@ management:
       exposure:
         include: health,info
 
+exchange:
+  auth:
+    token-signing-key: ${EXCHANGE_AUTH_TOKEN_SIGNING_KEY:local-dev-token-signing-key-change-before-prod}
+    access-token-ttl: ${EXCHANGE_AUTH_ACCESS_TOKEN_TTL:12h}
+
 hana:
   omnilens:
     api:

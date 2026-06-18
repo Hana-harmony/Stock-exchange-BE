@@ -9,11 +9,15 @@ import org.springframework.stereotype.Service;
 import com.hana.exchange.account.domain.AccountBalanceResponse;
 import com.hana.exchange.account.domain.DepositUsdRequest;
 import com.hana.exchange.account.domain.ExchangeUser;
+import com.hana.exchange.account.domain.LoginRequest;
+import com.hana.exchange.account.domain.LoginResponse;
 import com.hana.exchange.account.domain.MockCashLedgerEntry;
 import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.account.domain.PasswordHash;
 import com.hana.exchange.account.domain.SignUpRequest;
 import com.hana.exchange.account.domain.SignUpResponse;
+import com.hana.exchange.account.domain.TokenVerifyRequest;
+import com.hana.exchange.account.domain.TokenVerifyResponse;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 
@@ -26,14 +30,17 @@ public class AccountService {
 	private final AccountRepository accountRepository;
 	private final IdGenerator idGenerator;
 	private final PasswordHasher passwordHasher;
+	private final AuthTokenService authTokenService;
 
 	public AccountService(
 			AccountRepository accountRepository,
 			IdGenerator idGenerator,
-			PasswordHasher passwordHasher) {
+			PasswordHasher passwordHasher,
+			AuthTokenService authTokenService) {
 		this.accountRepository = accountRepository;
 		this.idGenerator = idGenerator;
 		this.passwordHasher = passwordHasher;
+		this.authTokenService = authTokenService;
 	}
 
 	public SignUpResponse signUp(SignUpRequest request) {
@@ -59,6 +66,37 @@ public class AccountService {
 				now);
 		accountRepository.saveNewAccount(user, account);
 		return toSignUpResponse(user, account);
+	}
+
+	public LoginResponse login(LoginRequest request) {
+		String normalizedUsername = request.username().trim().toLowerCase();
+		ExchangeUser user = accountRepository.findUserByUsername(normalizedUsername)
+				.orElseThrow(() -> new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS));
+		if (!passwordHasher.matches(request.password(), user.passwordSalt(), user.passwordHash())) {
+			throw new BusinessException(ErrorCode.INVALID_LOGIN_CREDENTIALS);
+		}
+		MockUsdAccount account = accountRepository.findAccountByUserId(user.userId())
+				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
+		AuthTokenService.IssuedToken token = authTokenService.issue(user, account);
+		return new LoginResponse(
+				user.userId(),
+				user.username(),
+				account.accountId(),
+				token.tokenType(),
+				token.accessToken(),
+				token.issuedAt(),
+				token.expiresAt());
+	}
+
+	public TokenVerifyResponse verifyToken(TokenVerifyRequest request) {
+		AuthTokenService.VerifiedToken token = authTokenService.verify(request.accessToken());
+		return new TokenVerifyResponse(
+				true,
+				token.userId(),
+				token.username(),
+				token.accountId(),
+				token.issuedAt(),
+				token.expiresAt());
 	}
 
 	public AccountBalanceResponse getAccount(String accountId) {

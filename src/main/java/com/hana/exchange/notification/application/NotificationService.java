@@ -1,21 +1,30 @@
 package com.hana.exchange.notification.application;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.hana.exchange.account.application.AccountRepository;
 import com.hana.exchange.account.application.IdGenerator;
+import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertTargetResponse;
 import com.hana.exchange.audit.application.AuditEventService;
 import com.hana.exchange.audit.domain.AuditEventType;
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
-import com.hana.exchange.notification.domain.NotificationInboxResponse;
+import com.hana.exchange.notification.domain.NotificationDeviceListResponse;
+import com.hana.exchange.notification.domain.NotificationDeviceRegisterRequest;
+import com.hana.exchange.notification.domain.NotificationDeviceResponse;
+import com.hana.exchange.notification.domain.NotificationDeviceToken;
 import com.hana.exchange.notification.domain.NotificationDeliveryResult;
 import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
+import com.hana.exchange.notification.domain.NotificationInboxResponse;
 import com.hana.exchange.notification.domain.NotificationItem;
 import com.hana.exchange.notification.domain.NotificationItemResponse;
 import com.hana.exchange.tax.domain.TaxRefundCase;
@@ -25,6 +34,7 @@ public class NotificationService {
 
 	private final AccountRepository accountRepository;
 	private final NotificationRepository notificationRepository;
+	private final NotificationDeviceTokenRepository deviceTokenRepository;
 	private final IdGenerator idGenerator;
 	private final PushNotificationSender pushNotificationSender;
 	private final AuditEventService auditEventService;
@@ -32,11 +42,13 @@ public class NotificationService {
 	public NotificationService(
 			AccountRepository accountRepository,
 			NotificationRepository notificationRepository,
+			NotificationDeviceTokenRepository deviceTokenRepository,
 			IdGenerator idGenerator,
 			PushNotificationSender pushNotificationSender,
 			AuditEventService auditEventService) {
 		this.accountRepository = accountRepository;
 		this.notificationRepository = notificationRepository;
+		this.deviceTokenRepository = deviceTokenRepository;
 		this.idGenerator = idGenerator;
 		this.pushNotificationSender = pushNotificationSender;
 		this.auditEventService = auditEventService;
@@ -142,8 +154,49 @@ public class NotificationService {
 		return toResponse(readItem);
 	}
 
-	private void assertAccount(String accountId) {
-		accountRepository.findAccount(accountId)
+	public NotificationDeviceListResponse getDevices(String accountId) {
+		assertAccount(accountId);
+		return toDeviceListResponse(accountId);
+	}
+
+	public NotificationDeviceResponse registerDevice(String accountId, NotificationDeviceRegisterRequest request) {
+		MockUsdAccount account = assertAccount(accountId);
+		Instant now = Instant.now();
+		String tokenHash = sha256(request.deviceToken());
+		String maskedToken = mask(request.deviceToken());
+		NotificationDeviceToken deviceToken = deviceTokenRepository
+				.findByAccountIdAndPlatformAndTokenHash(accountId, request.platform(), tokenHash)
+				.map(saved -> saved.seen(request.provider(), maskedToken, request.appVersion(), request.locale(), now))
+				.orElseGet(() -> new NotificationDeviceToken(
+						idGenerator.newNotificationDeviceId(),
+						accountId,
+						account.userId(),
+						request.platform(),
+						request.provider(),
+						tokenHash,
+						maskedToken,
+						request.appVersion(),
+						request.locale(),
+						true,
+						now,
+						now,
+						null));
+		deviceTokenRepository.save(deviceToken);
+		return toDeviceResponse(deviceToken);
+	}
+
+	public NotificationDeviceResponse disableDevice(String accountId, String deviceTokenId) {
+		assertAccount(accountId);
+		NotificationDeviceToken deviceToken = deviceTokenRepository
+				.findByAccountIdAndDeviceTokenId(accountId, deviceTokenId)
+				.orElseThrow(() -> new BusinessException(ErrorCode.NOTIFICATION_DEVICE_NOT_FOUND));
+		NotificationDeviceToken disabledToken = deviceToken.disabled(Instant.now());
+		deviceTokenRepository.save(disabledToken);
+		return toDeviceResponse(disabledToken);
+	}
+
+	private MockUsdAccount assertAccount(String accountId) {
+		return accountRepository.findAccount(accountId)
 				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_ACCOUNT_NOT_FOUND));
 	}
 
@@ -170,11 +223,53 @@ public class NotificationService {
 				item.readAt());
 	}
 
+	private NotificationDeviceListResponse toDeviceListResponse(String accountId) {
+		List<NotificationDeviceResponse> devices = deviceTokenRepository.findByAccountId(accountId)
+				.stream()
+				.map(this::toDeviceResponse)
+				.toList();
+		long activeCount = devices.stream()
+				.filter(NotificationDeviceResponse::active)
+				.count();
+		return new NotificationDeviceListResponse(accountId, (int) activeCount, devices.size(), devices, Instant.now());
+	}
+
+	private NotificationDeviceResponse toDeviceResponse(NotificationDeviceToken deviceToken) {
+		return new NotificationDeviceResponse(
+				deviceToken.deviceTokenId(),
+				deviceToken.platform(),
+				deviceToken.provider(),
+				deviceToken.tokenHash(),
+				deviceToken.maskedToken(),
+				deviceToken.appVersion(),
+				deviceToken.locale(),
+				deviceToken.active(),
+				deviceToken.registeredAt(),
+				deviceToken.lastSeenAt(),
+				deviceToken.disabledAt());
+	}
+
 	private NotificationDeliveryResult sendSafely(NotificationItem notification) {
 		try {
 			return pushNotificationSender.send(notification);
 		} catch (RuntimeException exception) {
 			return NotificationDeliveryResult.failed("PUSH_PROVIDER", exception.getMessage());
 		}
+	}
+
+	private String sha256(String value) {
+		try {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+		} catch (NoSuchAlgorithmException exception) {
+			throw new IllegalStateException("SHA-256 algorithm is unavailable", exception);
+		}
+	}
+
+	private String mask(String value) {
+		if (value.length() <= 12) {
+			return "****";
+		}
+		return value.substring(0, 6) + "..." + value.substring(value.length() - 6);
 	}
 }

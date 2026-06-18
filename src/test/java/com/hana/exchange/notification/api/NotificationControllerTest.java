@@ -1,6 +1,7 @@
 package com.hana.exchange.notification.api;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -124,6 +125,70 @@ class NotificationControllerTest {
 				.andExpect(jsonPath("$.code").value("NOTIFICATION_001"));
 	}
 
+	@Test
+	void registersRefreshesListsAndDisablesDeviceToken() throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "NotifyDevice01");
+
+		MvcResult registerResult = mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/devices", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(devicePayload("IOS", "APNS_PUSH", "ios-device-token-0123456789", "1.0.0", "en_US")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.deviceTokenId").value(org.hamcrest.Matchers.startsWith("NTD-")))
+				.andExpect(jsonPath("$.data.platform").value("IOS"))
+				.andExpect(jsonPath("$.data.provider").value("APNS_PUSH"))
+				.andExpect(jsonPath("$.data.tokenHash").exists())
+				.andExpect(jsonPath("$.data.maskedToken").value("ios-de...456789"))
+				.andExpect(jsonPath("$.data.active").value(true))
+				.andExpect(jsonPath("$.data.registeredAt").exists())
+				.andExpect(jsonPath("$.data.lastSeenAt").exists())
+				.andReturn();
+		String deviceTokenId = JsonPath.read(registerResult.getResponse().getContentAsString(),
+				"$.data.deviceTokenId");
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/notifications/devices", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(devicePayload("IOS", "APNS_PUSH", "ios-device-token-0123456789", "1.0.1", "en_US")))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.deviceTokenId").value(deviceTokenId))
+				.andExpect(jsonPath("$.data.appVersion").value("1.0.1"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications/devices", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.activeCount").value(1))
+				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.devices[0].deviceTokenId").value(deviceTokenId))
+				.andExpect(jsonPath("$.data.devices[0].active").value(true));
+
+		mockMvc.perform(delete("/api/v1/accounts/{accountId}/notifications/devices/{deviceTokenId}",
+						session.accountId(), deviceTokenId)
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.deviceTokenId").value(deviceTokenId))
+				.andExpect(jsonPath("$.data.active").value(false))
+				.andExpect(jsonPath("$.data.disabledAt").exists());
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/notifications/devices", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.activeCount").value(0))
+				.andExpect(jsonPath("$.data.totalCount").value(1));
+	}
+
+	@Test
+	void disableDeviceRejectsUnknownToken() throws Exception {
+		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, "NotifyDeviceMissing01");
+
+		mockMvc.perform(delete("/api/v1/accounts/{accountId}/notifications/devices/NTD-UNKNOWN00000",
+						session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("NOTIFICATION_002"));
+	}
+
 	private AuthSession watchedAccount(String username, String stockCode) throws Exception {
 		AuthSession session = AuthTestSupport.signUpAndLogin(mockMvc, username);
 		when(omniLensMarketQuoteClient.getQuote(stockCode, "USD"))
@@ -159,6 +224,23 @@ class NotificationControllerTest {
 				  "publishedAt": "2026-06-18T06:00:00Z"
 				}
 				""".formatted(eventId, idempotencyKey, stockCode);
+	}
+
+	private String devicePayload(
+			String platform,
+			String provider,
+			String deviceToken,
+			String appVersion,
+			String locale) {
+		return """
+				{
+				  "platform": "%s",
+				  "provider": "%s",
+				  "deviceToken": "%s",
+				  "appVersion": "%s",
+				  "locale": "%s"
+				}
+				""".formatted(platform, provider, deviceToken, appVersion, locale);
 	}
 
 	private OmniLensMarketQuote quote(String stockCode) {

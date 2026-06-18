@@ -15,6 +15,6 @@ public class ApnsPushProviderClient implements PushProviderClient {
 
 	@Override
 	public NotificationDeliveryResult send(NotificationItem notification) {
-		return NotificationDeliveryResult.skipped(provider(), "APNS device token and credentials are not configured");
+		return NotificationDeliveryResult.skipped(provider(), "APNS credentials and send client are not configured");
 	}
 }

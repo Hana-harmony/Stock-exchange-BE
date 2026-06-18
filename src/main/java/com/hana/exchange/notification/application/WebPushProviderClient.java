@@ -15,6 +15,6 @@ public class WebPushProviderClient implements PushProviderClient {
 
 	@Override
 	public NotificationDeliveryResult send(NotificationItem notification) {
-		return NotificationDeliveryResult.skipped(provider(), "Web push subscription and VAPID credentials are not configured");
+		return NotificationDeliveryResult.skipped(provider(), "Web push VAPID credentials and send client are not configured");
 	}
 }

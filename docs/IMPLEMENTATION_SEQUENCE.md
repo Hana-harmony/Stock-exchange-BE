@@ -34,7 +34,7 @@
 - Stock-exchange-BE FE용 quote stream topic은 전체, 시장별, 종목별, 계좌별 watchlist, 계좌별 보유종목 단위로 제공한다.
 - 과거 차트 데이터는 Hana-OmniLens-API가 KRX 기반으로 수집·정규화·저장한 데이터를 REST로 제공한다.
 - 시세 응답은 원화 가격과 실시간 환율이 적용된 USD 가격을 함께 제공한다.
-- 뉴스와 공시 분석 이벤트는 원문 링크, 번역, 요약, 감성, 중요도, 리스크, 관련 종목, 중복 키를 포함한다.
+- 뉴스와 공시 분석 이벤트는 원문 링크, 번역, 요약, 감성, 중요도, 리스크, 관련 종목, 중복 키, 금융용어 glossary, translation quality flag를 포함한다.
 
 완료 기준:
 - OpenAPI 또는 별도 contract 문서에 request, response, error code, event payload가 고정되어 있다.
@@ -82,7 +82,7 @@
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
 - mock 주문 실행 API는 같은 orderability boundary를 다시 확인하고, 차단 사유가 있으면 DB ledger 기록 전에 주문을 거절한다.
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
-- DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭한다.
+- DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭하고, alert event와 notification inbox에 AI 번역 품질 메타데이터를 함께 저장한다.
 - Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
 - notification은 provider 추상화, delivery 상태, 계좌별 iOS/Android/web device token 등록 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다. `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있으며, 외부 자격증명이 없으면 `SKIPPED`로 기록한다. 실패/미발송 notification은 환경변수로 활성화하는 retry worker가 batch size와 max attempt 기준으로 재전송한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
@@ -100,7 +100,7 @@
 - UI 기본 언어는 영어이며, 금액의 기본 화폐 단위는 USD다.
 - 종목 검색, 전체 종목 시세, watchlist, 보유종목, 차트, 주문, 계좌, 알림, 세무 환급 화면을 구현한다.
 - WebSocket 실시간 tick을 화면에 반영하고 stale 상태와 재연결 상태를 보여준다.
-- 뉴스·공시 분석 알림은 원문 링크와 함께 표시한다.
+- 뉴스·공시 분석 알림은 원문 링크, 금융용어 glossary, translation quality flag와 함께 표시한다.
 
 완료 기준:
 - `flutter analyze`, `flutter test`, iOS/Android simulator 실행 기준이 문서화되어 있다.

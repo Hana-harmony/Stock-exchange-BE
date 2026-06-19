@@ -25,6 +25,8 @@ public record AlertEventMatchResult(
 				event.sentiment(),
 				event.importance(),
 				event.riskLevel(),
+				event.glossaryTerms(),
+				event.translationQualityFlags(),
 				event.watchlistTarget(),
 				event.holderTarget(),
 				targetCount(),

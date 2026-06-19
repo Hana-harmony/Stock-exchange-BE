@@ -15,6 +15,7 @@ import com.hana.exchange.account.domain.ExchangeUser;
 import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertEventMatchResult;
+import com.hana.exchange.alert.domain.AlertGlossaryTerm;
 import com.hana.exchange.alert.domain.AlertTargetResponse;
 
 @SpringBootTest
@@ -96,6 +97,8 @@ class JdbcAlertEventRepositoryTest {
 				"https://news.example.com/original",
 				stockCode,
 				relatedStocks,
+				List.of(new AlertGlossaryTerm("전자", "전자", "electronics", "ACCOUNTING")),
+				List.of("GLOSSARY_MATCHED"),
 				"POSITIVE",
 				"HIGH",
 				"MEDIUM",

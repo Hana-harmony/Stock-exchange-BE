@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertEventMatchResult;
+import com.hana.exchange.alert.domain.AlertGlossaryTerm;
 import com.hana.exchange.alert.domain.AlertTargetResponse;
 
 @Repository
@@ -84,6 +85,8 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 				timestamp(event.receivedAt()),
 				timestamp(matchResult.matchedAt()));
 		insertRelatedStocks(event);
+		insertGlossaryTerms(event);
+		insertTranslationQualityFlags(event);
 		insertTargets(event.eventId(), matchResult.targets());
 	}
 
@@ -93,6 +96,33 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 					"INSERT INTO alert_event_related_stocks (event_id, stock_code, sort_order) VALUES (?, ?, ?)",
 					event.eventId(),
 					event.relatedStocks().get(index),
+					index);
+		}
+	}
+
+	private void insertGlossaryTerms(AlertEvent event) {
+		for (int index = 0; index < event.glossaryTerms().size(); index++) {
+			AlertGlossaryTerm term = event.glossaryTerms().get(index);
+			jdbcTemplate.update(
+					"INSERT INTO alert_event_glossary_terms "
+							+ "(event_id, source_term, normalized_term, english_term, category, sort_order) "
+							+ "VALUES (?, ?, ?, ?, ?, ?)",
+					event.eventId(),
+					term.sourceTerm(),
+					term.normalizedTerm(),
+					term.englishTerm(),
+					term.category(),
+					index);
+		}
+	}
+
+	private void insertTranslationQualityFlags(AlertEvent event) {
+		for (int index = 0; index < event.translationQualityFlags().size(); index++) {
+			jdbcTemplate.update(
+					"INSERT INTO alert_event_translation_quality_flags "
+							+ "(event_id, quality_flag, sort_order) VALUES (?, ?, ?)",
+					event.eventId(),
+					event.translationQualityFlags().get(index),
 					index);
 		}
 	}
@@ -146,6 +176,8 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 				resultSet.getString("original_url"),
 				resultSet.getString("stock_code"),
 				relatedStocks(resultSet.getString("event_id")),
+				glossaryTerms(resultSet.getString("event_id")),
+				translationQualityFlags(resultSet.getString("event_id")),
 				resultSet.getString("sentiment"),
 				resultSet.getString("importance"),
 				resultSet.getString("risk_level"),
@@ -164,6 +196,26 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 				"SELECT stock_code FROM alert_event_related_stocks "
 						+ "WHERE event_id = ? ORDER BY sort_order ASC",
 				(resultSet, rowNumber) -> resultSet.getString("stock_code"),
+				eventId);
+	}
+
+	private List<AlertGlossaryTerm> glossaryTerms(String eventId) {
+		return jdbcTemplate.query(
+				"SELECT source_term, normalized_term, english_term, category FROM alert_event_glossary_terms "
+						+ "WHERE event_id = ? ORDER BY sort_order ASC",
+				(resultSet, rowNumber) -> new AlertGlossaryTerm(
+						resultSet.getString("source_term"),
+						resultSet.getString("normalized_term"),
+						resultSet.getString("english_term"),
+						resultSet.getString("category")),
+				eventId);
+	}
+
+	private List<String> translationQualityFlags(String eventId) {
+		return jdbcTemplate.query(
+				"SELECT quality_flag FROM alert_event_translation_quality_flags "
+						+ "WHERE event_id = ? ORDER BY sort_order ASC",
+				(resultSet, rowNumber) -> resultSet.getString("quality_flag"),
 				eventId);
 	}
 

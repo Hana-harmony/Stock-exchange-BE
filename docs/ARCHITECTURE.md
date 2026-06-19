@@ -28,11 +28,11 @@
 - `watchlist/domain`: watchlist item과 response 계약 record
 - `alert/api`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 REST ingest, target 조회, 종목별 인텔리전스 피드 API
 - `alert/application`: idempotency key 기반 이벤트 저장, watchlist/holder 대상자 매칭, 종목별 분석 피드 조합 service
-- `alert/domain`: alert event, matched target, source link, AI 분석 metadata 계약 record
+- `alert/domain`: alert event, matched target, source link, AI 분석 metadata, 금융용어 glossary, translation quality flag 계약 record
 - `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer worker
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
 - `notification/application`: matched alert target와 tax recapture risk 기반 notification 저장, push provider 경계, delivery 상태 기록, 중복 방지 service, 실패/미발송 retry worker
-- `notification/domain`: notification inbox, subject, original URL, match reason, delivery state, read state 계약 record
+- `notification/domain`: notification inbox, subject, original URL, match reason, alert translation quality metadata, delivery state, read state 계약 record
 - `tax/api`: 계좌별 tax refund case 생성, 최신 환급 상태 조회, Hana 세무 상태 sync REST API
 - `tax/application`: mock SELL 원장 기반 실현손익 매칭, 예상 환급액/선지급 가능 여부 계산, 세무 케이스 저장, Hana status sync, 사후 환수 리스크 notification 연동 service
 - `tax/client`: Hana-OmniLens-API 세무 상태 sync REST client
@@ -100,8 +100,8 @@
 - mock holding과 mock trade ledger는 DB에 영속화되며, market quote stream과 tax refund case는 DB holding/trade ledger를 기준으로 계좌별 topic과 매도 실현손익을 계산한다.
 - watchlist는 DB에 영속화되며 뉴스·공시 WebSocket 이벤트의 `watchlistTarget` 대상자 매칭 입력 데이터로 사용한다.
 - WebSocket 이벤트를 수신한 뒤 보유종목과 watchlist를 기준으로 푸시 대상자를 매칭한다. 현재 구현은 REST ingest와 Hana alert stream client가 동일한 payload를 `AlertEventService`로 전달해 DB에 이벤트와 매칭 결과를 저장한다.
-- 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag를 함께 표시한다.
-- 매칭된 alert target과 Hana 세무 sync에서 반환된 사후 환수 리스크는 계좌별 DB 인앱 알림함에 저장하고, FE가 읽음 상태를 갱신할 수 있다.
+- 종목 상세 화면은 DB에 저장된 뉴스·공시 분석 이벤트를 `stockCode`와 `relatedStocks` 기준으로 조회해 원문 URL, AI 요약, sentiment, importance, risk flag, 금융용어 glossary, translation quality flag를 함께 표시한다.
+- 매칭된 alert target과 Hana 세무 sync에서 반환된 사후 환수 리스크는 계좌별 DB 인앱 알림함에 저장하고, alert notification은 AI 번역 품질 메타데이터를 함께 보존하며, FE가 읽음 상태를 갱신할 수 있다.
 - notification은 provider 추상화와 delivery 상태, 계좌별 device token 등록 상태를 보관한다. 기본 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있다. 현지 거래소 앱은 iOS/Android/web device token을 등록·조회·비활성화할 수 있고, API 응답은 원문 token 대신 hash와 masked token만 노출한다. 외부 provider는 자격증명이 없으면 `SKIPPED`로 기록되고, 실패/미발송 notification은 `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true`일 때 retry worker가 batch size와 max attempt 설정 기준으로 재전송한다. 실제 FCM/APNS/web push 자격증명과 provider 실발송은 통합 단계다.
 - 세무 기능은 거주자증명서/제한세율신청서 metadata, 거래원장, 조세조약 케이스, 환급금 선지급 상태를 사용자별 DB tax refund case로 연결한다. 현재 구현은 mock SELL 원장의 실현손익을 tax refund case에 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다. Hana sync 결과가 `RECAPTURE_RISK`이면 tax case subject 기반 인앱 notification을 한 번 저장한다.
 
@@ -112,10 +112,10 @@
 - `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 orderability 강제 검증, 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익을 제공한다.
 - `GET /api/v1/accounts/{accountId}/trades/orderability`는 Hana-OmniLens-API orderability 결과를 이용해 mock 주문 전 차단 사유와 경고를 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
-- `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
+- `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, AI 번역 품질 메타데이터 보존, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
 - Hana alert WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공하고 수신 payload를 동일한 alert ingest service로 전달한다.
 - `POST /api/v1/accounts/{accountId}/tax/refund-cases`, `GET /api/v1/accounts/{accountId}/tax/refund-status`, `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`는 mock 매도 실현손익 기반 세무 케이스, 문서 metadata, 예상 환급액, 선지급 가능 여부, Hana status sync를 제공한다.
-- `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과와 원문 링크를 최신순으로 제공한다.
+- `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과, 원문 링크, glossary, translation quality flag를 최신순으로 제공한다.
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.
 - notification 응답은 push `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, `lastDeliveryError`를 포함한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/notifications/devices`는 계좌별 iOS/Android/web push device token 조회, 등록/refresh, 비활성화를 제공한다.

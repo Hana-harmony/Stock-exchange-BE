@@ -21,6 +21,7 @@ public record StockDetailResponse(
 		String foreignLimitExhaustionRate,
 		LocalDate foreignOwnershipBaseDate,
 		boolean viActive,
+		boolean singlePriceTrading,
 		String priceLimitState,
 		boolean tradingHalted,
 		boolean orderable,

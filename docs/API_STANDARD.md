@@ -142,7 +142,7 @@
   - Calls Hana-OmniLens-API orderability boundary before a mock order.
   - Returns `canPlaceMockOrder`, `blockingReasons`, and `warnings`.
   - Blocking reasons include foreign ownership limit exhaustion, trading halt, or upstream order blocked reason.
-  - Warnings include VI activity and buy/sell at upper/lower price limit.
+  - Warnings include VI activity, single-price trading, and buy/sell at upper/lower price limit.
 - `POST /api/v1/accounts/{accountId}/trades`
   - Re-checks the same Hana-OmniLens-API orderability boundary before writing the mock ledger.
   - Returns common error code `TRADE_003` when blocking reasons exist, and no mock holding/trade ledger row is written.

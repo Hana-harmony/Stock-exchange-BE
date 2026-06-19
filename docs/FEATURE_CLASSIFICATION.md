@@ -46,7 +46,7 @@
 | FCM/APNS/web push provider routing과 미설정 provider SKIPPED 상태 기록 | Stock-exchange-BE | Done |
 | iOS/Android/web notification device token 등록·조회·비활성화 | Stock-exchange-BE | Done |
 | FCM token vault와 HTTP v1 외부 push 실발송 client | Stock-exchange-BE | Done |
-| 실제 APNS/web push 자격증명과 외부 provider 실발송 연동 | Stock-exchange-BE | Planned |
+| 실제 APNS/web push 자격증명과 외부 provider 실발송 연동 | Stock-exchange-BE | Done |
 | 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done |
 
 ## 3. 세무 전산화 및 환급금 선지급

@@ -24,6 +24,7 @@
 | 모든 국내주식 KRX 과거 시세 수집·정규화·DB 저장·history API 완성 | Hana-OmniLens-API | Planned |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Done |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Done |
+| Hana-OmniLens-API 단일가 매매 상태 수신과 주문 경고 반영 | Stock-exchange-BE | Done |
 | 사용자 보유종목과 자체 mock 주문 상태 DB 영속화 | Stock-exchange-BE | Done |
 | watchlist 저장소 영속화 | Stock-exchange-BE | Done |
 | watchlist 관심종목 API와 알림 대상 입력 데이터 | Stock-exchange-BE | Done |

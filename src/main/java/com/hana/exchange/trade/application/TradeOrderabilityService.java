@@ -73,6 +73,9 @@ public class TradeOrderabilityService {
 		if (orderability.viActive()) {
 			warnings.add("VI_ACTIVE");
 		}
+		if (orderability.singlePriceTrading()) {
+			warnings.add("SINGLE_PRICE_TRADING");
+		}
 		if (side == TradeSide.BUY && UPPER_LIMIT.equals(orderability.priceLimitState())) {
 			warnings.add("BUY_AT_UPPER_LIMIT");
 		}

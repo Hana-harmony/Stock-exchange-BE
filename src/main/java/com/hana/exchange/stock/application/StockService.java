@@ -57,6 +57,7 @@ public class StockService {
 				toText(detail.foreignLimitExhaustionRate()),
 				detail.foreignOwnershipBaseDate(),
 				detail.viActive(),
+				detail.singlePriceTrading(),
 				detail.priceLimitState(),
 				detail.tradingHalted(),
 				detail.orderable(),

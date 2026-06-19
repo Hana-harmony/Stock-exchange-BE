@@ -248,10 +248,10 @@ class TradeControllerTest {
 	}
 
 	@Test
-	void orderabilityWarnsWhenViAndUpperLimitAreActive() throws Exception {
-		AuthSession session = fundedAccount("OrderabilityTrader01", "200.00");
-		when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 2))
-				.thenReturn(orderability("005930", true, null, false, true, "UPPER_LIMIT", false));
+		void orderabilityWarnsWhenViSinglePriceAndUpperLimitAreActive() throws Exception {
+			AuthSession session = fundedAccount("OrderabilityTrader01", "200.00");
+			when(omniLensOrderabilityClient.checkOrderability("005930", TradeSide.BUY, 2))
+					.thenReturn(orderability("005930", true, null, false, true, true, "UPPER_LIMIT", false));
 
 		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades/orderability", session.accountId())
 						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
@@ -266,7 +266,8 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.quantity").value(2))
 				.andExpect(jsonPath("$.data.canPlaceMockOrder").value(true))
 				.andExpect(jsonPath("$.data.warnings[0]").value("VI_ACTIVE"))
-				.andExpect(jsonPath("$.data.warnings[1]").value("BUY_AT_UPPER_LIMIT"))
+				.andExpect(jsonPath("$.data.warnings[1]").value("SINGLE_PRICE_TRADING"))
+				.andExpect(jsonPath("$.data.warnings[2]").value("BUY_AT_UPPER_LIMIT"))
 				.andExpect(jsonPath("$.data.tradingMode").value("EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING"));
 	}
 
@@ -343,6 +344,26 @@ class TradeControllerTest {
 			boolean viActive,
 			String priceLimitState,
 			boolean tradingHalted) {
+		return orderability(
+				stockCode,
+				orderable,
+				orderBlockedReason,
+				foreignLimitExceeded,
+				viActive,
+				false,
+				priceLimitState,
+				tradingHalted);
+	}
+
+	private OmniLensOrderabilityResponse orderability(
+			String stockCode,
+			boolean orderable,
+			String orderBlockedReason,
+			boolean foreignLimitExceeded,
+			boolean viActive,
+			boolean singlePriceTrading,
+			String priceLimitState,
+			boolean tradingHalted) {
 		return new OmniLensOrderabilityResponse(
 				stockCode,
 				"KOSPI",
@@ -350,6 +371,7 @@ class TradeControllerTest {
 				orderBlockedReason,
 				foreignLimitExceeded,
 				viActive,
+				singlePriceTrading,
 				priceLimitState,
 				tradingHalted,
 				Instant.parse("2026-06-18T06:00:00Z"),

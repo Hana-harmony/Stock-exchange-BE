@@ -21,7 +21,7 @@
 | 환율 기준시각/출처/stale flag 전달 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API의 KRX 기반 과거 시세 API client/proxy | Stock-exchange-BE | Done |
 | FE용 과거 시세 차트 REST API 제공 | Stock-exchange-BE | Done |
-| 모든 국내주식 KRX 과거 시세 수집·정규화·DB 저장·history API 완성 | Hana-OmniLens-API | Planned |
+| 모든 국내주식 KRX 과거 시세 수집·정규화·DB 저장·history API 완성 | Hana-OmniLens-API | Done |
 | Hana-OmniLens-API 실시간 quote snapshot short-cache | Stock-exchange-BE | Done |
 | Hana-OmniLens-API market quote stream 구독과 FE 재배포 | Stock-exchange-BE | Done |
 | Hana-OmniLens-API 단일가 매매 상태 수신과 주문 경고 반영 | Stock-exchange-BE | Done |

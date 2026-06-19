@@ -71,7 +71,7 @@
 - 현지 거래소 FE는 과거 시세뿐 아니라 모든 종목의 실시간 시세를 REST snapshot과 WebSocket stream으로 조회할 수 있어야 한다.
 - 현지 거래소 사용자는 영어 UI와 USD 계좌/표시 금액을 기본으로 사용한다.
 - REST snapshot은 초기 로딩, 전체 목록, 검색, 새로고침, WebSocket 재연결 복구에 사용한다.
-- 종목 검색/상세 API는 Hana-OmniLens-API의 `/api/v1/market/stocks/search`, `/api/v1/market/stocks/{stockCode}/detail` 경계를 호출하고 영어명, USD 가격, 외국인 보유율, VI, 상/하한가, orderable flag를 FE 계약으로 제공한다.
+- 종목 검색/상세 API는 Hana-OmniLens-API의 `/api/v1/market/stocks/search`, `/api/v1/market/stocks/{stockCode}/detail` 경계를 호출하고 영어명, USD 가격, 외국인 보유율, 당일 예상 외국인 보유율/한도소진율 min/max boundary, VI, 상/하한가, orderable flag를 FE 계약으로 제공한다.
 - 현재 REST quote 목록은 요청 `stockCodes`가 있으면 Hana bulk quote endpoint를, 없으면 Hana all quote endpoint를 호출하고, `market` query로 KOSPI/KOSDAQ/KONEX/OTHER를 필터링한다.
 - 계좌별 REST quote view는 watchlist와 mock portfolio holding의 stockCode만 사용하며, 빈 watchlist/보유종목은 기본 universe로 대체하지 않고 빈 snapshot을 반환한다.
 - WebSocket stream은 장중 가격, 호가, 등락률, VI/상·하한가 상태 변화처럼 화면에서 즉시 움직여야 하는 데이터에 사용한다.

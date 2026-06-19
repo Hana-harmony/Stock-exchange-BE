@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy와 주/월 OHLCV 집계 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
-- WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/AI 번역 품질 메타데이터 보존/매칭 구현
+- WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/AI 번역 품질 메타데이터 보존/매칭/replay/retry/drop hardening 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 alert와 tax recapture risk delivery 상태 기록 구현, iOS/Android/web push device token 등록·조회·비활성화 구현, device token encrypted vault 구현, FCM HTTP v1 외부 push 실발송 client 구현, APNS HTTP provider와 Web Push gateway provider 실발송 client 구현, 실패/미발송 notification retry worker 구현
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`

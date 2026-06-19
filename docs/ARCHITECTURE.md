@@ -29,7 +29,7 @@
 - `alert/api`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 REST ingest, target 조회, 종목별 인텔리전스 피드 API
 - `alert/application`: idempotency key 기반 이벤트 저장, watchlist/holder 대상자 매칭, 종목별 분석 피드 조합 service
 - `alert/domain`: alert event, matched target, source link, AI 분석 metadata, 금융용어 glossary, translation quality flag 계약 record
-- `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer worker
+- `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer, ingest retry/drop worker
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
 - `notification/application`: matched alert target와 tax recapture risk 기반 notification 저장, push provider 경계, delivery 상태 기록, 중복 방지 service, 실패/미발송 retry worker
 - `notification/domain`: notification inbox, subject, original URL, match reason, alert translation quality metadata, delivery state, read state 계약 record
@@ -45,7 +45,6 @@
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - `market/client`: Hana-OmniLens-API 호가 API client
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger, portfolio valuation snapshot 영속화
-- Planned `alert`: replay/retry worker hardening
 - `notification`: FCM/APNS/web push provider routing, encrypted token vault, FCM HTTP v1 send client, APNS HTTP send client, Web Push gateway send client, provider별 retry worker 연동
 - `tax`: object storage 파일 업로드, 세무 문서 metadata, tax refund case 연결
 - `tax`: Hana status sync 기반 사후 환수 리스크 notification
@@ -110,7 +109,7 @@
 - `GET /api/v1/accounts/{accountId}/trades/orderability`는 Hana-OmniLens-API orderability 결과를 이용해 mock 주문 전 차단 사유와 경고를 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, AI 번역 품질 메타데이터 보존, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.
-- Hana alert WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공하고 수신 payload를 동일한 alert ingest service로 전달한다.
+- Hana alert WebSocket client는 기본 비활성화 설정, reconnect, replay request, backpressure buffer를 제공하고 수신 payload를 동일한 alert ingest service로 전달한다. ingest 실패 event는 다음 drain에서 최대 3회까지 재시도하고, 이후 dropped로 집계해 poison message가 worker를 막지 않게 한다.
 - `POST /api/v1/accounts/{accountId}/tax/refund-cases`, `GET /api/v1/accounts/{accountId}/tax/refund-status`, `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`는 mock 매도 실현손익 기반 세무 케이스, 문서 metadata, 예상 환급액, 선지급 가능 여부, Hana status sync를 제공한다.
 - `GET /api/v1/stocks/{stockCode}/intelligence`는 종목코드와 관련종목 기준으로 저장된 뉴스·공시 AI 분석 결과, 원문 링크, glossary, translation quality flag를 최신순으로 제공한다.
 - `GET /api/v1/accounts/{accountId}/notifications`와 `POST /api/v1/accounts/{accountId}/notifications/{notificationId}/read`는 알림함 조회와 읽음 처리를 제공한다.

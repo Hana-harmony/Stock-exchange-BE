@@ -6,8 +6,10 @@ import jakarta.validation.ConstraintViolationException;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.hana.exchange.common.api.ApiResponse;
 import com.hana.exchange.common.api.FieldErrorDetail;
@@ -42,6 +44,22 @@ public class GlobalExceptionHandler {
 						violation.getMessage()))
 				.toList();
 		return validationResponse(errors);
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMissingRequestParameter(
+			MissingServletRequestParameterException exception) {
+		return validationResponse(List.of(new FieldErrorDetail(
+				exception.getParameterName(),
+				"required request parameter is missing")));
+	}
+
+	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
+	public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatch(
+			MethodArgumentTypeMismatchException exception) {
+		return validationResponse(List.of(new FieldErrorDetail(
+				exception.getName(),
+				"request parameter type is invalid")));
 	}
 
 	@ExceptionHandler(Exception.class)

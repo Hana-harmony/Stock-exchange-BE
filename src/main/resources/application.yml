@@ -31,6 +31,12 @@ exchange:
       max-attempt-count: ${EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT:3}
       fixed-delay: ${EXCHANGE_NOTIFICATION_PUSH_FIXED_DELAY:30s}
       enabled-providers: ${EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS:LOCAL_NOOP_PUSH}
+      token-vault:
+        encryption-key: ${EXCHANGE_NOTIFICATION_PUSH_TOKEN_ENCRYPTION_KEY:}
+      fcm:
+        project-id: ${EXCHANGE_NOTIFICATION_PUSH_FCM_PROJECT_ID:}
+        access-token: ${EXCHANGE_NOTIFICATION_PUSH_FCM_ACCESS_TOKEN:}
+        send-base-url: ${EXCHANGE_NOTIFICATION_PUSH_FCM_SEND_BASE_URL:https://fcm.googleapis.com}
   audit:
     retention-days: ${EXCHANGE_AUDIT_RETENTION_DAYS:365}
     retention-worker-enabled: ${EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED:false}

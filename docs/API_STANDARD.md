@@ -244,7 +244,8 @@
   - `SKIPPED`: delivery was intentionally skipped.
 - Default provider is `LOCAL_NOOP_PUSH`, which records a successful local delivery without calling FCM/APNS or a web push gateway.
 - Configure provider routing with `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`, for example `LOCAL_NOOP_PUSH`, `FCM_PUSH`, `APNS_PUSH`, or `WEB_PUSH`.
-- FCM/APNS/web push providers record `SKIPPED` until external credentials and provider-specific send clients are connected.
+- FCM provider uses the encrypted device token vault and FCM HTTP v1 send API when `EXCHANGE_NOTIFICATION_PUSH_TOKEN_ENCRYPTION_KEY`, `EXCHANGE_NOTIFICATION_PUSH_FCM_PROJECT_ID`, and `EXCHANGE_NOTIFICATION_PUSH_FCM_ACCESS_TOKEN` are configured.
+- APNS/web push providers record `SKIPPED` until external credentials and provider-specific send clients are connected.
 - Retry worker is enabled with `EXCHANGE_NOTIFICATION_PUSH_WORKER_ENABLED=true` and retries `PENDING`/`FAILED` notifications under `EXCHANGE_NOTIFICATION_PUSH_MAX_ATTEMPT_COUNT` in `EXCHANGE_NOTIFICATION_PUSH_BATCH_SIZE` batches.
 - External mobile/web push credentials and provider delivery integration remain planned hardening work.
 

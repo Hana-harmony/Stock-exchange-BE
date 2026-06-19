@@ -16,7 +16,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
-    && useradd --system --gid app app
+    && useradd --system --gid app app \
+    && mkdir -p /app/data \
+    && chown -R app:app /app/data
 
 COPY --from=builder /workspace/build/libs/*.jar app.jar
 

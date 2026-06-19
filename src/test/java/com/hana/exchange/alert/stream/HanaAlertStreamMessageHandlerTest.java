@@ -3,6 +3,7 @@ package com.hana.exchange.alert.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -83,6 +84,50 @@ class HanaAlertStreamMessageHandlerTest {
 		assertThat(second.status()).isEqualTo("DROPPED");
 		assertThat(handler.stats().acceptedCount()).isEqualTo(1);
 		assertThat(handler.stats().droppedCount()).isEqualTo(1);
+	}
+
+	@Test
+	void drainRetriesFailedIngestOnNextDrain() {
+		AlertEventService alertEventService = mock(AlertEventService.class);
+		when(alertEventService.ingest(any(AlertEventIngestRequest.class)))
+				.thenThrow(new IllegalStateException("temporary failure"))
+				.thenReturn(matchResponse("ALERT-STREAM-04"));
+		HanaAlertStreamMessageHandler handler = handler(alertEventService, 10);
+
+		handler.accept(eventPayload("ALERT-STREAM-04", "alert-stream-key-05", "005930"));
+		int firstDrain = handler.drainBufferedEvents();
+		AlertStreamProcessingStats afterFailure = handler.stats();
+		int secondDrain = handler.drainBufferedEvents();
+		AlertStreamProcessingStats afterRetry = handler.stats();
+
+		assertThat(firstDrain).isZero();
+		assertThat(afterFailure.failedIngestCount()).isEqualTo(1);
+		assertThat(afterFailure.retryScheduledCount()).isEqualTo(1);
+		assertThat(afterFailure.bufferDepth()).isEqualTo(1);
+		assertThat(secondDrain).isEqualTo(1);
+		assertThat(afterRetry.ingestedCount()).isEqualTo(1);
+		assertThat(afterRetry.droppedCount()).isZero();
+		verify(alertEventService, times(2)).ingest(any(AlertEventIngestRequest.class));
+	}
+
+	@Test
+	void drainDropsEventAfterMaxIngestAttempts() {
+		AlertEventService alertEventService = mock(AlertEventService.class);
+		when(alertEventService.ingest(any(AlertEventIngestRequest.class)))
+				.thenThrow(new IllegalStateException("persistent failure"));
+		HanaAlertStreamMessageHandler handler = handler(alertEventService, 10);
+
+		handler.accept(eventPayload("ALERT-STREAM-05", "alert-stream-key-06", "005930"));
+		handler.drainBufferedEvents();
+		handler.drainBufferedEvents();
+		handler.drainBufferedEvents();
+		AlertStreamProcessingStats stats = handler.stats();
+
+		assertThat(stats.failedIngestCount()).isEqualTo(3);
+		assertThat(stats.retryScheduledCount()).isEqualTo(2);
+		assertThat(stats.droppedCount()).isEqualTo(1);
+		assertThat(stats.bufferDepth()).isZero();
+		verify(alertEventService, times(3)).ingest(any(AlertEventIngestRequest.class));
 	}
 
 	private HanaAlertStreamMessageHandler handler(AlertEventService alertEventService, int bufferSize) {

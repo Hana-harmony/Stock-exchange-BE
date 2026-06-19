@@ -7,6 +7,8 @@ public record AlertStreamProcessingStats(
 		long ingestedCount,
 		long rejectedCount,
 		long droppedCount,
+		long retryScheduledCount,
+		long failedIngestCount,
 		int bufferDepth,
 		Instant lastPublishedAt
 ) {

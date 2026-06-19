@@ -36,6 +36,8 @@ class StockIntelligenceFeedControllerTest {
 				.andExpect(jsonPath("$.data.items[0].sourceType").value("NEWS"))
 				.andExpect(jsonPath("$.data.items[0].summary").value("Translated AI summary for feed"))
 				.andExpect(jsonPath("$.data.items[0].originalUrl").value("https://news.example.com/feed-original"))
+				.andExpect(jsonPath("$.data.items[0].glossaryTerms[0].sourceTerm").value("공시"))
+				.andExpect(jsonPath("$.data.items[0].translationQualityFlags[0]").value("GLOSSARY_MATCHED"))
 				.andExpect(jsonPath("$.data.items[0].sentiment").value("POSITIVE"))
 				.andExpect(jsonPath("$.data.items[0].importance").value("HIGH"))
 				.andExpect(jsonPath("$.data.items[0].riskLevel").value("MEDIUM"));
@@ -74,6 +76,15 @@ class StockIntelligenceFeedControllerTest {
 				  "originalUrl": "https://news.example.com/feed-original",
 				  "stockCode": "%s",
 				  "relatedStocks": ["%s"],
+				  "glossaryTerms": [
+				    {
+				      "sourceTerm": "공시",
+				      "normalizedTerm": "공시",
+				      "englishTerm": "disclosure",
+				      "category": "DISCLOSURE"
+				    }
+				  ],
+				  "translationQualityFlags": ["GLOSSARY_MATCHED"],
 				  "sentiment": "POSITIVE",
 				  "importance": "HIGH",
 				  "riskLevel": "MEDIUM",

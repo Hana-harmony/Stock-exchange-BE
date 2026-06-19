@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
@@ -45,7 +46,13 @@ class HanaAlertStreamMessageHandlerTest {
 		assertThat(stats.droppedCount()).isZero();
 		assertThat(stats.bufferDepth()).isZero();
 		assertThat(stats.lastPublishedAt()).isNotNull();
-		verify(alertEventService).ingest(any(AlertEventIngestRequest.class));
+		AtomicReference<AlertEventIngestRequest> request = new AtomicReference<>();
+		verify(alertEventService).ingest(org.mockito.ArgumentMatchers.argThat(value -> {
+			request.set(value);
+			return true;
+		}));
+		assertThat(request.get().glossaryTerms().get(0).sourceTerm()).isEqualTo("공시");
+		assertThat(request.get().translationQualityFlags()).containsExactly("GLOSSARY_MATCHED");
 	}
 
 	@Test
@@ -124,6 +131,8 @@ class HanaAlertStreamMessageHandlerTest {
 				"POSITIVE",
 				"HIGH",
 				"MEDIUM",
+				List.of(),
+				List.of(),
 				true,
 				true,
 				0,
@@ -142,6 +151,15 @@ class HanaAlertStreamMessageHandlerTest {
 				  "originalUrl": "https://news.example.com/original",
 				  "stockCode": "%s",
 				  "relatedStocks": [],
+				  "glossaryTerms": [
+				    {
+				      "sourceTerm": "공시",
+				      "normalizedTerm": "공시",
+				      "englishTerm": "disclosure",
+				      "category": "DISCLOSURE"
+				    }
+				  ],
+				  "translationQualityFlags": ["GLOSSARY_MATCHED"],
 				  "sentiment": "POSITIVE",
 				  "importance": "HIGH",
 				  "riskLevel": "MEDIUM",

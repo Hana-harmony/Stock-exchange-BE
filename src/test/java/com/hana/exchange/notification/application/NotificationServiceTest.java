@@ -95,6 +95,8 @@ class NotificationServiceTest {
 				"005930",
 				List.of("005930"),
 				List.of("WATCHLIST"),
+				List.of(),
+				List.of(),
 				status,
 				null,
 				attemptCount,

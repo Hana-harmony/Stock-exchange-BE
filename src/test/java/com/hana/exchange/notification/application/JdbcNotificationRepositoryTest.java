@@ -16,6 +16,7 @@ import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.alert.application.AlertEventRepository;
 import com.hana.exchange.alert.domain.AlertEvent;
 import com.hana.exchange.alert.domain.AlertEventMatchResult;
+import com.hana.exchange.alert.domain.AlertGlossaryTerm;
 import com.hana.exchange.notification.domain.NotificationDeliveryResult;
 import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
 import com.hana.exchange.notification.domain.NotificationItem;
@@ -65,6 +66,8 @@ class JdbcNotificationRepositoryTest {
 				event.stockCode(),
 				List.of("005930", "000660"),
 				List.of("WATCHLIST", "HOLDER"),
+				event.glossaryTerms(),
+				event.translationQualityFlags(),
 				NotificationDeliveryStatus.PENDING,
 				null,
 				0,
@@ -91,6 +94,8 @@ class JdbcNotificationRepositoryTest {
 					assertThat(saved.readAt()).isEqualTo(now.plusSeconds(4));
 					assertThat(saved.matchedStockCodes()).containsExactly("005930", "000660");
 					assertThat(saved.matchReasons()).containsExactly("WATCHLIST", "HOLDER");
+					assertThat(saved.glossaryTerms()).containsExactlyElementsOf(event.glossaryTerms());
+					assertThat(saved.translationQualityFlags()).containsExactly("GLOSSARY_MATCHED");
 				});
 	}
 
@@ -147,6 +152,8 @@ class JdbcNotificationRepositoryTest {
 				"https://news.example.com/original",
 				"005930",
 				List.of(),
+				List.of(new AlertGlossaryTerm("전자", "전자", "electronics", "ACCOUNTING")),
+				List.of("GLOSSARY_MATCHED"),
 				"NEUTRAL",
 				"HIGH",
 				"LOW",
@@ -177,6 +184,8 @@ class JdbcNotificationRepositoryTest {
 				event.stockCode(),
 				List.of("005930"),
 				List.of("WATCHLIST"),
+				event.glossaryTerms(),
+				event.translationQualityFlags(),
 				status,
 				null,
 				attemptCount,

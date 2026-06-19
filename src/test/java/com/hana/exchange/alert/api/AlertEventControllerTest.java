@@ -88,6 +88,9 @@ class AlertEventControllerTest {
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.eventId").value("ALERT-WATCH-HOLDER-01"))
 				.andExpect(jsonPath("$.data.stockCode").value("005930"))
+				.andExpect(jsonPath("$.data.glossaryTerms[0].sourceTerm").value("전자"))
+				.andExpect(jsonPath("$.data.glossaryTerms[0].englishTerm").value("electronics"))
+				.andExpect(jsonPath("$.data.translationQualityFlags[0]").value("GLOSSARY_MATCHED"))
 				.andExpect(jsonPath("$.data.targetCount").value(2))
 				.andExpect(jsonPath("$.data.targets[0].matchedStockCodes[0]").value("005930"))
 				.andExpect(jsonPath("$.data.targets[1].matchedStockCodes[0]").value("005930"));
@@ -183,6 +186,15 @@ class AlertEventControllerTest {
 				  "originalUrl": "https://news.example.com/original",
 				  "stockCode": "%s",
 				  "relatedStocks": [],
+				  "glossaryTerms": [
+				    {
+				      "sourceTerm": "전자",
+				      "normalizedTerm": "전자",
+				      "englishTerm": "electronics",
+				      "category": "ACCOUNTING"
+				    }
+				  ],
+				  "translationQualityFlags": ["GLOSSARY_MATCHED"],
 				  "sentiment": "POSITIVE",
 				  "importance": "HIGH",
 				  "riskLevel": "MEDIUM",

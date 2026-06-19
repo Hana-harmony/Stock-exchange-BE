@@ -45,6 +45,8 @@ public class StockIntelligenceFeedService {
 				event.sentiment(),
 				event.importance(),
 				event.riskLevel(),
+				event.glossaryTerms(),
+				event.translationQualityFlags(),
 				event.watchlistTarget(),
 				event.holderTarget(),
 				event.publishedAt(),

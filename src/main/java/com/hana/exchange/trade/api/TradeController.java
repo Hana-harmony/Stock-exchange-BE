@@ -20,6 +20,7 @@ import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.PortfolioResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
+import com.hana.exchange.trade.domain.TradeLedgerHistoryResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeOrderabilityResponse;
 import com.hana.exchange.trade.domain.TradeSide;
@@ -49,6 +50,14 @@ public class TradeController {
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
 			@Valid @RequestBody TradeOrderRequest request) {
 		return ApiResponse.success(tradeService.execute(accountId, request));
+	}
+
+	@GetMapping("/trades")
+	@Operation(summary = "Get mock trade ledger history")
+	public ApiResponse<TradeLedgerHistoryResponse> getTradeLedgerHistory(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
+			@RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) {
+		return ApiResponse.success(tradeService.getTradeLedgerHistory(accountId, limit));
 	}
 
 	@GetMapping("/portfolio")

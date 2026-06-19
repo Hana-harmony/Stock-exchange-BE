@@ -28,6 +28,7 @@
 - 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: JDBC/Flyway 기반 user/account 저장, local JWT 발급/검증, refresh token/session rotation, Spring Security bearer filter 구현 완료
 - 실제 결제 없는 mock 달러 충전: DB cash ledger 구현 완료
 - KIS 모의투자 API가 아닌 자체 mock ledger 매수·매도: DB trade ledger와 holding 구현 완료
+- 체결 원장 하드닝: account-scoped mock trade ledger history API와 limit validation 구현 완료
 - 평균단가, 평가손익, 매도 실현손익 계산: 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익 구현 완료
 - 포트폴리오 평가금액 이력: portfolio 조회 시 valuation snapshot 저장과 history API 구현 완료
 - 외국인 한도, VI, 상·하한가 기반 주문 가능 여부 계산: Hana orderability client, REST 계약 테스트, mock 주문 전 경고 API, mock 주문 실행 전 차단 검증 구현 완료, 실제 Hana runtime smoke 예정

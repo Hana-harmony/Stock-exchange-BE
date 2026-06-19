@@ -14,6 +14,8 @@ public record AlertEvent(
 		String originalUrl,
 		String stockCode,
 		List<String> relatedStocks,
+		List<AlertGlossaryTerm> glossaryTerms,
+		List<String> translationQualityFlags,
 		String sentiment,
 		String importance,
 		String riskLevel,
@@ -22,6 +24,14 @@ public record AlertEvent(
 		Instant publishedAt,
 		Instant receivedAt
 ) {
+	public AlertEvent {
+		relatedStocks = relatedStocks == null ? List.of() : List.copyOf(relatedStocks);
+		glossaryTerms = glossaryTerms == null ? List.of() : List.copyOf(glossaryTerms);
+		translationQualityFlags = translationQualityFlags == null
+				? List.of()
+				: List.copyOf(translationQualityFlags);
+	}
+
 	public List<String> matchingStockCodes() {
 		LinkedHashSet<String> stockCodes = new LinkedHashSet<>();
 		stockCodes.add(stockCode);

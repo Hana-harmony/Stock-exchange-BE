@@ -217,7 +217,9 @@
 ## News And Disclosure Alert WebSocket
 
 - Hana-OmniLens-API alert stream client is controlled by `HANA_OMNILENS_ALERT_STREAM_ENABLED`. It is disabled by default for local tests and connects to `HANA_OMNILENS_ALERT_STREAM_PATH`, default `/ws/alerts/events`, when enabled.
-- Incoming alert event payload uses the same contract as `POST /api/v1/alerts/events`: `eventId`, `idempotencyKey`, `sourceType`, `title`, `summary`, `originalUrl`, `stockCode`, `relatedStocks`, `sentiment`, `importance`, `riskLevel`, `watchlistTarget`, `holderTarget`, and `publishedAt`.
+- Incoming alert event payload uses the same contract as `POST /api/v1/alerts/events`: `eventId`, `idempotencyKey`, `sourceType`, `title`, `summary`, `originalUrl`, `stockCode`, `relatedStocks`, optional `glossaryTerms`, optional `translationQualityFlags`, `sentiment`, `importance`, `riskLevel`, `watchlistTarget`, `holderTarget`, and `publishedAt`.
+- `glossaryTerms` contains AI translation normalization metadata with `sourceTerm`, `normalizedTerm`, `englishTerm`, and `category`; `translationQualityFlags` contains quality markers such as glossary matching or fallback translation.
+- Stored alert target responses and stock intelligence feed items return the same glossary and translation quality metadata so the FE can explain translated news or disclosure wording with the original link.
 - Reconnect policy uses the shared stream backoff settings, and replay policy sends `ALERT_STREAM_REPLAY` with the last ingested `publishedAt` when `HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED=true`.
 - Backpressure policy buffers validated alert events up to `HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE`, then drains them into `AlertEventService.ingest`.
 - REST ingest remains available for local smoke tests and adapter verification.
@@ -226,7 +228,7 @@
 
 - `GET /api/v1/accounts/{accountId}/notifications`
   - Returns in-app notification items and push delivery metadata.
-  - Each notification includes `eventId`, `subjectType`, `subjectId`, `sourceType`, `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, and `lastDeliveryError`.
+  - Each notification includes `eventId`, `subjectType`, `subjectId`, `sourceType`, `deliveryStatus`, `deliveryProvider`, `deliveryAttemptCount`, `deliveredAt`, `lastDeliveryError`, and alert translation quality metadata when the subject is an AI-analyzed alert.
   - Alert notifications use subject `ALERT_EVENT`; tax recapture risk notifications use subject `TAX_REFUND_CASE` and source type `TAX_RECAPTURE_RISK`.
 - `GET /api/v1/accounts/{accountId}/notifications/devices`
   - Returns registered iOS/Android/web push device tokens for the account with `activeCount`, `totalCount`, and masked token metadata.

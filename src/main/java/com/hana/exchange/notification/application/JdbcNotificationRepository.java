@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.hana.exchange.alert.domain.AlertGlossaryTerm;
 import com.hana.exchange.notification.domain.NotificationDeliveryStatus;
 import com.hana.exchange.notification.domain.NotificationItem;
 
@@ -135,6 +136,8 @@ public class JdbcNotificationRepository implements NotificationRepository {
 	private void replaceChildren(NotificationItem item) {
 		jdbcTemplate.update("DELETE FROM notification_matched_stocks WHERE notification_id = ?", item.notificationId());
 		jdbcTemplate.update("DELETE FROM notification_match_reasons WHERE notification_id = ?", item.notificationId());
+		jdbcTemplate.update("DELETE FROM notification_glossary_terms WHERE notification_id = ?", item.notificationId());
+		jdbcTemplate.update("DELETE FROM notification_translation_quality_flags WHERE notification_id = ?", item.notificationId());
 		for (int index = 0; index < item.matchedStockCodes().size(); index++) {
 			jdbcTemplate.update(
 					"INSERT INTO notification_matched_stocks (notification_id, stock_code, sort_order) "
@@ -149,6 +152,27 @@ public class JdbcNotificationRepository implements NotificationRepository {
 							+ "VALUES (?, ?, ?)",
 					item.notificationId(),
 					item.matchReasons().get(index),
+					index);
+		}
+		for (int index = 0; index < item.glossaryTerms().size(); index++) {
+			AlertGlossaryTerm term = item.glossaryTerms().get(index);
+			jdbcTemplate.update(
+					"INSERT INTO notification_glossary_terms "
+							+ "(notification_id, source_term, normalized_term, english_term, category, sort_order) "
+							+ "VALUES (?, ?, ?, ?, ?, ?)",
+					item.notificationId(),
+					term.sourceTerm(),
+					term.normalizedTerm(),
+					term.englishTerm(),
+					term.category(),
+					index);
+		}
+		for (int index = 0; index < item.translationQualityFlags().size(); index++) {
+			jdbcTemplate.update(
+					"INSERT INTO notification_translation_quality_flags "
+							+ "(notification_id, quality_flag, sort_order) VALUES (?, ?, ?)",
+					item.notificationId(),
+					item.translationQualityFlags().get(index),
 					index);
 		}
 	}
@@ -169,6 +193,8 @@ public class JdbcNotificationRepository implements NotificationRepository {
 				resultSet.getString("primary_stock_code"),
 				matchedStockCodes(notificationId),
 				matchReasons(notificationId),
+				glossaryTerms(notificationId),
+				translationQualityFlags(notificationId),
 				NotificationDeliveryStatus.valueOf(resultSet.getString("delivery_status")),
 				resultSet.getString("delivery_provider"),
 				resultSet.getInt("delivery_attempt_count"),
@@ -192,6 +218,26 @@ public class JdbcNotificationRepository implements NotificationRepository {
 				"SELECT match_reason FROM notification_match_reasons "
 						+ "WHERE notification_id = ? ORDER BY sort_order ASC",
 				(resultSet, rowNumber) -> resultSet.getString("match_reason"),
+				notificationId);
+	}
+
+	private List<AlertGlossaryTerm> glossaryTerms(String notificationId) {
+		return jdbcTemplate.query(
+				"SELECT source_term, normalized_term, english_term, category FROM notification_glossary_terms "
+						+ "WHERE notification_id = ? ORDER BY sort_order ASC",
+				(resultSet, rowNumber) -> new AlertGlossaryTerm(
+						resultSet.getString("source_term"),
+						resultSet.getString("normalized_term"),
+						resultSet.getString("english_term"),
+						resultSet.getString("category")),
+				notificationId);
+	}
+
+	private List<String> translationQualityFlags(String notificationId) {
+		return jdbcTemplate.query(
+				"SELECT quality_flag FROM notification_translation_quality_flags "
+						+ "WHERE notification_id = ? ORDER BY sort_order ASC",
+				(resultSet, rowNumber) -> resultSet.getString("quality_flag"),
 				notificationId);
 	}
 

@@ -3,6 +3,8 @@ package com.hana.exchange.notification.domain;
 import java.time.Instant;
 import java.util.List;
 
+import com.hana.exchange.alert.domain.AlertGlossaryTerm;
+
 public record NotificationItem(
 		String notificationId,
 		String accountId,
@@ -17,6 +19,8 @@ public record NotificationItem(
 		String primaryStockCode,
 		List<String> matchedStockCodes,
 		List<String> matchReasons,
+		List<AlertGlossaryTerm> glossaryTerms,
+		List<String> translationQualityFlags,
 		NotificationDeliveryStatus deliveryStatus,
 		String deliveryProvider,
 		int deliveryAttemptCount,
@@ -26,6 +30,15 @@ public record NotificationItem(
 		Instant createdAt,
 		Instant readAt
 ) {
+	public NotificationItem {
+		matchedStockCodes = matchedStockCodes == null ? List.of() : List.copyOf(matchedStockCodes);
+		matchReasons = matchReasons == null ? List.of() : List.copyOf(matchReasons);
+		glossaryTerms = glossaryTerms == null ? List.of() : List.copyOf(glossaryTerms);
+		translationQualityFlags = translationQualityFlags == null
+				? List.of()
+				: List.copyOf(translationQualityFlags);
+	}
+
 	public NotificationItem markDelivery(NotificationDeliveryResult deliveryResult) {
 		return new NotificationItem(
 				notificationId,
@@ -41,6 +54,8 @@ public record NotificationItem(
 				primaryStockCode,
 				matchedStockCodes,
 				matchReasons,
+				glossaryTerms,
+				translationQualityFlags,
 				deliveryResult.status(),
 				deliveryResult.provider(),
 				deliveryAttemptCount + 1,
@@ -66,6 +81,8 @@ public record NotificationItem(
 				primaryStockCode,
 				matchedStockCodes,
 				matchReasons,
+				glossaryTerms,
+				translationQualityFlags,
 				deliveryStatus,
 				deliveryProvider,
 				deliveryAttemptCount,

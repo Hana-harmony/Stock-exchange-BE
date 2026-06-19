@@ -63,6 +63,8 @@ public class AlertEventService {
 				request.originalUrl(),
 				request.stockCode(),
 				request.relatedStocks(),
+				request.glossaryTerms(),
+				request.translationQualityFlags(),
 				request.sentiment(),
 				request.importance(),
 				request.riskLevel(),

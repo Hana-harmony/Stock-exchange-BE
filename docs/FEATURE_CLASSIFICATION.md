@@ -40,6 +40,7 @@
 | --- | --- | --- |
 | Hana-OmniLens-API WebSocket 구독 | Stock-exchange-BE | Done |
 | 이벤트 저장과 중복 제거 | Stock-exchange-BE | Done |
+| AI 번역 금융용어 glossary와 translation quality flag 수신·저장·응답 | Stock-exchange-BE | Done |
 | `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Done |
 | 알림함 저장, local push delivery 상태, 실패/미발송 retry worker | Stock-exchange-BE | Done |
 | FCM/APNS/web push provider routing과 미설정 provider SKIPPED 상태 기록 | Stock-exchange-BE | Done |

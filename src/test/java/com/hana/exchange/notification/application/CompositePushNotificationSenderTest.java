@@ -74,6 +74,8 @@ class CompositePushNotificationSenderTest {
 				"005930",
 				List.of("005930"),
 				List.of("WATCHLIST"),
+				List.of(),
+				List.of(),
 				NotificationDeliveryStatus.PENDING,
 				null,
 				0,

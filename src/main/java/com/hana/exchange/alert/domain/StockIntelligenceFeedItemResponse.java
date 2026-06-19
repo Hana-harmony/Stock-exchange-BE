@@ -14,6 +14,8 @@ public record StockIntelligenceFeedItemResponse(
 		String sentiment,
 		String importance,
 		String riskLevel,
+		List<AlertGlossaryTerm> glossaryTerms,
+		List<String> translationQualityFlags,
 		boolean watchlistTarget,
 		boolean holderTarget,
 		Instant publishedAt,

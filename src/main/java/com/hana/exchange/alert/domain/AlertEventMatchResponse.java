@@ -15,6 +15,8 @@ public record AlertEventMatchResponse(
 		String sentiment,
 		String importance,
 		String riskLevel,
+		List<AlertGlossaryTerm> glossaryTerms,
+		List<String> translationQualityFlags,
 		boolean watchlistTarget,
 		boolean holderTarget,
 		int targetCount,

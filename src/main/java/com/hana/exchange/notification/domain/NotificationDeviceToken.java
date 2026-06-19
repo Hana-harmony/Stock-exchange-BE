@@ -10,6 +10,7 @@ public record NotificationDeviceToken(
 		String provider,
 		String tokenHash,
 		String maskedToken,
+		String encryptedToken,
 		String appVersion,
 		String locale,
 		boolean active,
@@ -17,9 +18,41 @@ public record NotificationDeviceToken(
 		Instant lastSeenAt,
 		Instant disabledAt
 ) {
+	public NotificationDeviceToken(
+			String deviceTokenId,
+			String accountId,
+			String userId,
+			NotificationDevicePlatform platform,
+			String provider,
+			String tokenHash,
+			String maskedToken,
+			String appVersion,
+			String locale,
+			boolean active,
+			Instant registeredAt,
+			Instant lastSeenAt,
+			Instant disabledAt) {
+		this(
+				deviceTokenId,
+				accountId,
+				userId,
+				platform,
+				provider,
+				tokenHash,
+				maskedToken,
+				null,
+				appVersion,
+				locale,
+				active,
+				registeredAt,
+				lastSeenAt,
+				disabledAt);
+	}
+
 	public NotificationDeviceToken seen(
 			String provider,
 			String maskedToken,
+			String encryptedToken,
 			String appVersion,
 			String locale,
 			Instant seenAt) {
@@ -31,6 +64,7 @@ public record NotificationDeviceToken(
 				provider,
 				tokenHash,
 				maskedToken,
+				encryptedToken,
 				appVersion,
 				locale,
 				true,
@@ -48,6 +82,7 @@ public record NotificationDeviceToken(
 				provider,
 				tokenHash,
 				maskedToken,
+				encryptedToken,
 				appVersion,
 				locale,
 				false,

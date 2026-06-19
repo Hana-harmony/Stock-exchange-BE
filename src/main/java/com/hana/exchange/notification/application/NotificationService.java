@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.HexFormat;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hana.exchange.account.application.AccountRepository;
@@ -38,6 +39,25 @@ public class NotificationService {
 	private final IdGenerator idGenerator;
 	private final PushNotificationSender pushNotificationSender;
 	private final AuditEventService auditEventService;
+	private final NotificationDeviceTokenCipher deviceTokenCipher;
+
+	@Autowired
+	public NotificationService(
+			AccountRepository accountRepository,
+			NotificationRepository notificationRepository,
+			NotificationDeviceTokenRepository deviceTokenRepository,
+			IdGenerator idGenerator,
+			PushNotificationSender pushNotificationSender,
+			AuditEventService auditEventService,
+			NotificationDeviceTokenCipher deviceTokenCipher) {
+		this.accountRepository = accountRepository;
+		this.notificationRepository = notificationRepository;
+		this.deviceTokenRepository = deviceTokenRepository;
+		this.idGenerator = idGenerator;
+		this.pushNotificationSender = pushNotificationSender;
+		this.auditEventService = auditEventService;
+		this.deviceTokenCipher = deviceTokenCipher;
+	}
 
 	public NotificationService(
 			AccountRepository accountRepository,
@@ -46,12 +66,14 @@ public class NotificationService {
 			IdGenerator idGenerator,
 			PushNotificationSender pushNotificationSender,
 			AuditEventService auditEventService) {
-		this.accountRepository = accountRepository;
-		this.notificationRepository = notificationRepository;
-		this.deviceTokenRepository = deviceTokenRepository;
-		this.idGenerator = idGenerator;
-		this.pushNotificationSender = pushNotificationSender;
-		this.auditEventService = auditEventService;
+		this(
+				accountRepository,
+				notificationRepository,
+				deviceTokenRepository,
+				idGenerator,
+				pushNotificationSender,
+				auditEventService,
+				NotificationDeviceTokenCipher.disabled());
 	}
 
 	public void storeAlertNotifications(AlertEvent event, List<AlertTargetResponse> targets) {
@@ -168,9 +190,16 @@ public class NotificationService {
 		Instant now = Instant.now();
 		String tokenHash = sha256(request.deviceToken());
 		String maskedToken = mask(request.deviceToken());
+		String encryptedToken = deviceTokenCipher.encrypt(request.deviceToken());
 		NotificationDeviceToken deviceToken = deviceTokenRepository
 				.findByAccountIdAndPlatformAndTokenHash(accountId, request.platform(), tokenHash)
-				.map(saved -> saved.seen(request.provider(), maskedToken, request.appVersion(), request.locale(), now))
+				.map(saved -> saved.seen(
+						request.provider(),
+						maskedToken,
+						encryptedToken,
+						request.appVersion(),
+						request.locale(),
+						now))
 				.orElseGet(() -> new NotificationDeviceToken(
 						idGenerator.newNotificationDeviceId(),
 						accountId,
@@ -179,6 +208,7 @@ public class NotificationService {
 						request.provider(),
 						tokenHash,
 						maskedToken,
+						encryptedToken,
 						request.appVersion(),
 						request.locale(),
 						true,

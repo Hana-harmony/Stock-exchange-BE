@@ -62,11 +62,12 @@ public class JdbcNotificationDeviceTokenRepository implements NotificationDevice
 	public void save(NotificationDeviceToken deviceToken) {
 		int updated = jdbcTemplate.update(
 				"UPDATE notification_device_tokens "
-						+ "SET provider = ?, masked_token = ?, app_version = ?, locale = ?, active = ?, "
+						+ "SET provider = ?, masked_token = ?, encrypted_token = ?, app_version = ?, locale = ?, active = ?, "
 						+ "last_seen_at = ?, disabled_at = ? "
 						+ "WHERE device_token_id = ?",
 				deviceToken.provider(),
 				deviceToken.maskedToken(),
+				deviceToken.encryptedToken(),
 				deviceToken.appVersion(),
 				deviceToken.locale(),
 				deviceToken.active(),
@@ -81,9 +82,9 @@ public class JdbcNotificationDeviceTokenRepository implements NotificationDevice
 	private void insert(NotificationDeviceToken deviceToken) {
 		jdbcTemplate.update(
 				"INSERT INTO notification_device_tokens "
-						+ "(device_token_id, account_id, user_id, platform, provider, token_hash, masked_token, "
+						+ "(device_token_id, account_id, user_id, platform, provider, token_hash, masked_token, encrypted_token, "
 						+ "app_version, locale, active, registered_at, last_seen_at, disabled_at) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				deviceToken.deviceTokenId(),
 				deviceToken.accountId(),
 				deviceToken.userId(),
@@ -91,6 +92,7 @@ public class JdbcNotificationDeviceTokenRepository implements NotificationDevice
 				deviceToken.provider(),
 				deviceToken.tokenHash(),
 				deviceToken.maskedToken(),
+				deviceToken.encryptedToken(),
 				deviceToken.appVersion(),
 				deviceToken.locale(),
 				deviceToken.active(),
@@ -108,6 +110,7 @@ public class JdbcNotificationDeviceTokenRepository implements NotificationDevice
 				resultSet.getString("provider"),
 				resultSet.getString("token_hash"),
 				resultSet.getString("masked_token"),
+				resultSet.getString("encrypted_token"),
 				resultSet.getString("app_version"),
 				resultSet.getString("locale"),
 				resultSet.getBoolean("active"),
@@ -117,7 +120,7 @@ public class JdbcNotificationDeviceTokenRepository implements NotificationDevice
 	}
 
 	private String select() {
-		return "SELECT device_token_id, account_id, user_id, platform, provider, token_hash, masked_token, "
+		return "SELECT device_token_id, account_id, user_id, platform, provider, token_hash, masked_token, encrypted_token, "
 				+ "app_version, locale, active, registered_at, last_seen_at, disabled_at "
 				+ "FROM notification_device_tokens";
 	}

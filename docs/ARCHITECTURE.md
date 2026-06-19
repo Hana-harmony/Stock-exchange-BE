@@ -20,7 +20,7 @@
 - `auth/api`: Spring Security bearer token filter와 계좌 path 접근 검증
 - `auth/application`: Spring Security authentication token adapter
 - `auth/domain`: 인증 context에 보관되는 user/account principal 계약 record
-- `trade/api`: KIS 모의투자 API를 쓰지 않는 mock 매수·매도, 주문 가능 여부 경고, portfolio REST API
+- `trade/api`: KIS 모의투자 API를 쓰지 않는 mock 매수·매도, 체결 원장 조회, 주문 가능 여부 경고, portfolio REST API
 - `trade/application`: Hana-OmniLens-API quote 가격을 이용한 내부 mock ledger, orderability warning, 평균단가, 실현손익, 현재 평가금액 계산 service
 - `trade/domain`: holding, trade ledger, orderability response, portfolio response, valuation history 계약 record
 - `watchlist/api`: 계좌별 watchlist 조회, 추가, 삭제 REST API
@@ -45,7 +45,6 @@
 - `account/persistence`: Flyway schema와 JDBC repository 기반 user, mock USD account, cash ledger, refresh session 영속화
 - `market/client`: Hana-OmniLens-API 호가 API client
 - `trade/persistence`: Flyway schema와 JDBC repository 기반 mock holding, mock trade ledger, portfolio valuation snapshot 영속화
-- Planned `trade`: 체결 원장 하드닝
 - Planned `alert`: replay/retry worker hardening
 - `notification`: FCM/APNS/web push provider routing, encrypted token vault, FCM HTTP v1 send client, APNS HTTP send client, Web Push gateway send client, provider별 retry worker 연동
 - `tax`: object storage 파일 업로드, 세무 문서 metadata, tax refund case 연결
@@ -107,7 +106,7 @@
 - Spring Boot 하네스와 health/market quote 계약용 REST endpoint가 존재한다.
 - `POST /api/v1/auth/signup`은 아이디/비밀번호 가입과 mock USD 계좌 생성을 공통 응답 형식으로 제공한다.
 - `GET /api/v1/accounts/{accountId}`와 `POST /api/v1/accounts/{accountId}/deposits`는 mock USD 잔고 조회와 실제 결제 없는 달러 충전을 제공한다.
-- `POST /api/v1/accounts/{accountId}/trades`와 `GET /api/v1/accounts/{accountId}/portfolio`는 orderability 강제 검증, 자체 mock ledger 기반 매수·매도, 보유수량, 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익을 제공한다. portfolio 조회 성공 시 평가 snapshot을 저장하며 `GET /api/v1/accounts/{accountId}/portfolio/history`에서 최근 이력을 조회한다.
+- `POST /api/v1/accounts/{accountId}/trades`, `GET /api/v1/accounts/{accountId}/trades`, `GET /api/v1/accounts/{accountId}/portfolio`는 orderability 강제 검증, 자체 mock ledger 기반 매수·매도, 체결 원장 조회, 보유수량, 평균단가, 현재가 기반 평가금액, 미실현손익, 매도 실현손익을 제공한다. portfolio 조회 성공 시 평가 snapshot을 저장하며 `GET /api/v1/accounts/{accountId}/portfolio/history`에서 최근 이력을 조회한다.
 - `GET /api/v1/accounts/{accountId}/trades/orderability`는 Hana-OmniLens-API orderability 결과를 이용해 mock 주문 전 차단 사유와 경고를 제공한다.
 - `GET/POST/DELETE /api/v1/accounts/{accountId}/watchlist`는 계좌별 관심종목과 alert target 입력 데이터를 제공한다.
 - `POST /api/v1/alerts/events`와 `GET /api/v1/alerts/events/{eventId}/targets`는 뉴스·공시 분석 이벤트 저장, AI 번역 품질 메타데이터 보존, idempotency 처리, watchlist/holder target 매칭 결과를 제공한다.

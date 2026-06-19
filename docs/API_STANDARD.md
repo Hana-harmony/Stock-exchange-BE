@@ -146,6 +146,10 @@
 - `POST /api/v1/accounts/{accountId}/trades`
   - Re-checks the same Hana-OmniLens-API orderability boundary before writing the mock ledger.
   - Returns common error code `TRADE_003` when blocking reasons exist, and no mock holding/trade ledger row is written.
+- `GET /api/v1/accounts/{accountId}/trades`
+  - Returns recent mock trade ledger entries in descending `executedAt` order.
+  - `limit`: optional, default `50`, min `1`, max `100`.
+  - Ledger rows include side, quantity, execution price, gross amount, realized PnL, remaining quantity, average price after execution, cash balance after execution, trading mode, and execution time.
 - `GET /api/v1/accounts/{accountId}/portfolio`
   - Returns mock USD cash, holdings, recent trades, realized PnL, total market value, total asset value, and unrealized PnL.
   - Holding rows include average price, cost basis, current Hana USD quote price, market value, unrealized PnL, unrealized PnL rate, and market data time.

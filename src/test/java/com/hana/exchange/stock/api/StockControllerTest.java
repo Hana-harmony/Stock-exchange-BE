@@ -70,7 +70,7 @@ class StockControllerTest {
 	@Test
 	void stockDetailReturnsMarketRiskAndPriceFields() throws Exception {
 		when(stockClient.getDetail("005930", "USD"))
-				.thenReturn(detail("005930", true, "NORMAL", false, true));
+				.thenReturn(detail("005930", true, true, "NORMAL", false, true));
 
 		mockMvc.perform(get("/api/v1/stocks/005930")
 						.param("currency", "USD"))
@@ -84,6 +84,7 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.localCurrencyPrice").value("54"))
 				.andExpect(jsonPath("$.data.foreignOwnershipRate").value("54.5"))
 				.andExpect(jsonPath("$.data.viActive").value(true))
+				.andExpect(jsonPath("$.data.singlePriceTrading").value(true))
 				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"))
 				.andExpect(jsonPath("$.data.tradingHalted").value(false))
 				.andExpect(jsonPath("$.data.orderable").value(true));
@@ -121,6 +122,7 @@ class StockControllerTest {
 	private OmniLensStockDetailResponse detail(
 			String stockCode,
 			boolean viActive,
+			boolean singlePriceTrading,
 			String priceLimitState,
 			boolean tradingHalted,
 			boolean orderable) {
@@ -141,6 +143,7 @@ class StockControllerTest {
 				new BigDecimal("72.3"),
 				LocalDate.parse("2026-06-18"),
 				viActive,
+				singlePriceTrading,
 				priceLimitState,
 				tradingHalted,
 				orderable,

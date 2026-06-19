@@ -107,7 +107,7 @@
   - `limit`: optional result limit from 1 to 50. Defaults to 20.
 - `GET /api/v1/stocks/{stockCode}`
   - Stock detail for the FE stock detail screen.
-  - Returns English display name, KRW price, requested local currency price, foreign ownership metrics, VI state, price limit state, trading halt, and orderable flag.
+  - Returns English display name, KRW price, requested local currency price, foreign ownership metrics, predicted intraday foreign ownership and limit-exhaustion min/max boundary, VI state, price limit state, trading halt, and orderable flag.
 - Stock search/detail calls Hana-OmniLens-API and returns the common response envelope.
 
 ## Market Quote Snapshot

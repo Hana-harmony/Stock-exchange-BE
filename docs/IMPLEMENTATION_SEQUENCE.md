@@ -42,7 +42,7 @@
 - 환율 기준시각, 출처, stale flag, fallback 정책이 문서화되어 있다.
 
 ## 3. Hana-OmniLens-API 구현
-- KIS 현재가 REST와 실시간 체결가·호가 WebSocket adapter를 구현한다.
+- KIS 현재가 REST adapter로 현재가, 외국인 보유수량, 보유율, 한도소진율 snapshot/cache를 제공하고, 실시간 체결가·호가 WebSocket adapter는 가격과 장중 상태 tick에 사용한다.
 - Hana-OmniLens-API에서 KRX 모든 국내 주식 과거 시세 수집 batch와 정규화 DB schema를 구현한다.
 - 종목 마스터, 외국인 보유율, 상·하한가, VI 상태, 환율 cache를 구현한다.
 - Hannah-Montana-AI 분석 API를 호출해 뉴스·공시 분석 결과를 저장하고 협력사로 전달한다.
@@ -70,7 +70,7 @@
 - 아이디/비밀번호 회원가입과 mock USD 계좌 생성을 구현한다.
 - 로그인 API는 PBKDF2 password verify, local JWT 발급/검증, refresh token rotation/logout 계약을 제공하고, `/api/v1/accounts/**`는 Spring Security bearer filter로 보호한다. user/account/cash ledger/refresh session은 Flyway schema와 JDBC repository로 영속화한다.
 - 실제 결제 없는 달러 충전과 자체 mock ledger 기반 매수·매도를 구현한다.
-- 종목 검색/상세 API는 Hana-OmniLens-API를 proxy해 영어명, USD 가격, 외국인 보유율, VI, 상/하한가, orderable flag를 제공한다.
+- 종목 검색/상세 API는 Hana-OmniLens-API를 proxy해 영어명, USD 가격, KIS REST snapshot/cache 기반 외국인 보유율, snapshot/orderability 기반 당일 예상 boundary, VI, 상/하한가, orderable flag를 제공한다.
 - 전체 한국 주식, watchlist, 보유종목의 REST snapshot과 WebSocket 실시간 시세를 제공한다.
 - 전체 한국 주식 REST snapshot은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 `stockCodes`가 있는 snapshot은 Hana bulk quote endpoint를 사용한다.
 - quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status, `fxRateTime`, `fxRateSource`, `fxStale=true`를 포함한다.

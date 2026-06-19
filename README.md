@@ -124,7 +124,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - Hana-OmniLens-API REST client는 `HANA_OMNILENS_REST_RETRY_ENABLED`, `HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS`, `HANA_OMNILENS_REST_RETRY_INITIAL_DELAY`, `HANA_OMNILENS_REST_RETRY_MAX_DELAY` 기준으로 transport 실패를 exponential backoff 재시도한다.
 
 ## Hana-OmniLens-API 연동
-- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy와 주/월 OHLCV 집계 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
+- REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, KIS REST snapshot/cache 기반 외국인 보유율과 orderability boundary 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy와 주/월 OHLCV 집계 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
 - WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/AI 번역 품질 메타데이터 보존/매칭/replay/retry/drop hardening 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 alert와 tax recapture risk delivery 상태 기록 구현, iOS/Android/web push device token 등록·조회·비활성화 구현, device token encrypted vault 구현, FCM HTTP v1 외부 push 실발송 client 구현, APNS HTTP provider와 Web Push gateway provider 실발송 client 구현, 실패/미발송 notification retry worker 구현
 - 구독 topic:
@@ -145,7 +145,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. `POST /api/v1/market/stream/quotes`는 local adapter smoke용 ingest 계약이고, Hana-OmniLens-API stream client도 동일 publisher를 호출한다.
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API와 단건 quote FX metadata를 호출해 KRW/현지통화 차트 응답으로 재가공한다. `1d`는 일봉을 그대로 반환하고, `1w`와 `1mo`는 BE가 OHLCV와 거래대금을 집계한다.
-8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, 외국인 보유율, VI, 상·하한가 상태를 제공한다.
+8. 사용자가 종목을 검색하거나 상세 화면에 진입하면 Stock-exchange-BE가 Hana-OmniLens-API의 종목 검색/상세 API를 proxy해 영어명, USD 현재가, KIS REST snapshot/cache 기반 외국인 보유율, snapshot/orderability 기반 당일 예상 boundary, VI, 상·하한가 상태를 제공한다.
 9. 사용자가 가입하면 아이디/비밀번호 계정과 mock USD cash account를 생성한다. 현재 구현은 PBKDF2 password hash와 Flyway/JDBC 기반 계좌 저장소를 사용한다.
 10. 사용자가 로그인하면 HMAC 기반 bearer token을 발급하고, 계좌별 API는 Spring Security filter가 token 검증과 accountId 일치 여부를 확인한다.
 11. 사용자가 달러 충전 금액을 입력하면 실제 결제 없이 mock USD 잔고를 증가시키고 mock cash ledger entry를 남긴다.

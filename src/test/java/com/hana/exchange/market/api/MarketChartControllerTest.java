@@ -141,6 +141,15 @@ class MarketChartControllerTest {
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
 	}
 
+	@Test
+	void chartRejectsMissingRequiredDateParameters() throws Exception {
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("COMMON_002"))
+				.andExpect(jsonPath("$.errors[0].field").value("from"));
+	}
+
 	private OmniLensMarketHistoryPoint point(
 			String tradeDate,
 			String openKrw,

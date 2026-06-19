@@ -154,6 +154,18 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.remainingQuantity").value(2))
 				.andExpect(jsonPath("$.data.cashBalanceUsdAfter").value("210.00"));
 
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
+				.andExpect(jsonPath("$.data.tradeCount").value(2))
+				.andExpect(jsonPath("$.data.trades[0].side").value("SELL"))
+				.andExpect(jsonPath("$.data.trades[0].realizedPnlUsd").value("10.00"))
+				.andExpect(jsonPath("$.data.trades[1].side").value("BUY"))
+				.andExpect(jsonPath("$.data.trades[1].realizedPnlUsd").value("0.00"));
+
 		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
 				.thenReturn(List.of(quote("005930", "Samsung Electronics", "70.00")));
 
@@ -323,6 +335,18 @@ class TradeControllerTest {
 		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio/history", session.accountId())
 						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
 						.param("limit", "101"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
+	@Test
+	void tradeLedgerHistoryRejectsInvalidLimit() throws Exception {
+		AuthSession session = fundedAccount("LedgerInvalidTrader01", "200.00");
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "0"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("COMMON_002"));

@@ -27,6 +27,7 @@ import com.hana.exchange.trade.domain.PortfolioValuationHistoryItemResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
+import com.hana.exchange.trade.domain.TradeLedgerHistoryResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeSide;
 
@@ -138,6 +139,19 @@ public class TradeService {
 				USD,
 				snapshots.size(),
 				snapshots,
+				Instant.now());
+	}
+
+	public TradeLedgerHistoryResponse getTradeLedgerHistory(String accountId, int limit) {
+		account(accountId);
+		List<TradeExecutionResponse> trades = tradeRepository.findRecentTrades(accountId, limit)
+				.stream()
+				.map(this::toTradeResponse)
+				.toList();
+		return new TradeLedgerHistoryResponse(
+				accountId,
+				trades.size(),
+				trades,
 				Instant.now());
 	}
 

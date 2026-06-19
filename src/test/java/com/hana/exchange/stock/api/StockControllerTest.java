@@ -83,6 +83,10 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.currentPriceKrw").value("75000"))
 				.andExpect(jsonPath("$.data.localCurrencyPrice").value("54"))
 				.andExpect(jsonPath("$.data.foreignOwnershipRate").value("54.5"))
+				.andExpect(jsonPath("$.data.predictedForeignOwnershipRateMin").value("54.5"))
+				.andExpect(jsonPath("$.data.predictedForeignOwnershipRateMax").value("54.7"))
+				.andExpect(jsonPath("$.data.predictedForeignLimitExhaustionRateMin").value("72.3"))
+				.andExpect(jsonPath("$.data.predictedForeignLimitExhaustionRateMax").value("72.9"))
 				.andExpect(jsonPath("$.data.viActive").value(true))
 				.andExpect(jsonPath("$.data.singlePriceTrading").value(true))
 				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"))
@@ -141,6 +145,10 @@ class StockControllerTest {
 				50000000L,
 				new BigDecimal("54.5"),
 				new BigDecimal("72.3"),
+				new BigDecimal("54.5"),
+				new BigDecimal("54.7"),
+				new BigDecimal("72.3"),
+				new BigDecimal("72.9"),
 				LocalDate.parse("2026-06-18"),
 				viActive,
 				singlePriceTrading,

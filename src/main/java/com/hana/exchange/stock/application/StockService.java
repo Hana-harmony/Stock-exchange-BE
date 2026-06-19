@@ -55,6 +55,10 @@ public class StockService {
 				detail.foreignOwnedQuantity(),
 				toText(detail.foreignOwnershipRate()),
 				toText(detail.foreignLimitExhaustionRate()),
+				toText(fallback(detail.predictedForeignOwnershipRateMin(), detail.foreignOwnershipRate())),
+				toText(fallback(detail.predictedForeignOwnershipRateMax(), detail.foreignOwnershipRate())),
+				toText(fallback(detail.predictedForeignLimitExhaustionRateMin(), detail.foreignLimitExhaustionRate())),
+				toText(fallback(detail.predictedForeignLimitExhaustionRateMax(), detail.foreignLimitExhaustionRate())),
 				detail.foreignOwnershipBaseDate(),
 				detail.viActive(),
 				detail.singlePriceTrading(),
@@ -83,5 +87,9 @@ public class StockService {
 
 	private String toText(BigDecimal value) {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
+	}
+
+	private BigDecimal fallback(BigDecimal value, BigDecimal fallback) {
+		return value == null ? fallback : value;
 	}
 }

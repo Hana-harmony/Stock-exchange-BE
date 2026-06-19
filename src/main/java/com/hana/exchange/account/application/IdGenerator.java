@@ -32,6 +32,10 @@ public class IdGenerator {
 		return "TRD-" + randomToken();
 	}
 
+	public String newPortfolioValuationSnapshotId() {
+		return "VAL-" + randomToken();
+	}
+
 	public String newNotificationId() {
 		return "NTF-" + randomToken();
 	}

@@ -149,6 +149,11 @@
 - `GET /api/v1/accounts/{accountId}/portfolio`
   - Returns mock USD cash, holdings, recent trades, realized PnL, total market value, total asset value, and unrealized PnL.
   - Holding rows include average price, cost basis, current Hana USD quote price, market value, unrealized PnL, unrealized PnL rate, and market data time.
+  - Each successful portfolio lookup stores a portfolio valuation snapshot for account-level performance history.
+- `GET /api/v1/accounts/{accountId}/portfolio/history`
+  - Returns recent portfolio valuation snapshots in descending `valuedAt` order.
+  - `limit`: optional, default `30`, min `1`, max `100`.
+  - Snapshot rows include cash, total market value, total asset value, realized PnL, unrealized PnL, holding count, and valuation time.
 
 ## Market Chart
 

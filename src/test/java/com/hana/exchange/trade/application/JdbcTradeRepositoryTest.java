@@ -15,6 +15,7 @@ import com.hana.exchange.account.domain.ExchangeUser;
 import com.hana.exchange.account.domain.MockUsdAccount;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @SpringBootTest
@@ -79,6 +80,23 @@ class JdbcTradeRepositoryTest {
 				.contains(account.accountId());
 		assertThat(tradeRepository.findTrades(account.accountId())).containsExactly(trade);
 		assertThat(tradeRepository.findRecentTrades(account.accountId(), 1)).containsExactly(trade);
+
+		PortfolioValuationSnapshot snapshot = new PortfolioValuationSnapshot(
+				"VAL-TRADEDB001",
+				account.accountId(),
+				user.userId(),
+				"USD",
+				new BigDecimal("400.00"),
+				new BigDecimal("110.00"),
+				new BigDecimal("510.00"),
+				new BigDecimal("0.00"),
+				new BigDecimal("10.00"),
+				1,
+				now.plusSeconds(20));
+		tradeRepository.savePortfolioValuationSnapshot(snapshot);
+
+		assertThat(tradeRepository.findPortfolioValuationSnapshots(account.accountId(), 5))
+				.containsExactly(snapshot);
 	}
 
 	@Test

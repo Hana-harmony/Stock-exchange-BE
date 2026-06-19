@@ -100,6 +100,21 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.holdings[0].marketValueUsd").value("110.00"))
 				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlUsd").value("10.00"))
 				.andExpect(jsonPath("$.data.holdings[0].unrealizedPnlRate").value("10.00"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio/history", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "5"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.accountId").value(session.accountId()))
+				.andExpect(jsonPath("$.data.currency").value("USD"))
+				.andExpect(jsonPath("$.data.snapshotCount").value(1))
+				.andExpect(jsonPath("$.data.snapshots[0].cashBalanceUsd").value("100.00"))
+				.andExpect(jsonPath("$.data.snapshots[0].totalMarketValueUsd").value("110.00"))
+				.andExpect(jsonPath("$.data.snapshots[0].totalAssetValueUsd").value("210.00"))
+				.andExpect(jsonPath("$.data.snapshots[0].realizedPnlUsd").value("0.00"))
+				.andExpect(jsonPath("$.data.snapshots[0].unrealizedPnlUsd").value("10.00"))
+				.andExpect(jsonPath("$.data.snapshots[0].holdingCount").value(1));
 	}
 
 	@Test
@@ -296,6 +311,18 @@ class TradeControllerTest {
 						.param("stockCode", "ABCDEF")
 						.param("side", "BUY")
 						.param("quantity", "0"))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
+	@Test
+	void portfolioHistoryRejectsInvalidLimit() throws Exception {
+		AuthSession session = fundedAccount("HistoryInvalidTrader01", "200.00");
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/portfolio/history", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "101"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("COMMON_002"));

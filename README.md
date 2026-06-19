@@ -49,7 +49,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
   -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}"
 ```
 
-기본 포트는 `3000`이다. `compose.local.yml`은 PostgreSQL 16과 API를 함께 띄우며, Flyway가 사용자, mock USD 계좌, 현금 원장, refresh session schema를 자동 적용한다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
+기본 API 포트는 `3000`이고 로컬 PostgreSQL host port는 `5433`이다. `compose.local.yml`은 PostgreSQL 16과 API를 함께 띄우며, Flyway가 사용자, mock USD 계좌, 현금 원장, refresh session schema를 자동 적용한다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
 
 ## 범위
 - 아이디/비밀번호 기반 현지 사용자 가입, mock USD 계좌, 보유종목, watchlist 관리

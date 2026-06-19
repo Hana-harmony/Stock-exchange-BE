@@ -67,7 +67,7 @@
 - 현지 거래소 FE는 과거 시세뿐 아니라 모든 종목의 실시간 시세를 REST snapshot과 WebSocket stream으로 조회할 수 있어야 한다.
 - 현지 거래소 사용자는 영어 UI와 USD 계좌/표시 금액을 기본으로 사용한다.
 - REST snapshot은 초기 로딩, 전체 목록, 검색, 새로고침, WebSocket 재연결 복구에 사용한다.
-- 종목 검색/상세 API는 Hana-OmniLens-API의 `/api/v1/market/stocks/search`, `/api/v1/market/stocks/{stockCode}/detail` 경계를 호출하고 영어명, USD 가격, 외국인 보유율, 당일 예상 외국인 보유율/한도소진율 min/max boundary, VI, 상/하한가, orderable flag를 FE 계약으로 제공한다.
+- 종목 검색/상세 API는 Hana-OmniLens-API의 `/api/v1/market/stocks/search`, `/api/v1/market/stocks/{stockCode}/detail` 경계를 호출하고 영어명, USD 가격, KIS REST snapshot/cache 기반 외국인 보유율, snapshot/orderability 기반 당일 예상 외국인 보유율/한도소진율 min/max boundary, VI, 상/하한가, orderable flag를 FE 계약으로 제공한다.
 - 현재 REST quote 목록은 요청 `stockCodes`가 있으면 Hana bulk quote endpoint를, 없으면 Hana all quote endpoint를 호출하고, `market` query로 KOSPI/KOSDAQ/KONEX/OTHER를 필터링한다.
 - 계좌별 REST quote view는 watchlist와 mock portfolio holding의 stockCode만 사용하며, 빈 watchlist/보유종목은 기본 universe로 대체하지 않고 빈 snapshot을 반환한다.
 - WebSocket stream은 장중 가격, 호가, 등락률, VI/상·하한가 상태 변화처럼 화면에서 즉시 움직여야 하는 데이터에 사용한다.
@@ -76,13 +76,14 @@
 - Hana stream client는 validated tick을 bounded buffer에 넣고 `HANA_OMNILENS_QUOTE_STREAM_DRAIN_INTERVAL` 간격으로 publisher에 전달한다. buffer 초과 tick은 drop 처리하고, 연결 종료/오류 시 exponential backoff로 재연결한다.
 - replay가 활성화된 경우 reconnect 후 마지막 published `marketDataTime` 이후 tick replay 요청을 Hana-OmniLens-API로 전송한다.
 - KIS 원천 WebSocket은 Hana-OmniLens-API가 구독하고, Stock-exchange-BE는 Hana의 quote snapshot/stream을 받아 FE용 REST와 WebSocket으로 재배포한다.
+- Hana의 KIS 실시간 WebSocket은 가격, 호가, 장중 상태 tick 전용이다. 외국인 보유수량, 보유율, 한도소진율은 Hana가 KIS 현재가 REST snapshot/cache로 제공한 값을 전달한다.
 - quote REST snapshot은 동일 요청 stockCode/currency 조합을 짧게 캐시한다. 기본 fresh TTL은 3초, stale fallback TTL은 30초이며 환경변수 `HANA_OMNILENS_QUOTE_CACHE_TTL`, `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL`로 조정한다.
 - Hana-OmniLens-API 장애 시 stale fallback 구간 안의 snapshot은 `cache.status=STALE_CACHE`, `fxStale=true`로 내려 FE가 지연 데이터를 명확히 표시할 수 있게 한다.
 - Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 현지통화 가격을 모두 포함해야 하며, Stock-exchange-BE는 snapshot 응답에서 `fxRate`, `fxRateTime`, `fxRateSource`, `fxStale`을 FE 표시 형식으로 전달한다.
 - 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다. Hana가 명시적 `fxRate`를 주지 않는 경우에만 KRW/현지통화 가격으로 fallback 산출한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API와 단건 quote FX metadata를 FE 차트 응답 형식으로 재가공한다. `1d`는 Hana 일봉을 그대로 사용하고, `1w`/`1mo`는 BE가 OHLCV·거래량·거래대금을 집계한다. 모든 국내주식 KRX history 수집/정규화/DB/API 완성은 Hana-OmniLens-API 레포 책임이다.
-- 종목 상세 화면에 필요한 외국인 보유율, 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
+- 종목 상세 화면에 필요한 KIS REST snapshot 기반 외국인 보유율, snapshot/orderability 기반 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 주문 가능 여부 API는 Hana-OmniLens-API orderability boundary를 호출해 외국인 한도, 거래정지, VI, 상/하한가 상태를 mock 주문 전 경고/차단 사유로 제공한다.
 - mock 주문 실행 API도 같은 orderability boundary를 다시 확인하며, 차단 사유가 있으면 자체 ledger 기록 전에 `TRADE_003`으로 거절한다.
 - 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.

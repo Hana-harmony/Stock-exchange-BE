@@ -59,7 +59,7 @@ class RestOmniLensOrderabilityClientTest {
 							    "priceLimitState": "UPPER_LIMIT",
 							    "tradingHalted": false,
 						    "checkedAt": "2026-06-18T06:00:00Z",
-						    "source": "ORDERABILITY_KIS_WEBSOCKET_TRADE+KRX_FOREIGN_OWNERSHIP_CACHE"
+							    "source": "ORDERABILITY_KIS_WEBSOCKET_TRADE+KIS_FOREIGN_OWNERSHIP_CACHE"
 						  },
 						  "timestamp": "2026-06-18T06:00:01Z"
 						}
@@ -77,7 +77,7 @@ class RestOmniLensOrderabilityClientTest {
 		assertThat(response.priceLimitState()).isEqualTo("UPPER_LIMIT");
 		assertThat(response.tradingHalted()).isFalse();
 		assertThat(response.checkedAt()).isEqualTo(Instant.parse("2026-06-18T06:00:00Z"));
-		assertThat(response.source()).isEqualTo("ORDERABILITY_KIS_WEBSOCKET_TRADE+KRX_FOREIGN_OWNERSHIP_CACHE");
+		assertThat(response.source()).isEqualTo("ORDERABILITY_KIS_WEBSOCKET_TRADE+KIS_FOREIGN_OWNERSHIP_CACHE");
 		server.verify();
 	}
 

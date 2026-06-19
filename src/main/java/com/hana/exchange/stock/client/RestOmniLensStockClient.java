@@ -1,5 +1,7 @@
 package com.hana.exchange.stock.client;
 
+import java.util.List;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -33,7 +35,7 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 	@Override
 	public OmniLensStockSearchResponse search(String query, String market, String currency, int limit) {
 		try {
-			OmniLensApiResponse<OmniLensStockSearchResponse> response = retryer.execute("stock.search", () -> restClient.get()
+			OmniLensApiResponse<List<OmniLensStockSearchItem>> response = retryer.execute("stock.search", () -> restClient.get()
 					.uri(uriBuilder -> uriBuilder
 							.path("/api/v1/market/stocks/search")
 							.queryParam("query", query)
@@ -49,7 +51,16 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 					.retrieve()
 					.body(new ParameterizedTypeReference<>() {
 					}));
-			return data(response);
+			List<OmniLensStockSearchItem> results = data(response)
+					.stream()
+					.limit(Math.max(0, limit))
+					.toList();
+			return new OmniLensStockSearchResponse(
+					query,
+					market,
+					currency,
+					results,
+					"HANA_OMNILENS_API_SEARCH");
 		} catch (RestClientException exception) {
 			throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE, exception.getMessage());
 		}

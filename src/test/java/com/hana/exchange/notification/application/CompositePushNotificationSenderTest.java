@@ -19,7 +19,7 @@ class CompositePushNotificationSenderTest {
 	void sendsWithFirstDeliveredEnabledProviderAfterSkippedProvider() {
 		CompositePushNotificationSender sender = new CompositePushNotificationSender(
 				properties(List.of("FCM_PUSH", "LOCAL_NOOP_PUSH")),
-				List.of(new FcmPushProviderClient(), new LocalNoopPushNotificationSender()));
+				List.of(skipProvider("FCM_PUSH"), new LocalNoopPushNotificationSender()));
 
 		NotificationDeliveryResult result = sender.send(notification());
 
@@ -43,7 +43,7 @@ class CompositePushNotificationSenderTest {
 
 	@Test
 	void defaultsToLocalNoopProviderWhenNoProviderIsConfigured() {
-		NotificationPushProperties properties = new NotificationPushProperties(false, 0, 0, null, List.of());
+		NotificationPushProperties properties = properties(List.of());
 		CompositePushNotificationSender sender = new CompositePushNotificationSender(
 				properties,
 				List.of(new LocalNoopPushNotificationSender()));
@@ -56,7 +56,28 @@ class CompositePushNotificationSenderTest {
 	}
 
 	private NotificationPushProperties properties(List<String> enabledProviders) {
-		return new NotificationPushProperties(false, 10, 3, Duration.ofSeconds(30), enabledProviders);
+		return new NotificationPushProperties(
+				false,
+				10,
+				3,
+				Duration.ofSeconds(30),
+				enabledProviders,
+				new NotificationPushProperties.TokenVault(""),
+				NotificationPushProperties.Fcm.defaults());
+	}
+
+	private PushProviderClient skipProvider(String provider) {
+		return new PushProviderClient() {
+			@Override
+			public String provider() {
+				return provider;
+			}
+
+			@Override
+			public NotificationDeliveryResult send(NotificationItem notification) {
+				return NotificationDeliveryResult.skipped(provider, "not configured");
+			}
+		};
 	}
 
 	private NotificationItem notification() {

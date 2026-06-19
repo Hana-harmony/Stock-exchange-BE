@@ -62,6 +62,7 @@ class JdbcNotificationDeviceTokenRepositoryTest {
 		NotificationDeviceToken refreshed = token.seen(
 				"FCM_PUSH",
 				"android...123456",
+				null,
 				"1.0.1",
 				"en_US",
 				now.plusSeconds(10));

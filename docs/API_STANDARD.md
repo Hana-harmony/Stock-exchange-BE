@@ -231,6 +231,8 @@
 - Stored alert target responses and stock intelligence feed items return the same glossary and translation quality metadata so the FE can explain translated news or disclosure wording with the original link.
 - Reconnect policy uses the shared stream backoff settings, and replay policy sends `ALERT_STREAM_REPLAY` with the last ingested `publishedAt` when `HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED=true`.
 - Backpressure policy buffers validated alert events up to `HANA_OMNILENS_STREAM_BACKPRESSURE_BUFFER_SIZE`, then drains them into `AlertEventService.ingest`.
+- If ingest fails, the stream handler requeues the event for the next drain up to 3 attempts, then marks it dropped to prevent an infinite poison-message loop.
+- Internal stream stats include accepted, ingested, rejected, dropped, retry scheduled, failed ingest, buffer depth, and last ingested `publishedAt`.
 - REST ingest remains available for local smoke tests and adapter verification.
 
 ## Notification Delivery

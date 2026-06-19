@@ -37,6 +37,17 @@ exchange:
         project-id: ${EXCHANGE_NOTIFICATION_PUSH_FCM_PROJECT_ID:}
         access-token: ${EXCHANGE_NOTIFICATION_PUSH_FCM_ACCESS_TOKEN:}
         send-base-url: ${EXCHANGE_NOTIFICATION_PUSH_FCM_SEND_BASE_URL:https://fcm.googleapis.com}
+      apns:
+        bearer-token: ${EXCHANGE_NOTIFICATION_PUSH_APNS_BEARER_TOKEN:}
+        topic: ${EXCHANGE_NOTIFICATION_PUSH_APNS_TOPIC:}
+        send-base-url: ${EXCHANGE_NOTIFICATION_PUSH_APNS_SEND_BASE_URL:https://api.push.apple.com}
+      web-push:
+        gateway-base-url: ${EXCHANGE_NOTIFICATION_PUSH_WEB_GATEWAY_BASE_URL:}
+        gateway-api-key: ${EXCHANGE_NOTIFICATION_PUSH_WEB_GATEWAY_API_KEY:}
+        send-path: ${EXCHANGE_NOTIFICATION_PUSH_WEB_SEND_PATH:/send}
+        vapid-subject: ${EXCHANGE_NOTIFICATION_PUSH_WEB_VAPID_SUBJECT:}
+        vapid-public-key: ${EXCHANGE_NOTIFICATION_PUSH_WEB_VAPID_PUBLIC_KEY:}
+        vapid-private-key: ${EXCHANGE_NOTIFICATION_PUSH_WEB_VAPID_PRIVATE_KEY:}
   audit:
     retention-days: ${EXCHANGE_AUDIT_RETENTION_DAYS:365}
     retention-worker-enabled: ${EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED:false}

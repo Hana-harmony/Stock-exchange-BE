@@ -1,6 +1,7 @@
 package com.hana.exchange.trade.api;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 
@@ -17,6 +18,7 @@ import com.hana.exchange.common.api.ApiResponse;
 import com.hana.exchange.trade.application.TradeOrderabilityService;
 import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.PortfolioResponse;
+import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeOrderabilityResponse;
@@ -54,6 +56,14 @@ public class TradeController {
 	public ApiResponse<PortfolioResponse> getPortfolio(
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId) {
 		return ApiResponse.success(tradeService.getPortfolio(accountId));
+	}
+
+	@GetMapping("/portfolio/history")
+	@Operation(summary = "Get mock portfolio valuation history")
+	public ApiResponse<PortfolioValuationHistoryResponse> getPortfolioHistory(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
+			@RequestParam(defaultValue = "30") @Min(1) @Max(100) int limit) {
+		return ApiResponse.success(tradeService.getPortfolioHistory(accountId, limit));
 	}
 
 	@GetMapping("/trades/orderability")

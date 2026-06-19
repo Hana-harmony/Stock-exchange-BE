@@ -23,6 +23,9 @@ import com.hana.exchange.trade.domain.HoldingResponse;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
 import com.hana.exchange.trade.domain.PortfolioResponse;
+import com.hana.exchange.trade.domain.PortfolioValuationHistoryItemResponse;
+import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
+import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeSide;
@@ -94,7 +97,8 @@ public class TradeService {
 		BigDecimal unrealizedPnl = holdings.stream()
 				.map(holding -> new BigDecimal(holding.unrealizedPnlUsd()))
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
-		return new PortfolioResponse(
+		Instant servedAt = Instant.now();
+		PortfolioResponse response = new PortfolioResponse(
 				account.userId(),
 				account.accountId(),
 				USD,
@@ -106,6 +110,34 @@ public class TradeService {
 				TRADING_MODE,
 				holdings,
 				recentTrades,
+				servedAt);
+		tradeRepository.savePortfolioValuationSnapshot(new PortfolioValuationSnapshot(
+				idGenerator.newPortfolioValuationSnapshotId(),
+				account.accountId(),
+				account.userId(),
+				USD,
+				money(account.cashBalanceUsd()),
+				money(totalMarketValue),
+				money(account.cashBalanceUsd().add(totalMarketValue)),
+				money(realizedPnl),
+				money(unrealizedPnl),
+				holdings.size(),
+				servedAt));
+		return response;
+	}
+
+	public PortfolioValuationHistoryResponse getPortfolioHistory(String accountId, int limit) {
+		account(accountId);
+		List<PortfolioValuationHistoryItemResponse> snapshots = tradeRepository
+				.findPortfolioValuationSnapshots(accountId, limit)
+				.stream()
+				.map(this::toPortfolioValuationHistoryItemResponse)
+				.toList();
+		return new PortfolioValuationHistoryResponse(
+				accountId,
+				USD,
+				snapshots.size(),
+				snapshots,
 				Instant.now());
 	}
 
@@ -267,6 +299,20 @@ public class TradeService {
 				moneyText(cashBalanceUsd),
 				TRADING_MODE,
 				trade.executedAt());
+	}
+
+	private PortfolioValuationHistoryItemResponse toPortfolioValuationHistoryItemResponse(
+			PortfolioValuationSnapshot snapshot) {
+		return new PortfolioValuationHistoryItemResponse(
+				snapshot.snapshotId(),
+				snapshot.currency(),
+				moneyText(snapshot.cashBalanceUsd()),
+				moneyText(snapshot.totalMarketValueUsd()),
+				moneyText(snapshot.totalAssetValueUsd()),
+				moneyText(snapshot.realizedPnlUsd()),
+				moneyText(snapshot.unrealizedPnlUsd()),
+				snapshot.holdingCount(),
+				snapshot.valuedAt());
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {

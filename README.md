@@ -89,6 +89,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - `POST /api/v1/accounts/{accountId}/trades`
 - `GET /api/v1/accounts/{accountId}/trades/orderability?stockCode=005930&side=BUY&quantity=1`
 - `GET /api/v1/accounts/{accountId}/portfolio`
+- `GET /api/v1/accounts/{accountId}/portfolio/history?limit=30`
 - `GET /api/v1/accounts/{accountId}/watchlist`
 - `POST /api/v1/accounts/{accountId}/watchlist`
 - `DELETE /api/v1/accounts/{accountId}/watchlist/{stockCode}`
@@ -150,8 +151,9 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 12. FE는 모의 주문 전에 orderability API로 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 사용자에게 표시한다.
 13. 사용자가 모의 주문을 입력하면 Stock-exchange-BE가 같은 Hana-OmniLens-API orderability boundary를 다시 확인하고, 차단 사유가 있으면 mock ledger 기록 전에 주문을 거절한다.
 14. 차단 사유가 없으면 Hana-OmniLens-API의 USD 환산 quote 가격을 기준으로 Stock-exchange-BE 내부 원장에 가짜 매수·매도를 기록한다. 실제 한국 주식 주문이나 KIS 모의투자 주문은 실행하지 않는다.
-14. 포트폴리오 API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
-15. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
+14. 포트폴리오 API는 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산하고 평가 snapshot을 DB 이력으로 저장한다.
+15. 포트폴리오 평가 이력 API는 최근 snapshot의 현금, 평가금액, 총자산, 실현/미실현손익, 보유종목 수를 반환한다.
+16. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
 16. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
 17. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 원문 링크, AI 분석 결과, glossary, translation quality flag를 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
 18. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.

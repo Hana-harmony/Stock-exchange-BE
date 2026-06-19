@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 
 @Repository
 @Profile("memory")
@@ -19,6 +20,7 @@ public class InMemoryTradeRepository implements TradeRepository {
 
 	private final Map<String, MockHolding> holdingsByAccountAndStock = new ConcurrentHashMap<>();
 	private final Map<String, MockTradeLedgerEntry> tradesById = new ConcurrentHashMap<>();
+	private final Map<String, PortfolioValuationSnapshot> portfolioValuationSnapshotsById = new ConcurrentHashMap<>();
 
 	@Override
 	public Optional<MockHolding> findHolding(String accountId, String stockCode) {
@@ -72,6 +74,21 @@ public class InMemoryTradeRepository implements TradeRepository {
 		List<MockTradeLedgerEntry> trades = new ArrayList<>(findTrades(accountId));
 		trades.sort(Comparator.comparing(MockTradeLedgerEntry::executedAt).reversed());
 		return trades.stream().limit(limit).toList();
+	}
+
+	@Override
+	public void savePortfolioValuationSnapshot(PortfolioValuationSnapshot snapshot) {
+		portfolioValuationSnapshotsById.put(snapshot.snapshotId(), snapshot);
+	}
+
+	@Override
+	public List<PortfolioValuationSnapshot> findPortfolioValuationSnapshots(String accountId, int limit) {
+		return portfolioValuationSnapshotsById.values()
+				.stream()
+				.filter(snapshot -> snapshot.accountId().equals(accountId))
+				.sorted(Comparator.comparing(PortfolioValuationSnapshot::valuedAt).reversed())
+				.limit(limit)
+				.toList();
 	}
 
 	private String key(String accountId, String stockCode) {

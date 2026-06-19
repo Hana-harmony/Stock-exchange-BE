@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @Repository
@@ -149,6 +150,38 @@ public class JdbcTradeRepository implements TradeRepository {
 				limit);
 	}
 
+	@Override
+	public void savePortfolioValuationSnapshot(PortfolioValuationSnapshot snapshot) {
+		jdbcTemplate.update(
+				"INSERT INTO portfolio_valuation_snapshots "
+						+ "(snapshot_id, account_id, user_id, currency, cash_balance_usd, total_market_value_usd, "
+						+ "total_asset_value_usd, realized_pnl_usd, unrealized_pnl_usd, holding_count, valued_at) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+				snapshot.snapshotId(),
+				snapshot.accountId(),
+				snapshot.userId(),
+				snapshot.currency(),
+				snapshot.cashBalanceUsd(),
+				snapshot.totalMarketValueUsd(),
+				snapshot.totalAssetValueUsd(),
+				snapshot.realizedPnlUsd(),
+				snapshot.unrealizedPnlUsd(),
+				snapshot.holdingCount(),
+				timestamp(snapshot.valuedAt()));
+	}
+
+	@Override
+	public List<PortfolioValuationSnapshot> findPortfolioValuationSnapshots(String accountId, int limit) {
+		return jdbcTemplate.query(
+				"SELECT snapshot_id, account_id, user_id, currency, cash_balance_usd, total_market_value_usd, "
+						+ "total_asset_value_usd, realized_pnl_usd, unrealized_pnl_usd, holding_count, valued_at "
+						+ "FROM portfolio_valuation_snapshots WHERE account_id = ? "
+						+ "ORDER BY valued_at DESC LIMIT ?",
+				(resultSet, rowNumber) -> portfolioValuationSnapshot(resultSet),
+				accountId,
+				limit);
+	}
+
 	private MockHolding holding(ResultSet resultSet) throws SQLException {
 		return new MockHolding(
 				resultSet.getString("account_id"),
@@ -178,6 +211,21 @@ public class JdbcTradeRepository implements TradeRepository {
 				resultSet.getBigDecimal("average_price_usd_after"),
 				resultSet.getBigDecimal("cash_balance_usd_after"),
 				instant(resultSet, "executed_at"));
+	}
+
+	private PortfolioValuationSnapshot portfolioValuationSnapshot(ResultSet resultSet) throws SQLException {
+		return new PortfolioValuationSnapshot(
+				resultSet.getString("snapshot_id"),
+				resultSet.getString("account_id"),
+				resultSet.getString("user_id"),
+				resultSet.getString("currency"),
+				resultSet.getBigDecimal("cash_balance_usd"),
+				resultSet.getBigDecimal("total_market_value_usd"),
+				resultSet.getBigDecimal("total_asset_value_usd"),
+				resultSet.getBigDecimal("realized_pnl_usd"),
+				resultSet.getBigDecimal("unrealized_pnl_usd"),
+				resultSet.getInt("holding_count"),
+				instant(resultSet, "valued_at"));
 	}
 
 	private Timestamp timestamp(Instant instant) {

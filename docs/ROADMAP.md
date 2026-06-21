@@ -38,6 +38,7 @@
 - Hana-OmniLens-API WebSocket client: 기본 비활성화 설정, reconnect, replay, backpressure buffer 구현 완료
 - 이벤트 저장소와 idempotency key: REST ingest와 WebSocket 수신 기반 DB 저장 구현 완료
 - AI 번역 금융용어 glossary와 translation quality flag: 이벤트 저장소, 종목별 인텔리전스 피드, notification inbox 응답 전파 구현 완료
+- full-content news v2 field 확장: What/Why/Impact 요약, 원문/번역 전문, 이미지 URL, content availability, cluster key 저장과 FE feed 응답 전파 Planned
 - 보유종목/watchlist 대상자 매칭: REST ingest와 WebSocket 수신 기반 DB match result 저장과 notification push worker 구현 완료
 - alert replay/retry worker hardening: reconnect replay, backpressure buffer, ingest 실패 재시도와 poison message drop 구현 완료
 - push provider 연동: `LOCAL_NOOP_PUSH` provider abstraction, FCM/APNS/web push routing, FCM encrypted token vault와 HTTP v1 send client, APNS HTTP send client, Web Push gateway send client, delivery 상태, 실패/미발송 retry worker 구현 완료

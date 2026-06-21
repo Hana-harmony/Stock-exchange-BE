@@ -41,13 +41,14 @@
 | Hana-OmniLens-API WebSocket 구독 | Stock-exchange-BE | Done |
 | 이벤트 저장과 중복 제거 | Stock-exchange-BE | Done |
 | AI 번역 금융용어 glossary와 translation quality flag 수신·저장·응답 | Stock-exchange-BE | Done |
+| full-content news v2 필드 저장과 응답 | Stock-exchange-BE | Planned: What/Why/Impact, 원문/번역 전문, 이미지 URL, content availability, cluster key |
 | `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Done |
 | 알림함 저장, local push delivery 상태, 실패/미발송 retry worker | Stock-exchange-BE | Done |
 | FCM/APNS/web push provider routing과 미설정 provider SKIPPED 상태 기록 | Stock-exchange-BE | Done |
 | iOS/Android/web notification device token 등록·조회·비활성화 | Stock-exchange-BE | Done |
 | FCM token vault와 HTTP v1 외부 push 실발송 client | Stock-exchange-BE | Done |
 | 실제 APNS/web push 자격증명과 외부 provider 실발송 연동 | Stock-exchange-BE | Done |
-| 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done |
+| 종목별 인텔리전스 피드 API | Stock-exchange-BE | Done for v1, v2 목록·상세 field 확장 Planned |
 
 ## 3. 세무 전산화 및 환급금 선지급
 

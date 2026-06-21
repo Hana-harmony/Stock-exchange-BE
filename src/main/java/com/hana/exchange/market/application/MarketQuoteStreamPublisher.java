@@ -13,6 +13,7 @@ import com.hana.exchange.market.domain.MarketQuoteStreamPublishResponse;
 import com.hana.exchange.market.domain.MarketQuoteTickMessage;
 import com.hana.exchange.market.domain.MarketQuoteTickRequest;
 import com.hana.exchange.trade.application.TradeRepository;
+import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.watchlist.application.WatchlistRepository;
 import com.hana.exchange.watchlist.domain.WatchlistItem;
@@ -25,18 +26,22 @@ public class MarketQuoteStreamPublisher {
 	private final SimpMessagingTemplate messagingTemplate;
 	private final WatchlistRepository watchlistRepository;
 	private final TradeRepository tradeRepository;
+	private final TradeService tradeService;
 
 	public MarketQuoteStreamPublisher(
 			SimpMessagingTemplate messagingTemplate,
 			WatchlistRepository watchlistRepository,
-			TradeRepository tradeRepository) {
+			TradeRepository tradeRepository,
+			TradeService tradeService) {
 		this.messagingTemplate = messagingTemplate;
 		this.watchlistRepository = watchlistRepository;
 		this.tradeRepository = tradeRepository;
+		this.tradeService = tradeService;
 	}
 
 	public MarketQuoteStreamPublishResponse publish(MarketQuoteTickRequest request) {
 		Instant now = Instant.now();
+		tradeService.processLimitOrders(request);
 		MarketQuoteTickMessage message = toMessage(request, now);
 		List<String> topics = topics(request);
 		topics.forEach(topic -> messagingTemplate.convertAndSend(topic, message));

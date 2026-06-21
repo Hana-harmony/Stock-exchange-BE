@@ -19,8 +19,9 @@ import com.hana.exchange.trade.application.TradeOrderabilityService;
 import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.PortfolioResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
-import com.hana.exchange.trade.domain.TradeExecutionResponse;
 import com.hana.exchange.trade.domain.TradeLedgerHistoryResponse;
+import com.hana.exchange.trade.domain.TradeOrderHistoryResponse;
+import com.hana.exchange.trade.domain.TradeOrderPlacementResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
 import com.hana.exchange.trade.domain.TradeOrderabilityResponse;
 import com.hana.exchange.trade.domain.TradeSide;
@@ -45,11 +46,19 @@ public class TradeController {
 	}
 
 	@PostMapping("/trades")
-	@Operation(summary = "Execute a mock buy or sell using Hana OmniLens USD quote")
-	public ApiResponse<TradeExecutionResponse> executeTrade(
+	@Operation(summary = "Place a limit buy or sell order using Hana OmniLens USD quote")
+	public ApiResponse<TradeOrderPlacementResponse> executeTrade(
 			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
 			@Valid @RequestBody TradeOrderRequest request) {
 		return ApiResponse.success(tradeService.execute(accountId, request));
+	}
+
+	@GetMapping("/orders")
+	@Operation(summary = "Get limit order history")
+	public ApiResponse<TradeOrderHistoryResponse> getOrderHistory(
+			@PathVariable @Pattern(regexp = "ACC-[A-Z0-9]{12}") String accountId,
+			@RequestParam(defaultValue = "50") @Min(1) @Max(100) int limit) {
+		return ApiResponse.success(tradeService.getOrderHistory(accountId, limit));
 	}
 
 	@GetMapping("/trades")

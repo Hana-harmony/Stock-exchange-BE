@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Year;
@@ -58,8 +59,12 @@ class TaxRefundCaseControllerTest {
 	@MockitoBean
 	private OmniLensTaxStatusClient omniLensTaxStatusClient;
 
+	@MockitoBean
+	private Clock clock;
+
 	@BeforeEach
-	void allowMockOrdersByDefault() {
+	void prepareTradingSession() {
+		when(clock.instant()).thenReturn(Instant.parse("2026-06-18T01:00:00Z"));
 		when(omniLensOrderabilityClient.checkOrderability(anyString(), any(TradeSide.class), anyLong()))
 				.thenAnswer(invocation -> orderability(invocation.getArgument(0)));
 	}
@@ -322,9 +327,11 @@ class TaxRefundCaseControllerTest {
 								{
 								  "stockCode": "%s",
 								  "side": "%s",
-								  "quantity": %d
+								  "quantity": %d,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": %s
 								}
-								""".formatted(stockCode, side, quantity)))
+								""".formatted(stockCode, side, quantity, side.equals("BUY") ? "50.00" : "70.00")))
 				.andExpect(status().isOk());
 	}
 

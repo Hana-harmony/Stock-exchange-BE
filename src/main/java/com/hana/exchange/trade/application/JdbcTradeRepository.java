@@ -13,7 +13,9 @@ import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PendingLimitOrder;
 import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
+import com.hana.exchange.trade.domain.TradeOrderStatus;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @Repository
@@ -151,6 +153,63 @@ public class JdbcTradeRepository implements TradeRepository {
 	}
 
 	@Override
+	public void saveLimitOrder(PendingLimitOrder order) {
+		int updated = jdbcTemplate.update(
+				"UPDATE pending_limit_orders "
+						+ "SET observed_price_usd = ?, status = ?, trade_id = ?, filled_at = ? "
+						+ "WHERE order_id = ?",
+				order.observedPriceUsd(),
+				order.status().name(),
+				order.tradeId(),
+				timestamp(order.filledAt()),
+				order.orderId());
+		if (updated == 0) {
+			jdbcTemplate.update(
+					"INSERT INTO pending_limit_orders "
+							+ "(order_id, account_id, user_id, stock_code, stock_name, side, quantity, "
+							+ "limit_price_usd, observed_price_usd, status, trade_id, created_at, filled_at) "
+							+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+					order.orderId(),
+					order.accountId(),
+					order.userId(),
+					order.stockCode(),
+					order.stockName(),
+					order.side().name(),
+					order.quantity(),
+					order.limitPriceUsd(),
+					order.observedPriceUsd(),
+					order.status().name(),
+					order.tradeId(),
+					timestamp(order.createdAt()),
+					timestamp(order.filledAt()));
+		}
+	}
+
+	@Override
+	public List<PendingLimitOrder> findRecentLimitOrders(String accountId, int limit) {
+		return jdbcTemplate.query(
+				"SELECT order_id, account_id, user_id, stock_code, stock_name, side, quantity, "
+						+ "limit_price_usd, observed_price_usd, status, trade_id, created_at, filled_at "
+						+ "FROM pending_limit_orders WHERE account_id = ? "
+						+ "ORDER BY created_at DESC LIMIT ?",
+				(resultSet, rowNumber) -> limitOrder(resultSet),
+				accountId,
+				limit);
+	}
+
+	@Override
+	public List<PendingLimitOrder> findPendingLimitOrdersByStockCode(String stockCode) {
+		return jdbcTemplate.query(
+				"SELECT order_id, account_id, user_id, stock_code, stock_name, side, quantity, "
+						+ "limit_price_usd, observed_price_usd, status, trade_id, created_at, filled_at "
+						+ "FROM pending_limit_orders WHERE stock_code = ? AND status = ? "
+						+ "ORDER BY created_at ASC",
+				(resultSet, rowNumber) -> limitOrder(resultSet),
+				stockCode,
+				TradeOrderStatus.PENDING.name());
+	}
+
+	@Override
 	public void savePortfolioValuationSnapshot(PortfolioValuationSnapshot snapshot) {
 		jdbcTemplate.update(
 				"INSERT INTO portfolio_valuation_snapshots "
@@ -213,6 +272,23 @@ public class JdbcTradeRepository implements TradeRepository {
 				instant(resultSet, "executed_at"));
 	}
 
+	private PendingLimitOrder limitOrder(ResultSet resultSet) throws SQLException {
+		return new PendingLimitOrder(
+				resultSet.getString("order_id"),
+				resultSet.getString("account_id"),
+				resultSet.getString("user_id"),
+				resultSet.getString("stock_code"),
+				resultSet.getString("stock_name"),
+				TradeSide.valueOf(resultSet.getString("side")),
+				resultSet.getLong("quantity"),
+				resultSet.getBigDecimal("limit_price_usd"),
+				resultSet.getBigDecimal("observed_price_usd"),
+				TradeOrderStatus.valueOf(resultSet.getString("status")),
+				resultSet.getString("trade_id"),
+				instant(resultSet, "created_at"),
+				nullableInstant(resultSet, "filled_at"));
+	}
+
 	private PortfolioValuationSnapshot portfolioValuationSnapshot(ResultSet resultSet) throws SQLException {
 		return new PortfolioValuationSnapshot(
 				resultSet.getString("snapshot_id"),
@@ -229,10 +305,18 @@ public class JdbcTradeRepository implements TradeRepository {
 	}
 
 	private Timestamp timestamp(Instant instant) {
+		if (instant == null) {
+			return null;
+		}
 		return Timestamp.from(instant);
 	}
 
 	private Instant instant(ResultSet resultSet, String column) throws SQLException {
 		return resultSet.getTimestamp(column).toInstant();
+	}
+
+	private Instant nullableInstant(ResultSet resultSet, String column) throws SQLException {
+		Timestamp timestamp = resultSet.getTimestamp(column);
+		return timestamp == null ? null : timestamp.toInstant();
 	}
 }

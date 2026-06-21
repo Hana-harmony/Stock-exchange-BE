@@ -107,7 +107,7 @@
   - `limit`: optional result limit from 1 to 50. Defaults to 20.
 - `GET /api/v1/stocks/{stockCode}`
   - Stock detail for the FE stock detail screen.
-  - Returns English display name, KRW price, requested local currency price, foreign ownership metrics, predicted intraday foreign ownership and limit-exhaustion min/max boundary, VI state, price limit state, trading halt, and orderable flag.
+  - Returns English display name, KRW price, requested local currency price, foreign ownership metrics, predicted intraday foreign ownership and limit-exhaustion min/max boundary, prediction confidence/model version, VI state, price limit state, trading halt, and orderable flag.
 - Stock search/detail calls Hana-OmniLens-API and returns the common response envelope.
 
 ## Market Quote Snapshot
@@ -141,7 +141,7 @@
   - Query params: `stockCode`, `side`, `quantity`.
   - Calls Hana-OmniLens-API orderability boundary before a mock order.
   - Returns `canPlaceMockOrder`, `blockingReasons`, and `warnings`.
-  - Blocking reasons include foreign ownership limit exhaustion, trading halt, or upstream order blocked reason.
+  - Blocking reasons include deterministic foreign ownership limit exhaustion, trading halt, or upstream order blocked reason. Time-series max boundary and confidence are warning/display metadata, not standalone blocking rules.
   - Warnings include VI activity, single-price trading, and buy/sell at upper/lower price limit.
 - `POST /api/v1/accounts/{accountId}/trades`
   - Re-checks the same Hana-OmniLens-API orderability boundary before writing the mock ledger.

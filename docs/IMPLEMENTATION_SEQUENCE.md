@@ -83,6 +83,7 @@
 - mock 주문 실행 API는 같은 orderability boundary를 다시 확인하고, 차단 사유가 있으면 DB ledger 기록 전에 주문을 거절한다.
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 - DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭하고, alert event와 notification inbox에 AI 번역 품질 메타데이터, What/Why/Impact 요약, 이미지 URL, content availability를 함께 저장한다.
+- alert event 저장 schema는 원문/번역 전문, translated summary, image URL, cluster key를 보존하고 종목별 intelligence feed API로 그대로 전달한다.
 - Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
 - notification은 provider 추상화, delivery 상태, 계좌별 iOS/Android/web device token 등록 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다. `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있으며, FCM HTTP v1, APNS HTTP, Web Push gateway 실발송 client가 configured credential 기준으로 외부 발송한다. 외부 자격증명이 없으면 `SKIPPED`로 기록한다. 실패/미발송 notification은 환경변수로 활성화하는 retry worker가 batch size와 max attempt 기준으로 재전송한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.

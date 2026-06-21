@@ -4,6 +4,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -65,15 +66,26 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 	public void save(AlertEvent event, AlertEventMatchResult matchResult) {
 		jdbcTemplate.update(
 				"INSERT INTO alert_events "
-						+ "(event_id, idempotency_key, source_type, title, summary, original_url, stock_code, "
+						+ "(event_id, idempotency_key, source_type, title, summary, "
+						+ "summary_what, summary_why, summary_impact, translated_summary, "
+						+ "original_content, translated_content, image_urls, content_availability, "
+						+ "original_url, stock_code, "
 						+ "sentiment, importance, risk_level, watchlist_target, holder_target, "
-						+ "published_at, received_at, matched_at) "
-						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+						+ "cluster_key, published_at, received_at, matched_at) "
+						+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 				event.eventId(),
 				event.idempotencyKey(),
 				event.sourceType(),
 				event.title(),
 				event.summary(),
+				event.summaryLines().what(),
+				event.summaryLines().why(),
+				event.summaryLines().impact(),
+				event.translatedSummary(),
+				event.originalContent(),
+				event.translatedContent(),
+				imageUrls(event.imageUrls()),
+				event.contentAvailability(),
 				event.originalUrl(),
 				event.stockCode(),
 				event.sentiment(),
@@ -81,6 +93,7 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 				event.riskLevel(),
 				event.watchlistTarget(),
 				event.holderTarget(),
+				event.clusterKey(),
 				timestamp(event.publishedAt()),
 				timestamp(event.receivedAt()),
 				timestamp(matchResult.matchedAt()));
@@ -173,11 +186,21 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 				resultSet.getString("source_type"),
 				resultSet.getString("title"),
 				resultSet.getString("summary"),
+				new com.hana.exchange.alert.domain.AlertSummaryLines(
+						resultSet.getString("summary_what"),
+						resultSet.getString("summary_why"),
+						resultSet.getString("summary_impact")),
+				resultSet.getString("translated_summary"),
+				resultSet.getString("original_content"),
+				resultSet.getString("translated_content"),
+				imageUrls(resultSet.getString("image_urls")),
+				resultSet.getString("content_availability"),
 				resultSet.getString("original_url"),
 				resultSet.getString("stock_code"),
 				relatedStocks(resultSet.getString("event_id")),
 				glossaryTerms(resultSet.getString("event_id")),
 				translationQualityFlags(resultSet.getString("event_id")),
+				resultSet.getString("cluster_key"),
 				resultSet.getString("sentiment"),
 				resultSet.getString("importance"),
 				resultSet.getString("risk_level"),
@@ -250,9 +273,25 @@ public class JdbcAlertEventRepository implements AlertEventRepository {
 	}
 
 	private String eventSelect() {
-		return "SELECT event_id, idempotency_key, source_type, title, summary, original_url, stock_code, "
+		return "SELECT event_id, idempotency_key, source_type, title, summary, "
+				+ "summary_what, summary_why, summary_impact, translated_summary, "
+				+ "original_content, translated_content, image_urls, content_availability, "
+				+ "original_url, stock_code, "
 				+ "sentiment, importance, risk_level, watchlist_target, holder_target, "
-				+ "published_at, received_at, matched_at FROM alert_events";
+				+ "cluster_key, published_at, received_at, matched_at FROM alert_events";
+	}
+
+	private String imageUrls(List<String> imageUrls) {
+		return String.join("\n", imageUrls);
+	}
+
+	private List<String> imageUrls(String imageUrls) {
+		if (imageUrls == null || imageUrls.isBlank()) {
+			return List.of();
+		}
+		return Arrays.stream(imageUrls.split("\\n"))
+				.filter(value -> !value.isBlank())
+				.toList();
 	}
 
 	private Timestamp timestamp(Instant instant) {

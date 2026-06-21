@@ -35,6 +35,12 @@ class StockIntelligenceFeedControllerTest {
 				.andExpect(jsonPath("$.data.items[0].eventId").value("FEED-EVENT-01"))
 				.andExpect(jsonPath("$.data.items[0].sourceType").value("NEWS"))
 				.andExpect(jsonPath("$.data.items[0].summary").value("Translated AI summary for feed"))
+				.andExpect(jsonPath("$.data.items[0].summaryLines.what").value("What happened"))
+				.andExpect(jsonPath("$.data.items[0].translatedSummary").value("Translated AI summary for feed"))
+				.andExpect(jsonPath("$.data.items[0].translatedContent").value("Translated full article"))
+				.andExpect(jsonPath("$.data.items[0].imageUrls[0]").value("https://news.example.com/image.jpg"))
+				.andExpect(jsonPath("$.data.items[0].contentAvailability").value("FULL_TEXT"))
+				.andExpect(jsonPath("$.data.items[0].clusterKey").value("cluster-feed-key"))
 				.andExpect(jsonPath("$.data.items[0].originalUrl").value("https://news.example.com/feed-original"))
 				.andExpect(jsonPath("$.data.items[0].glossaryTerms[0].sourceTerm").value("공시"))
 				.andExpect(jsonPath("$.data.items[0].translationQualityFlags[0]").value("GLOSSARY_MATCHED"))
@@ -73,6 +79,16 @@ class StockIntelligenceFeedControllerTest {
 				  "sourceType": "NEWS",
 				  "title": "Market intelligence feed update",
 				  "summary": "Translated AI summary for feed",
+				  "summaryLines": {
+				    "what": "What happened",
+				    "why": "Why it matters",
+				    "impact": "Expected impact"
+				  },
+				  "translatedSummary": "Translated AI summary for feed",
+				  "originalContent": "원문 기사 전문",
+				  "translatedContent": "Translated full article",
+				  "imageUrls": ["https://news.example.com/image.jpg"],
+				  "contentAvailability": "FULL_TEXT",
 				  "originalUrl": "https://news.example.com/feed-original",
 				  "stockCode": "%s",
 				  "relatedStocks": ["%s"],
@@ -85,6 +101,7 @@ class StockIntelligenceFeedControllerTest {
 				    }
 				  ],
 				  "translationQualityFlags": ["GLOSSARY_MATCHED"],
+				  "clusterKey": "cluster-feed-key",
 				  "sentiment": "POSITIVE",
 				  "importance": "HIGH",
 				  "riskLevel": "MEDIUM",

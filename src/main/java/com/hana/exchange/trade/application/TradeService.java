@@ -2,7 +2,12 @@ package com.hana.exchange.trade.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
+import java.time.DayOfWeek;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,16 +24,22 @@ import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.domain.MarketQuoteTickRequest;
 import com.hana.exchange.trade.domain.HoldingResponse;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PendingLimitOrder;
 import com.hana.exchange.trade.domain.PortfolioResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationHistoryItemResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationHistoryResponse;
 import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 import com.hana.exchange.trade.domain.TradeExecutionResponse;
 import com.hana.exchange.trade.domain.TradeLedgerHistoryResponse;
+import com.hana.exchange.trade.domain.TradeOrderHistoryResponse;
+import com.hana.exchange.trade.domain.TradeOrderPlacementResponse;
 import com.hana.exchange.trade.domain.TradeOrderRequest;
+import com.hana.exchange.trade.domain.TradeOrderStatus;
+import com.hana.exchange.trade.domain.TradeOrderType;
 import com.hana.exchange.trade.domain.TradeSide;
 
 @Service
@@ -37,6 +48,9 @@ public class TradeService {
 	private static final String USD = "USD";
 	private static final String TRADING_MODE = "EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING";
 	private static final int RECENT_TRADE_LIMIT = 20;
+	private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
+	private static final LocalTime MARKET_OPEN = LocalTime.of(9, 0);
+	private static final LocalTime MARKET_CLOSE = LocalTime.of(15, 30);
 
 	private final AccountRepository accountRepository;
 	private final TradeRepository tradeRepository;
@@ -44,6 +58,7 @@ public class TradeService {
 	private final TradeOrderabilityService tradeOrderabilityService;
 	private final IdGenerator idGenerator;
 	private final AuditEventService auditEventService;
+	private final Clock clock;
 
 	public TradeService(
 			AccountRepository accountRepository,
@@ -51,29 +66,80 @@ public class TradeService {
 			OmniLensMarketQuoteClient quoteClient,
 			TradeOrderabilityService tradeOrderabilityService,
 			IdGenerator idGenerator,
-			AuditEventService auditEventService) {
+			AuditEventService auditEventService,
+			Clock clock) {
 		this.accountRepository = accountRepository;
 		this.tradeRepository = tradeRepository;
 		this.quoteClient = quoteClient;
 		this.tradeOrderabilityService = tradeOrderabilityService;
 		this.idGenerator = idGenerator;
 		this.auditEventService = auditEventService;
+		this.clock = clock;
 	}
 
-	public TradeExecutionResponse execute(String accountId, TradeOrderRequest request) {
+	public TradeOrderPlacementResponse execute(String accountId, TradeOrderRequest request) {
+		Instant now = now();
+		ensureMarketOpen(now);
+		if (request.orderType() != TradeOrderType.LIMIT) {
+			throw new BusinessException(ErrorCode.UNSUPPORTED_ORDER_TYPE);
+		}
 		if (!tradeOrderabilityService.check(accountId, request.stockCode(), request.side(), request.quantity()).canPlaceMockOrder()) {
 			throw new BusinessException(ErrorCode.MOCK_ORDER_BLOCKED);
 		}
 		MockUsdAccount account = account(accountId);
 		OmniLensMarketQuote quote = quoteClient.getQuote(request.stockCode(), USD);
-		BigDecimal executionPriceUsd = money(quote.localCurrencyPrice());
-		BigDecimal grossAmountUsd = money(executionPriceUsd.multiply(BigDecimal.valueOf(request.quantity())));
-		Instant now = Instant.now();
+		BigDecimal observedPriceUsd = money(quote.localCurrencyPrice());
+		BigDecimal limitPriceUsd = money(request.limitPriceUsd());
+		validateLimitOrderBalance(account, quote, request.side(), request.quantity(), limitPriceUsd);
+		PendingLimitOrder order = new PendingLimitOrder(
+				idGenerator.newOrderId(),
+				account.accountId(),
+				account.userId(),
+				quote.stockCode(),
+				displayName(quote),
+				request.side(),
+				request.quantity(),
+				limitPriceUsd,
+				observedPriceUsd,
+				TradeOrderStatus.PENDING,
+				null,
+				now,
+				null);
 
-		if (request.side() == TradeSide.BUY) {
-			return buy(account, quote, request.quantity(), executionPriceUsd, grossAmountUsd, now);
+		if (!limitReached(request.side(), observedPriceUsd, limitPriceUsd)) {
+			tradeRepository.saveLimitOrder(order);
+			return toOrderResponse(order, null, "Limit order is waiting for the market price to reach the limit.");
 		}
-		return sell(account, quote, request.quantity(), executionPriceUsd, grossAmountUsd, now);
+
+		BigDecimal grossAmountUsd = money(observedPriceUsd.multiply(BigDecimal.valueOf(request.quantity())));
+		ExecutionResult result = executeSide(account, quote, request.side(), request.quantity(), observedPriceUsd, grossAmountUsd, now);
+		PendingLimitOrder filled = order.filled(result.trade().tradeId(), observedPriceUsd, now);
+		tradeRepository.saveLimitOrder(filled);
+		return toOrderResponse(filled, result.response(), "Limit order filled at the current market price.");
+	}
+
+	public int processLimitOrders(MarketQuoteTickRequest request) {
+		Instant now = now();
+		if (!isMarketOpen(now)) {
+			return 0;
+		}
+		BigDecimal observedPriceUsd = money(request.localCurrencyPrice());
+		int filledCount = 0;
+		for (PendingLimitOrder order : tradeRepository.findPendingLimitOrdersByStockCode(request.stockCode())) {
+			if (!limitReached(order.side(), observedPriceUsd, order.limitPriceUsd())) {
+				continue;
+			}
+			try {
+				MockUsdAccount account = account(order.accountId());
+				OmniLensMarketQuote quote = quoteFromTick(request);
+				BigDecimal grossAmountUsd = money(observedPriceUsd.multiply(BigDecimal.valueOf(order.quantity())));
+				ExecutionResult result = executeSide(account, quote, order.side(), order.quantity(), observedPriceUsd, grossAmountUsd, now);
+				tradeRepository.saveLimitOrder(order.filled(result.trade().tradeId(), observedPriceUsd, now));
+				filledCount++;
+			} catch (BusinessException ignored) {
+			}
+		}
+		return filledCount;
 	}
 
 	public PortfolioResponse getPortfolio(String accountId) {
@@ -98,7 +164,7 @@ public class TradeService {
 		BigDecimal unrealizedPnl = holdings.stream()
 				.map(holding -> new BigDecimal(holding.unrealizedPnlUsd()))
 				.reduce(BigDecimal.ZERO, BigDecimal::add);
-		Instant servedAt = Instant.now();
+		Instant servedAt = now();
 		PortfolioResponse response = new PortfolioResponse(
 				account.userId(),
 				account.accountId(),
@@ -139,7 +205,7 @@ public class TradeService {
 				USD,
 				snapshots.size(),
 				snapshots,
-				Instant.now());
+				now());
 	}
 
 	public TradeLedgerHistoryResponse getTradeLedgerHistory(String accountId, int limit) {
@@ -152,10 +218,39 @@ public class TradeService {
 				accountId,
 				trades.size(),
 				trades,
-				Instant.now());
+				now());
 	}
 
-	private TradeExecutionResponse buy(
+	public TradeOrderHistoryResponse getOrderHistory(String accountId, int limit) {
+		account(accountId);
+		List<TradeOrderPlacementResponse> orders = tradeRepository.findRecentLimitOrders(accountId, limit)
+				.stream()
+				.map(order -> toOrderResponse(order, null, order.status() == TradeOrderStatus.FILLED
+						? "Limit order filled."
+						: "Limit order is waiting for the market price to reach the limit."))
+				.toList();
+		return new TradeOrderHistoryResponse(
+				accountId,
+				orders.size(),
+				orders,
+				now());
+	}
+
+	private ExecutionResult executeSide(
+			MockUsdAccount account,
+			OmniLensMarketQuote quote,
+			TradeSide side,
+			long quantity,
+			BigDecimal executionPriceUsd,
+			BigDecimal grossAmountUsd,
+			Instant now) {
+		if (side == TradeSide.BUY) {
+			return buy(account, quote, quantity, executionPriceUsd, grossAmountUsd, now);
+		}
+		return sell(account, quote, quantity, executionPriceUsd, grossAmountUsd, now);
+	}
+
+	private ExecutionResult buy(
 			MockUsdAccount account,
 			OmniLensMarketQuote quote,
 			long quantity,
@@ -183,10 +278,10 @@ public class TradeService {
 		tradeRepository.saveHolding(updatedHolding);
 		tradeRepository.saveTrade(trade);
 		recordTradeAudit(trade);
-		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
+		return new ExecutionResult(trade, toTradeResponse(trade, updatedAccount.cashBalanceUsd()));
 	}
 
-	private TradeExecutionResponse sell(
+	private ExecutionResult sell(
 			MockUsdAccount account,
 			OmniLensMarketQuote quote,
 			long quantity,
@@ -216,7 +311,7 @@ public class TradeService {
 		tradeRepository.saveHolding(updatedHolding);
 		tradeRepository.saveTrade(trade);
 		recordTradeAudit(trade);
-		return toTradeResponse(trade, updatedAccount.cashBalanceUsd());
+		return new ExecutionResult(trade, toTradeResponse(trade, updatedAccount.cashBalanceUsd()));
 	}
 
 	private void recordTradeAudit(MockTradeLedgerEntry trade) {
@@ -329,6 +424,100 @@ public class TradeService {
 				snapshot.valuedAt());
 	}
 
+	private TradeOrderPlacementResponse toOrderResponse(
+			PendingLimitOrder order,
+			TradeExecutionResponse tradeExecution,
+			String message) {
+		return new TradeOrderPlacementResponse(
+				order.orderId(),
+				order.accountId(),
+				order.stockCode(),
+				order.stockName(),
+				order.side(),
+				order.quantity(),
+				TradeOrderType.LIMIT,
+				moneyText(order.limitPriceUsd()),
+				moneyText(order.observedPriceUsd()),
+				order.status(),
+				tradeExecution,
+				TRADING_MODE,
+				message,
+				order.createdAt(),
+				order.filledAt());
+	}
+
+	private void validateLimitOrderBalance(
+			MockUsdAccount account,
+			OmniLensMarketQuote quote,
+			TradeSide side,
+			long quantity,
+			BigDecimal limitPriceUsd) {
+		if (side == TradeSide.BUY) {
+			BigDecimal maxGrossAmountUsd = money(limitPriceUsd.multiply(BigDecimal.valueOf(quantity)));
+			if (account.cashBalanceUsd().compareTo(maxGrossAmountUsd) < 0) {
+				throw new BusinessException(ErrorCode.MOCK_ACCOUNT_INSUFFICIENT_BALANCE);
+			}
+			return;
+		}
+		MockHolding holding = tradeRepository.findHolding(account.accountId(), quote.stockCode())
+				.orElseThrow(() -> new BusinessException(ErrorCode.MOCK_HOLDING_INSUFFICIENT_QUANTITY));
+		if (holding.quantity() < quantity) {
+			throw new BusinessException(ErrorCode.MOCK_HOLDING_INSUFFICIENT_QUANTITY);
+		}
+	}
+
+	private boolean limitReached(TradeSide side, BigDecimal observedPriceUsd, BigDecimal limitPriceUsd) {
+		if (side == TradeSide.BUY) {
+			return observedPriceUsd.compareTo(limitPriceUsd) <= 0;
+		}
+		return observedPriceUsd.compareTo(limitPriceUsd) >= 0;
+	}
+
+	private void ensureMarketOpen(Instant now) {
+		if (!isMarketOpen(now)) {
+			throw new BusinessException(ErrorCode.MARKET_CLOSED);
+		}
+	}
+
+	private boolean isMarketOpen(Instant now) {
+		ZonedDateTime koreanTime = now.atZone(KOREA_ZONE);
+		DayOfWeek dayOfWeek = koreanTime.getDayOfWeek();
+		if (dayOfWeek == DayOfWeek.SATURDAY || dayOfWeek == DayOfWeek.SUNDAY) {
+			return false;
+		}
+		LocalTime time = koreanTime.toLocalTime();
+		return !time.isBefore(MARKET_OPEN) && time.isBefore(MARKET_CLOSE);
+	}
+
+	private Instant now() {
+		return Instant.now(clock);
+	}
+
+	private OmniLensMarketQuote quoteFromTick(MarketQuoteTickRequest request) {
+		return new OmniLensMarketQuote(
+				request.stockCode(),
+				request.stockName(),
+				request.stockName(),
+				request.market(),
+				request.currentPriceKrw(),
+				request.changeRate(),
+				request.volume(),
+				request.currentPriceKrw(),
+				"KRW",
+				request.localCurrencyPrice(),
+				request.localCurrency(),
+				request.fxRate(),
+				request.fxRateTime(),
+				request.fxRateSource(),
+				request.fxStale(),
+				0L,
+				BigDecimal.ZERO,
+				BigDecimal.ZERO,
+				null,
+				request.marketDataTime(),
+				request.source());
+	}
+
 	private String displayName(OmniLensMarketQuote quote) {
 		if (quote.stockNameEn() != null && !quote.stockNameEn().isBlank()) {
 			return quote.stockNameEn();
@@ -351,5 +540,8 @@ public class TradeService {
 		return pnl.multiply(BigDecimal.valueOf(100))
 				.divide(costBasis, 2, RoundingMode.HALF_UP)
 				.toPlainString();
+	}
+
+	private record ExecutionResult(MockTradeLedgerEntry trade, TradeExecutionResponse response) {
 	}
 }

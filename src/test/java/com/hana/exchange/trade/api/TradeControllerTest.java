@@ -10,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import com.jayway.jsonpath.JsonPath;
 
@@ -47,8 +49,14 @@ class TradeControllerTest {
 	@MockitoBean
 	private OmniLensOrderabilityClient omniLensOrderabilityClient;
 
+	@MockitoBean
+	private Clock clock;
+
 	@BeforeEach
-	void allowMockOrdersByDefault() {
+	void prepareTradingSession() {
+		AtomicLong tick = new AtomicLong();
+		when(clock.instant()).thenAnswer(invocation ->
+				Instant.parse("2026-06-18T01:00:00Z").plusMillis(tick.getAndIncrement()));
 		when(omniLensOrderabilityClient.checkOrderability(anyString(), any(TradeSide.class), anyLong()))
 				.thenAnswer(invocation -> orderability(invocation.getArgument(0), true, null, false, false, "NORMAL", false));
 	}
@@ -66,7 +74,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "BUY",
-								  "quantity": 2
+								  "quantity": 2,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isOk())
@@ -75,10 +85,11 @@ class TradeControllerTest {
 				.andExpect(jsonPath("$.data.stockName").value("Samsung Electronics"))
 				.andExpect(jsonPath("$.data.side").value("BUY"))
 				.andExpect(jsonPath("$.data.quantity").value(2))
-				.andExpect(jsonPath("$.data.executionPriceUsd").value("50.00"))
-				.andExpect(jsonPath("$.data.grossAmountUsd").value("100.00"))
-				.andExpect(jsonPath("$.data.cashBalanceUsdAfter").value("100.00"))
-				.andExpect(jsonPath("$.data.remainingQuantity").value(2))
+				.andExpect(jsonPath("$.data.status").value("FILLED"))
+				.andExpect(jsonPath("$.data.tradeExecution.executionPriceUsd").value("50.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.grossAmountUsd").value("100.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.cashBalanceUsdAfter").value("100.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.remainingQuantity").value(2))
 				.andExpect(jsonPath("$.data.tradingMode").value("EXCHANGE_MOCK_LEDGER_NOT_KIS_MOCK_TRADING"));
 
 		when(omniLensMarketQuoteClient.getQuotes(List.of("005930"), "USD"))
@@ -131,7 +142,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "BUY",
-								  "quantity": 3
+								  "quantity": 3,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isOk());
@@ -143,16 +156,19 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "SELL",
-								  "quantity": 1
+								  "quantity": 1,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 60.00
 								}
 								"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.side").value("SELL"))
-				.andExpect(jsonPath("$.data.executionPriceUsd").value("60.00"))
-				.andExpect(jsonPath("$.data.grossAmountUsd").value("60.00"))
-				.andExpect(jsonPath("$.data.realizedPnlUsd").value("10.00"))
-				.andExpect(jsonPath("$.data.remainingQuantity").value(2))
-				.andExpect(jsonPath("$.data.cashBalanceUsdAfter").value("210.00"));
+				.andExpect(jsonPath("$.data.status").value("FILLED"))
+				.andExpect(jsonPath("$.data.tradeExecution.executionPriceUsd").value("60.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.grossAmountUsd").value("60.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.realizedPnlUsd").value("10.00"))
+				.andExpect(jsonPath("$.data.tradeExecution.remainingQuantity").value(2))
+				.andExpect(jsonPath("$.data.tradeExecution.cashBalanceUsdAfter").value("210.00"));
 
 		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades", session.accountId())
 						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
@@ -186,6 +202,76 @@ class TradeControllerTest {
 	}
 
 	@Test
+	void limitBuyOrderWaitsAndFillsWhenQuoteTickReachesLimit() throws Exception {
+		AuthSession session = fundedAccount("PendingLimitTrader01", "200.00");
+		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
+				.thenReturn(quote("005930", "Samsung Electronics", "50.00"));
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "stockCode": "005930",
+								  "side": "BUY",
+								  "quantity": 2,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 45.00
+								}
+								"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.status").value("PENDING"))
+				.andExpect(jsonPath("$.data.tradeExecution").doesNotExist());
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/orders", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.orderCount").value(1))
+				.andExpect(jsonPath("$.data.orders[0].status").value("PENDING"));
+
+		mockMvc.perform(post("/api/v1/market/stream/quotes")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content(tickPayload("005930", "Samsung Electronics", "44.00")))
+				.andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/orders", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.orders[0].status").value("FILLED"));
+
+		mockMvc.perform(get("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.param("limit", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.tradeCount").value(1))
+				.andExpect(jsonPath("$.data.trades[0].executionPriceUsd").value("44.00"));
+	}
+
+	@Test
+	void limitOrderRejectsWhenKoreanMarketIsClosed() throws Exception {
+		when(clock.instant()).thenReturn(Instant.parse("2026-06-21T01:00:00Z"));
+		AuthSession session = fundedAccount("ClosedMarketTrader01", "200.00");
+
+		mockMvc.perform(post("/api/v1/accounts/{accountId}/trades", session.accountId())
+						.header(HttpHeaders.AUTHORIZATION, session.authorizationHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "stockCode": "005930",
+								  "side": "BUY",
+								  "quantity": 1,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
+								}
+								"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.code").value("TRADE_004"));
+	}
+
+	@Test
 	void buyRejectsInsufficientMockUsdBalance() throws Exception {
 		AuthSession session = fundedAccount("PoorTrader01", "10.00");
 		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
@@ -198,7 +284,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "BUY",
-								  "quantity": 1
+								  "quantity": 1,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isConflict())
@@ -219,7 +307,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "BUY",
-								  "quantity": 1
+								  "quantity": 1,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isConflict())
@@ -247,7 +337,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "005930",
 								  "side": "SELL",
-								  "quantity": 1
+								  "quantity": 1,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isConflict())
@@ -266,7 +358,9 @@ class TradeControllerTest {
 								{
 								  "stockCode": "ABCDEF",
 								  "side": "BUY",
-								  "quantity": 0
+								  "quantity": 0,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 50.00
 								}
 								"""))
 				.andExpect(status().isBadRequest())
@@ -385,6 +479,27 @@ class TradeControllerTest {
 				LocalDate.parse("2026-06-18"),
 				Instant.parse("2026-06-18T06:00:00Z"),
 				"HANA_OMNILENS_API");
+	}
+
+	private String tickPayload(String stockCode, String stockName, String usdPrice) {
+		return """
+				{
+				  "stockCode": "%s",
+				  "stockName": "%s",
+				  "market": "KOSPI",
+				  "currentPriceKrw": 62000,
+				  "changeRate": -1.25,
+				  "volume": 1000000,
+				  "localCurrency": "USD",
+				  "localCurrencyPrice": %s,
+				  "fxRate": 0.00072,
+				  "fxRateTime": "2026-06-18T01:00:00Z",
+				  "fxRateSource": "HANA_FX_RATE_API",
+				  "fxStale": false,
+				  "marketDataTime": "2026-06-18T01:00:01Z",
+				  "source": "HANA_OMNILENS_API_STREAM"
+				}
+				""".formatted(stockCode, stockName, usdPrice);
 	}
 
 	private OmniLensOrderabilityResponse orderability(

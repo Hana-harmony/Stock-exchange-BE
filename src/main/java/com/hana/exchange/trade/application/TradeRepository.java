@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PendingLimitOrder;
 import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
 
 public interface TradeRepository {
@@ -22,6 +23,12 @@ public interface TradeRepository {
 	List<MockTradeLedgerEntry> findTrades(String accountId);
 
 	List<MockTradeLedgerEntry> findRecentTrades(String accountId, int limit);
+
+	void saveLimitOrder(PendingLimitOrder order);
+
+	List<PendingLimitOrder> findRecentLimitOrders(String accountId, int limit);
+
+	List<PendingLimitOrder> findPendingLimitOrdersByStockCode(String stockCode);
 
 	void savePortfolioValuationSnapshot(PortfolioValuationSnapshot snapshot);
 

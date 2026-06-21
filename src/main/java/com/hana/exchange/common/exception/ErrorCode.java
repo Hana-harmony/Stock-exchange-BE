@@ -22,6 +22,8 @@ public enum ErrorCode {
 	MOCK_ACCOUNT_INSUFFICIENT_BALANCE(HttpStatus.CONFLICT, "TRADE_001", "Mock USD account has insufficient balance"),
 	MOCK_HOLDING_INSUFFICIENT_QUANTITY(HttpStatus.CONFLICT, "TRADE_002", "Mock holding has insufficient quantity"),
 	MOCK_ORDER_BLOCKED(HttpStatus.CONFLICT, "TRADE_003", "Mock order is blocked by orderability rules"),
+	MARKET_CLOSED(HttpStatus.CONFLICT, "TRADE_004", "Korean stock market is closed"),
+	UNSUPPORTED_ORDER_TYPE(HttpStatus.BAD_REQUEST, "TRADE_005", "Only limit orders are supported"),
 	TAX_CASE_NOT_FOUND(HttpStatus.NOT_FOUND, "TAX_001", "Tax refund case not found"),
 	TAX_STATUS_SYNC_FAILED(HttpStatus.BAD_GATEWAY, "TAX_002", "Tax refund status sync failed"),
 	TAX_DOCUMENT_INVALID(HttpStatus.BAD_REQUEST, "TAX_003", "Tax document is invalid"),

@@ -173,7 +173,7 @@
 
 - `GET /api/v1/market/stocks/{stockCode}/orderbook`
   - `currency`: optional ISO 4217 display currency. Defaults to `USD`.
-  - Calls Hana-OmniLens-API `/api/v1/market/stocks/{stockCode}/orderbook`.
+  - Calls Hana-OmniLens-API `/api/v1/market/stocks/{stockCode}/orderbook` and the single quote API for FX metadata.
   - Returns ask and bid levels with KRW price, requested local currency price, quantity, order count, market data time, and source.
 
 ## Tax Refund

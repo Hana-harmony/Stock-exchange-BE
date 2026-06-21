@@ -18,6 +18,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.market.client.OmniLensMarketQuote;
+import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.client.OmniLensOrderBookClient;
 import com.hana.exchange.market.client.OmniLensOrderBookLevel;
 import com.hana.exchange.market.client.OmniLensOrderBookResponse;
@@ -31,6 +33,9 @@ class MarketOrderBookControllerTest {
 
 	@MockitoBean
 	private OmniLensOrderBookClient omniLensOrderBookClient;
+
+	@MockitoBean
+	private OmniLensMarketQuoteClient omniLensMarketQuoteClient;
 
 	@Test
 	void orderBookProxiesHanaOrderBookBoundary() throws Exception {
@@ -52,6 +57,25 @@ class MarketOrderBookControllerTest {
 								9)),
 						Instant.parse("2026-06-18T06:00:00Z"),
 						"HANA_OMNILENS_API"));
+		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
+				.thenReturn(new OmniLensMarketQuote(
+						"005930",
+						"삼성전자",
+						"Samsung Electronics",
+						"KOSPI",
+						new BigDecimal("75000"),
+						new BigDecimal("1.2"),
+						1000,
+						new BigDecimal("75000"),
+						"KRW",
+						new BigDecimal("54.00"),
+						"USD",
+						0,
+						null,
+						null,
+						null,
+						Instant.parse("2026-06-18T06:00:00Z"),
+						"KIS_OPEN_API"));
 
 		mockMvc.perform(get("/api/v1/market/stocks/005930/orderbook")
 						.param("currency", "USD"))

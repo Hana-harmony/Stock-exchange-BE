@@ -87,6 +87,10 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.predictedForeignOwnershipRateMax").value("54.7"))
 				.andExpect(jsonPath("$.data.predictedForeignLimitExhaustionRateMin").value("72.3"))
 				.andExpect(jsonPath("$.data.predictedForeignLimitExhaustionRateMax").value("72.9"))
+				.andExpect(jsonPath("$.data.foreignOwnershipPredictionConfidenceLevel").value("TIME_SERIES_ADJUSTED"))
+				.andExpect(jsonPath("$.data.foreignOwnershipPredictionConfidenceScore").value("0.75"))
+				.andExpect(jsonPath("$.data.foreignOwnershipPredictionModelVersion")
+						.value("foreign-ownership-timeseries-v1"))
 				.andExpect(jsonPath("$.data.viActive").value(true))
 				.andExpect(jsonPath("$.data.singlePriceTrading").value(true))
 				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"))
@@ -149,6 +153,9 @@ class StockControllerTest {
 				new BigDecimal("54.7"),
 				new BigDecimal("72.3"),
 				new BigDecimal("72.9"),
+				"TIME_SERIES_ADJUSTED",
+				new BigDecimal("0.7500"),
+				"foreign-ownership-timeseries-v1",
 				LocalDate.parse("2026-06-18"),
 				viActive,
 				singlePriceTrading,

@@ -84,7 +84,7 @@
 - orderbook 응답은 Hana orderbook snapshot과 단건 quote FX metadata를 함께 사용해 호가별 KRW 가격과 요청 현지통화 가격을 제공한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API와 단건 quote FX metadata를 FE 차트 응답 형식으로 재가공한다. `1d`는 Hana 일봉을 그대로 사용하고, `1w`/`1mo`는 BE가 OHLCV·거래량·거래대금을 집계한다. 모든 국내주식 KRX history 수집/정규화/DB/API 완성은 Hana-OmniLens-API 레포 책임이다.
-- 종목 상세 화면에 필요한 KIS REST snapshot 기반 외국인 보유율, snapshot/orderability 기반 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
+- 종목 상세 화면에 필요한 KIS REST snapshot 기반 외국인 보유율, 시계열/orderability 기반 당일 예측 지분율 boundary, 예측 confidence/model version, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.
 - 주문 가능 여부 API는 Hana-OmniLens-API orderability boundary를 호출해 외국인 한도, 거래정지, VI, 상/하한가 상태를 mock 주문 전 경고/차단 사유로 제공한다.
 - mock 주문 실행 API도 같은 orderability boundary를 다시 확인하며, 차단 사유가 있으면 자체 ledger 기록 전에 `TRADE_003`으로 거절한다.
 - 거래 기능은 실제 주문 또는 KIS 모의투자 주문이 아니다. Stock-exchange-BE가 자체 mock ledger에서 USD 잔고, 가짜 매수·매도, 평균단가, 매도 실현손익을 계산한다. 현재 체결 가격은 Hana-OmniLens-API 단건 quote의 USD 환산 가격을 사용한다.

@@ -81,6 +81,7 @@
 - Hana-OmniLens-API 장애 시 stale fallback 구간 안의 snapshot은 `cache.status=STALE_CACHE`, `fxStale=true`로 내려 FE가 지연 데이터를 명확히 표시할 수 있게 한다.
 - Hana quote payload는 KRW 가격과 실시간 또는 최신 환율이 적용된 현지통화 가격을 모두 포함해야 하며, Stock-exchange-BE는 snapshot 응답에서 `fxRate`, `fxRateTime`, `fxRateSource`, `fxStale`을 FE 표시 형식으로 전달한다.
 - 환율 stale flag가 내려오면 Stock-exchange-BE는 FE가 지연 환율 상태를 표시할 수 있도록 그대로 전달한다. Hana가 명시적 `fxRate`를 주지 않는 경우에만 KRW/현지통화 가격으로 fallback 산출한다.
+- orderbook 응답은 Hana orderbook snapshot과 단건 quote FX metadata를 함께 사용해 호가별 KRW 가격과 요청 현지통화 가격을 제공한다.
 - 과거 시세는 Hana-OmniLens-API가 KRX 데이터를 수집·정규화·DB 저장한 결과를 REST로 조회한다.
 - Stock-exchange-BE는 KRX를 직접 호출하지 않고, Hana의 `/api/v1/market/stocks/{stockCode}/history` 과거 시세 API와 단건 quote FX metadata를 FE 차트 응답 형식으로 재가공한다. `1d`는 Hana 일봉을 그대로 사용하고, `1w`/`1mo`는 BE가 OHLCV·거래량·거래대금을 집계한다. 모든 국내주식 KRX history 수집/정규화/DB/API 완성은 Hana-OmniLens-API 레포 책임이다.
 - 종목 상세 화면에 필요한 KIS REST snapshot 기반 외국인 보유율, snapshot/orderability 기반 당일 예측 지분율 boundary, VI 발동, 상·하한가 상태를 Hana-OmniLens-API에서 조회해 FE에 전달한다.

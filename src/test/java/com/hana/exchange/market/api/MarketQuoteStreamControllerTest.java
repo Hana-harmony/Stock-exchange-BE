@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -50,8 +51,12 @@ class MarketQuoteStreamControllerTest {
 	@MockitoBean
 	private OmniLensOrderabilityClient omniLensOrderabilityClient;
 
+	@MockitoBean
+	private Clock clock;
+
 	@BeforeEach
-	void allowMockOrdersByDefault() {
+	void prepareTradingSession() {
+		when(clock.instant()).thenReturn(Instant.parse("2026-06-18T01:00:00Z"));
 		when(omniLensOrderabilityClient.checkOrderability(anyString(), any(TradeSide.class), anyLong()))
 				.thenAnswer(invocation -> orderability(invocation.getArgument(0)));
 	}
@@ -121,7 +126,9 @@ class MarketQuoteStreamControllerTest {
 								{
 								  "stockCode": "%s",
 								  "side": "BUY",
-								  "quantity": %d
+								  "quantity": %d,
+								  "orderType": "LIMIT",
+								  "limitPriceUsd": 54.00
 								}
 								""".formatted(stockCode, quantity)))
 				.andExpect(status().isOk());

@@ -12,7 +12,9 @@ import org.springframework.stereotype.Repository;
 
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
+import com.hana.exchange.trade.domain.PendingLimitOrder;
 import com.hana.exchange.trade.domain.PortfolioValuationSnapshot;
+import com.hana.exchange.trade.domain.TradeOrderStatus;
 
 @Repository
 @Profile("memory")
@@ -20,6 +22,7 @@ public class InMemoryTradeRepository implements TradeRepository {
 
 	private final Map<String, MockHolding> holdingsByAccountAndStock = new ConcurrentHashMap<>();
 	private final Map<String, MockTradeLedgerEntry> tradesById = new ConcurrentHashMap<>();
+	private final Map<String, PendingLimitOrder> limitOrdersById = new ConcurrentHashMap<>();
 	private final Map<String, PortfolioValuationSnapshot> portfolioValuationSnapshotsById = new ConcurrentHashMap<>();
 
 	@Override
@@ -74,6 +77,31 @@ public class InMemoryTradeRepository implements TradeRepository {
 		List<MockTradeLedgerEntry> trades = new ArrayList<>(findTrades(accountId));
 		trades.sort(Comparator.comparing(MockTradeLedgerEntry::executedAt).reversed());
 		return trades.stream().limit(limit).toList();
+	}
+
+	@Override
+	public void saveLimitOrder(PendingLimitOrder order) {
+		limitOrdersById.put(order.orderId(), order);
+	}
+
+	@Override
+	public List<PendingLimitOrder> findRecentLimitOrders(String accountId, int limit) {
+		return limitOrdersById.values()
+				.stream()
+				.filter(order -> order.accountId().equals(accountId))
+				.sorted(Comparator.comparing(PendingLimitOrder::createdAt).reversed())
+				.limit(limit)
+				.toList();
+	}
+
+	@Override
+	public List<PendingLimitOrder> findPendingLimitOrdersByStockCode(String stockCode) {
+		return limitOrdersById.values()
+				.stream()
+				.filter(order -> order.stockCode().equals(stockCode))
+				.filter(order -> order.status() == TradeOrderStatus.PENDING)
+				.sorted(Comparator.comparing(PendingLimitOrder::createdAt))
+				.toList();
 	}
 
 	@Override

@@ -61,7 +61,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 - KIS 모의투자 API를 사용하지 않는 자체 mock ledger 기반 가짜 매수·매도/자산 평가 로직
 - 실제 결제 없이 금액 입력만으로 mock USD 잔고를 증가시키는 달러 충전 기능
 - 외국인 한도, 거래정지, VI, 상·하한가 상태 기반 주문 가능 여부 안내와 mock 주문 실행 차단
-- 뉴스·공시 이벤트 수신, AI 번역 품질 메타데이터 저장, 사용자별 푸시 대상자 매칭
+- 뉴스·공시 이벤트 수신, 전문/이미지/What-Why-Impact 요약 metadata 저장, 사용자별 푸시 대상자 매칭
 - 앱 푸시 provider 경계, delivery 상태, alert/tax recapture risk 알림함 저장
 - 세무 서류 업로드 수신, mock 거래원장/sub-ledger와 매도 실현손익 매칭, 환급 상태 동기화
 
@@ -125,7 +125,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 
 ## Hana-OmniLens-API 연동
 - REST: 종목 검색/상세 proxy 구현, 단건/다건/전체 국내주식 실시간 시세 snapshot과 FX 기준정보 전달 구현, KIS REST snapshot/cache 기반 외국인 보유율과 orderability boundary 전달 구현, quote short-cache/stale fallback 구현, 호가 snapshot proxy 구현, KRX 기반 과거 차트 client/proxy와 주/월 OHLCV 집계 구현, orderability warning API 구현, tax document upload/object storage와 tax refund case/status API, Hana tax status sync 구현, 공통 retry/backoff 구현
-- WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/AI 번역 품질 메타데이터 보존/매칭/replay/retry/drop hardening 구현
+- WebSocket: market quote stream 구독/재배포 구현, 뉴스·공시 알림 stream 구독/저장/전문·이미지·AI 번역 품질 메타데이터 보존/매칭/replay/retry/drop hardening 구현
 - Notification: `LOCAL_NOOP_PUSH` provider로 alert와 tax recapture risk delivery 상태 기록 구현, iOS/Android/web push device token 등록·조회·비활성화 구현, device token encrypted vault 구현, FCM HTTP v1 외부 push 실발송 client 구현, APNS HTTP provider와 Web Push gateway provider 실발송 client 구현, 실패/미발송 notification retry worker 구현
 - 구독 topic:
   - `/topic/partners/{partnerId}/alerts`
@@ -157,9 +157,9 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 17. 포트폴리오 평가 이력 API는 최근 snapshot의 현금, 평가금액, 총자산, 실현/미실현손익, 보유종목 수를 반환한다.
 18. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
 19. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
-20. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 원문 링크, AI 분석 결과, glossary, translation quality flag를 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
+20. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 원문 링크, 제목/요약/전문 번역, What/Why/Impact 3줄 요약, 이미지 URL 목록, AI 분석 결과, glossary, translation quality flag를 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
 18. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
-19. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, 원문 URL, glossary, translation quality flag를 인텔리전스 피드로 조회한다.
+19. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, What/Why/Impact 요약, 이미지 URL, 원문 URL, glossary, translation quality flag를 인텔리전스 피드 목록·상세로 조회한다.
 20. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 push delivery 상태와 읽음 상태를 관리한다. alert notification은 glossary와 translation quality flag를 함께 보존한다. 현지 거래소 앱은 계좌별 notification device token을 등록·조회·비활성화할 수 있고, 응답은 원문 token 대신 hash와 masked token을 제공한다. FCM/APNS/Web Push 실발송을 켜는 경우 원문 device token 또는 web subscription endpoint는 AES-GCM encrypted vault 컬럼에만 저장하고 provider별 환경변수로 외부 발송을 수행한다. Hana 세무 상태 sync가 `RECAPTURE_RISK`를 반환하면 해당 tax refund case subject로 사후 환수 리스크 notification을 한 번 저장한다. 기본 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있다. 자격증명이 없으면 `SKIPPED`로 기록하고, 실패/미발송 notification은 retry worker가 설정된 batch와 max attempt 기준으로 재시도한다.
 21. 세무 서류는 `POST /api/v1/accounts/{accountId}/tax/documents`로 로컬 object storage adapter에 업로드하고, document metadata와 거래원장 데이터를 tax refund case로 묶는다. mock 매도 실현손익을 기준으로 예상 원천징수세, 조세조약세, 환급 추정액, 선지급 가능 여부를 제공한다. `POST /api/v1/accounts/{accountId}/tax/refund-status/sync`는 최신 tax case를 Hana-OmniLens-API 세무 상태 sync boundary로 보내고 응답 status를 DB에 반영한다. 실제 환급금 지급은 다음 단계에서 연결한다.
 

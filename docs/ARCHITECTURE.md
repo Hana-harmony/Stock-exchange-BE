@@ -28,7 +28,7 @@
 - `watchlist/domain`: watchlist item과 response 계약 record
 - `alert/api`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 REST ingest, target 조회, 종목별 인텔리전스 피드 API
 - `alert/application`: idempotency key 기반 이벤트 저장, watchlist/holder 대상자 매칭, 종목별 분석 피드 조합 service
-- `alert/domain`: alert event, matched target, source link, AI 분석 metadata, 금융용어 glossary, translation quality flag 계약 record
+- `alert/domain`: alert event, matched target, source link, What/Why/Impact 요약, 원문/번역 전문, 이미지 URL, AI 분석 metadata, 금융용어 glossary, translation quality flag 계약 record
 - `alert/stream`: Hana-OmniLens-API 뉴스·공시 분석 이벤트 WebSocket client, replay, reconnect, backpressure buffer, ingest retry/drop worker
 - `notification/api`: 계좌별 인앱 알림함 조회와 읽음 처리 REST API
 - `notification/application`: matched alert target와 tax recapture risk 기반 notification 저장, push provider 경계, delivery 상태 기록, 중복 방지 service, 실패/미발송 retry worker

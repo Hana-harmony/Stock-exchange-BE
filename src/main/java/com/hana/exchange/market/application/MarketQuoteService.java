@@ -12,10 +12,11 @@ import org.springframework.util.StringUtils;
 
 import com.hana.exchange.config.ExchangeBackendProperties;
 import com.hana.exchange.common.exception.BusinessException;
+import com.hana.exchange.market.application.MarketQuoteCache.CachedQuotes;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.domain.MarketQuoteSnapshot;
-import com.hana.exchange.market.application.MarketQuoteCache.CachedQuotes;
+import com.hana.exchange.stock.application.StockDisplayNameFormatter;
 
 @Service
 public class MarketQuoteService {
@@ -164,6 +165,12 @@ public class MarketQuoteService {
 				toText(quote.currentPriceKrw()),
 				toText(quote.changeRate()),
 				quote.volume(),
+				quote.marketSession(),
+				toText(quote.afterHoursPriceKrw()),
+				toText(quote.afterHoursLocalCurrencyPrice()),
+				toText(quote.afterHoursChangeRate()),
+				quote.afterHoursVolume(),
+				quote.afterHoursMarketDataTime(),
 				quote.localCurrency(),
 				toText(quote.localCurrencyPrice()),
 				fxRate(quote),
@@ -173,10 +180,7 @@ public class MarketQuoteService {
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {
-		if (quote.stockNameEn() != null && !quote.stockNameEn().isBlank()) {
-			return quote.stockNameEn();
-		}
-		return quote.stockName();
+		return StockDisplayNameFormatter.displayName(quote.stockNameEn(), quote.stockName());
 	}
 
 	private String toText(java.math.BigDecimal value) {

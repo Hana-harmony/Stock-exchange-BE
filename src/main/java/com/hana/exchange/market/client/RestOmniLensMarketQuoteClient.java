@@ -17,6 +17,7 @@ import com.hana.exchange.config.ExchangeBackendProperties;
 public class RestOmniLensMarketQuoteClient implements OmniLensMarketQuoteClient {
 
 	private static final String API_KEY_HEADER = "X-HANA-OMNILENS-API-KEY";
+	private static final int ALL_KOREAN_STOCK_QUOTE_LIMIT = 2000;
 
 	private final RestClient restClient;
 	private final ExchangeBackendProperties properties;
@@ -78,6 +79,8 @@ public class RestOmniLensMarketQuoteClient implements OmniLensMarketQuoteClient 
 								.queryParam("currency", currency);
 						if (!stockCodes.isEmpty()) {
 							uriBuilder.queryParam("stockCodes", stockCodes.toArray());
+						} else {
+							uriBuilder.queryParam("limit", ALL_KOREAN_STOCK_QUOTE_LIMIT);
 						}
 						return uriBuilder.build();
 					})

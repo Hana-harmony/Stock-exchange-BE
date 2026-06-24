@@ -65,7 +65,7 @@ public class StockService {
 				detail.foreignOwnershipBaseDate(),
 				detail.viActive(),
 				detail.singlePriceTrading(),
-				detail.priceLimitState(),
+				normalizePriceLimitState(detail.priceLimitState()),
 				detail.tradingHalted(),
 				detail.orderable(),
 				detail.source(),
@@ -82,10 +82,7 @@ public class StockService {
 	}
 
 	private String displayName(String stockNameEn, String stockName) {
-		if (stockNameEn != null && !stockNameEn.isBlank()) {
-			return stockNameEn;
-		}
-		return stockName;
+		return StockDisplayNameFormatter.displayName(stockNameEn, stockName);
 	}
 
 	private String toText(BigDecimal value) {
@@ -94,5 +91,17 @@ public class StockService {
 
 	private BigDecimal fallback(BigDecimal value, BigDecimal fallback) {
 		return value == null ? fallback : value;
+	}
+
+	private String normalizePriceLimitState(String priceLimitState) {
+		if (priceLimitState == null || priceLimitState.isBlank()) {
+			return "NORMAL";
+		}
+		return switch (priceLimitState.trim().toUpperCase()) {
+			case "UPPER", "UPPER_LIMIT" -> "UPPER";
+			case "LOWER", "LOWER_LIMIT" -> "LOWER";
+			case "NORMAL" -> "NORMAL";
+			default -> "NORMAL";
+		};
 	}
 }

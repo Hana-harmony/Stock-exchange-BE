@@ -53,7 +53,7 @@ class MarketQuoteControllerTest {
 				.andExpect(jsonPath("$.data.transport.realtime").value("WebSocket"))
 				.andExpect(jsonPath("$.data.quoteCount").value(2))
 				.andExpect(jsonPath("$.data.quotes[0].stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.quotes[0].stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.quotes[0].stockName").value("Samsung Electronics (삼성전자)"))
 				.andExpect(jsonPath("$.data.quotes[0].market").value("KOSPI"))
 				.andExpect(jsonPath("$.data.quotes[0].currentPriceKrw").value("75000"))
 				.andExpect(jsonPath("$.data.quotes[0].localCurrencyPrice").value("54"));
@@ -112,7 +112,7 @@ class MarketQuoteControllerTest {
 				.andExpect(jsonPath("$.data.marketCoverage").value("005930"))
 				.andExpect(jsonPath("$.data.displayCurrency").value("USD"))
 				.andExpect(jsonPath("$.data.quotes[0].stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.quotes[0].stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.quotes[0].stockName").value("Samsung Electronics (삼성전자)"))
 				.andExpect(jsonPath("$.data.quotes[0].market").value("KOSPI"))
 				.andExpect(jsonPath("$.data.quotes[0].currentPriceKrw").value("75000"))
 				.andExpect(jsonPath("$.data.quotes[0].changeRate").value("1.25"))

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
@@ -38,8 +39,8 @@ public class MarketOrderBookService {
 		return new MarketOrderBookResponse(
 				orderBook.source(),
 				orderBook.stockCode(),
-				orderBook.market(),
-				orderBook.baseCurrency(),
+				textOrFallback(orderBook.market(), quote.market()),
+				textOrFallback(orderBook.baseCurrency(), "KRW"),
 				displayCurrency,
 				levels(orderBook.asks(), fxRate),
 				levels(orderBook.bids(), fxRate),
@@ -84,5 +85,9 @@ public class MarketOrderBookService {
 
 	private String text(BigDecimal value) {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
+	}
+
+	private String textOrFallback(String value, String fallback) {
+		return StringUtils.hasText(value) ? value : fallback;
 	}
 }

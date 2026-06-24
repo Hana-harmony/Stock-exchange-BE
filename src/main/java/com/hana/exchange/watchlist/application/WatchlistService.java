@@ -11,6 +11,7 @@ import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.stock.application.StockDisplayNameFormatter;
 import com.hana.exchange.watchlist.domain.WatchlistAddRequest;
 import com.hana.exchange.watchlist.domain.WatchlistItem;
 import com.hana.exchange.watchlist.domain.WatchlistItemResponse;
@@ -98,9 +99,6 @@ public class WatchlistService {
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {
-		if (quote.stockNameEn() != null && !quote.stockNameEn().isBlank()) {
-			return quote.stockNameEn();
-		}
-		return quote.stockName();
+		return StockDisplayNameFormatter.displayName(quote.stockNameEn(), quote.stockName());
 	}
 }

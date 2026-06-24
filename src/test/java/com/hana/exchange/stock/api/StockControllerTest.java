@@ -63,8 +63,32 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.displayCurrency").value("USD"))
 				.andExpect(jsonPath("$.data.resultCount").value(1))
 				.andExpect(jsonPath("$.data.results[0].stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.results[0].stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.results[0].stockName").value("Samsung Electronics (삼성전자)"))
 				.andExpect(jsonPath("$.data.results[0].dataSource").value("HANA_OMNILENS_API"));
+	}
+
+	@Test
+	void searchStocksBuildsEnglishFallbackWhenMasterHasOnlyKoreanName() throws Exception {
+		when(stockClient.search("경방", null, "USD", 10))
+				.thenReturn(new OmniLensStockSearchResponse(
+						"경방",
+						null,
+						"USD",
+						List.of(new OmniLensStockSearchItem(
+								"000050",
+								"경방",
+								"경방",
+								"KOSPI",
+								null,
+								"HANA_OMNILENS_API")),
+						"HANA_OMNILENS_API"));
+
+		mockMvc.perform(get("/api/v1/stocks/search")
+						.param("query", "경방")
+						.param("currency", "USD")
+						.param("limit", "10"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.results[0].stockName").value("Gyeongbang (경방)"));
 	}
 
 	@Test
@@ -76,7 +100,7 @@ class StockControllerTest {
 						.param("currency", "USD"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.stockName").value("Samsung Electronics (삼성전자)"))
 				.andExpect(jsonPath("$.data.market").value("KOSPI"))
 				.andExpect(jsonPath("$.data.baseCurrency").value("KRW"))
 				.andExpect(jsonPath("$.data.displayCurrency").value("USD"))
@@ -96,6 +120,17 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"))
 				.andExpect(jsonPath("$.data.tradingHalted").value(false))
 				.andExpect(jsonPath("$.data.orderable").value(true));
+	}
+
+	@Test
+	void stockDetailNormalizesUnknownPriceLimitState() throws Exception {
+		when(stockClient.getDetail("005930", "USD"))
+				.thenReturn(detail("005930", false, false, "UNKNOWN", false, true));
+
+		mockMvc.perform(get("/api/v1/stocks/005930")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"));
 	}
 
 	@Test

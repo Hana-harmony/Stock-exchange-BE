@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import com.hana.exchange.market.domain.MarketQuoteStreamPublishResponse;
 import com.hana.exchange.market.domain.MarketQuoteTickMessage;
 import com.hana.exchange.market.domain.MarketQuoteTickRequest;
+import com.hana.exchange.stock.application.StockDisplayNameFormatter;
 import com.hana.exchange.trade.application.TradeRepository;
 import com.hana.exchange.trade.application.TradeService;
 import com.hana.exchange.trade.domain.MockHolding;
@@ -76,11 +77,17 @@ public class MarketQuoteStreamPublisher {
 	private MarketQuoteTickMessage toMessage(MarketQuoteTickRequest request, Instant publishedAt) {
 		return new MarketQuoteTickMessage(
 				request.stockCode(),
-				request.stockName(),
+				displayName(request.stockNameEn(), request.stockName(), request.stockCode()),
 				request.market(),
 				toText(request.currentPriceKrw()),
 				toText(request.changeRate()),
 				request.volume(),
+				request.marketSession(),
+				toText(request.afterHoursPriceKrw()),
+				toText(request.afterHoursLocalCurrencyPrice()),
+				toText(request.afterHoursChangeRate()),
+				request.afterHoursVolume(),
+				request.afterHoursMarketDataTime(),
 				request.localCurrency(),
 				toText(request.localCurrencyPrice()),
 				toText(request.fxRate()),
@@ -94,6 +101,10 @@ public class MarketQuoteStreamPublisher {
 	}
 
 	private String toText(BigDecimal value) {
-		return value.stripTrailingZeros().toPlainString();
+		return value == null ? null : value.stripTrailingZeros().toPlainString();
+	}
+
+	private String displayName(String stockNameEn, String stockName, String fallback) {
+		return StockDisplayNameFormatter.displayName(stockNameEn, stockName, fallback);
 	}
 }

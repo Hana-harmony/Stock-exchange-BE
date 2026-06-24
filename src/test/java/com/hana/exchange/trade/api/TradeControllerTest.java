@@ -82,7 +82,7 @@ class TradeControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true))
 				.andExpect(jsonPath("$.data.stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.stockName").value("Samsung Electronics (삼성전자)"))
 				.andExpect(jsonPath("$.data.side").value("BUY"))
 				.andExpect(jsonPath("$.data.quantity").value(2))
 				.andExpect(jsonPath("$.data.status").value("FILLED"))

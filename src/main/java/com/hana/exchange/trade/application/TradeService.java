@@ -25,6 +25,7 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.domain.MarketQuoteTickRequest;
+import com.hana.exchange.stock.application.StockDisplayNameFormatter;
 import com.hana.exchange.trade.domain.HoldingResponse;
 import com.hana.exchange.trade.domain.MockHolding;
 import com.hana.exchange.trade.domain.MockTradeLedgerEntry;
@@ -497,12 +498,18 @@ public class TradeService {
 		return new OmniLensMarketQuote(
 				request.stockCode(),
 				request.stockName(),
-				request.stockName(),
+				request.stockNameEn(),
 				request.market(),
 				request.currentPriceKrw(),
 				request.changeRate(),
 				request.volume(),
 				request.currentPriceKrw(),
+				request.marketSession(),
+				request.afterHoursPriceKrw(),
+				request.afterHoursLocalCurrencyPrice(),
+				request.afterHoursChangeRate(),
+				request.afterHoursVolume(),
+				request.afterHoursMarketDataTime(),
 				"KRW",
 				request.localCurrencyPrice(),
 				request.localCurrency(),
@@ -519,10 +526,7 @@ public class TradeService {
 	}
 
 	private String displayName(OmniLensMarketQuote quote) {
-		if (quote.stockNameEn() != null && !quote.stockNameEn().isBlank()) {
-			return quote.stockNameEn();
-		}
-		return quote.stockName();
+		return StockDisplayNameFormatter.displayName(quote.stockNameEn(), quote.stockName());
 	}
 
 	private BigDecimal money(BigDecimal value) {

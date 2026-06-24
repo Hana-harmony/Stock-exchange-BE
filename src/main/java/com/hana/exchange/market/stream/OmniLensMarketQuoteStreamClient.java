@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.springframework.context.SmartLifecycle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -26,6 +28,7 @@ import com.hana.exchange.config.ExchangeBackendProperties;
 @Component
 public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 
+	private static final Logger log = LoggerFactory.getLogger(OmniLensMarketQuoteStreamClient.class);
 	private static final String API_KEY_HEADER = "X-HANA-OMNILENS-API-KEY";
 
 	private final StandardWebSocketClient webSocketClient;
@@ -58,6 +61,7 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 			return;
 		}
 		running = true;
+		log.info("Starting OmniLens market quote WebSocket stream client uri={}", streamUri());
 		drainTask = taskScheduler.scheduleWithFixedDelay(
 				messageHandler::drainBufferedTicks,
 				properties.stream().drainInterval());
@@ -100,11 +104,13 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 		webSocketClient.execute(new QuoteWebSocketHandler(), headers, streamUri())
 				.whenComplete((connectedSession, throwable) -> {
 					if (throwable != null) {
+						log.warn("OmniLens market quote WebSocket connection failed: {}", throwable.toString());
 						scheduleReconnect();
 						return;
 					}
 					session.set(connectedSession);
 					reconnectAttempts.set(0);
+					log.info("OmniLens market quote WebSocket connected sessionId={}", connectedSession.getId());
 					sendReplayRequest(connectedSession);
 				});
 	}
@@ -115,6 +121,7 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 		}
 		cancel(reconnectTask);
 		Duration delay = reconnectDelay(reconnectAttempts.getAndIncrement());
+		log.info("Scheduling OmniLens market quote WebSocket reconnect delay={}", delay);
 		reconnectTask = taskScheduler.schedule(this::connect, Instant.now().plus(delay));
 	}
 
@@ -170,12 +177,14 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 
 		@Override
 		public void handleTransportError(WebSocketSession session, Throwable exception) {
+			log.warn("OmniLens market quote WebSocket transport error: {}", exception.toString());
 			scheduleReconnect();
 		}
 
 		@Override
 		public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
 			OmniLensMarketQuoteStreamClient.this.session.compareAndSet(session, null);
+			log.info("OmniLens market quote WebSocket closed status={}", status);
 			scheduleReconnect();
 		}
 	}

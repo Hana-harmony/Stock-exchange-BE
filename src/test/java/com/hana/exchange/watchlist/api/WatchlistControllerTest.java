@@ -64,7 +64,7 @@ class WatchlistControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.itemCount").value(1))
 				.andExpect(jsonPath("$.data.items[0].stockCode").value("005930"))
-				.andExpect(jsonPath("$.data.items[0].stockName").value("Samsung Electronics"))
+				.andExpect(jsonPath("$.data.items[0].stockName").value("Samsung Electronics (종목명)"))
 				.andExpect(jsonPath("$.data.items[0].market").value("KOSPI"))
 				.andExpect(jsonPath("$.data.items[0].targetingMode").value("WATCHLIST_ALERT_TARGET"));
 

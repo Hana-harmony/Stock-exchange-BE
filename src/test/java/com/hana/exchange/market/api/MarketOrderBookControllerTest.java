@@ -96,6 +96,51 @@ class MarketOrderBookControllerTest {
 	}
 
 	@Test
+	void orderBookFillsMissingMetadataFromQuote() throws Exception {
+		when(omniLensOrderBookClient.getOrderBook("005930", "USD"))
+				.thenReturn(new OmniLensOrderBookResponse(
+						"005930",
+						null,
+						null,
+						null,
+						List.of(new OmniLensOrderBookLevel(
+								new BigDecimal("75000"),
+								null,
+								1200,
+								0)),
+						List.of(),
+						Instant.parse("2026-06-18T06:00:00Z"),
+						"KIS_REST_ORDERBOOK"));
+		when(omniLensMarketQuoteClient.getQuote("005930", "USD"))
+				.thenReturn(new OmniLensMarketQuote(
+						"005930",
+						"삼성전자",
+						"Samsung Electronics",
+						"KOSPI",
+						new BigDecimal("75000"),
+						new BigDecimal("1.2"),
+						1000,
+						new BigDecimal("75000"),
+						"KRW",
+						new BigDecimal("54.00"),
+						"USD",
+						0,
+						new BigDecimal("0.00072"),
+						null,
+						null,
+						Instant.parse("2026-06-18T06:00:00Z"),
+						"KIS_OPEN_API"));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/orderbook")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.market").value("KOSPI"))
+				.andExpect(jsonPath("$.data.baseCurrency").value("KRW"))
+				.andExpect(jsonPath("$.data.displayCurrency").value("USD"))
+				.andExpect(jsonPath("$.data.asks[0].localCurrencyPrice").value("54"));
+	}
+
+	@Test
 	void orderBookReturnsCommonErrorWhenHanaUnavailable() throws Exception {
 		when(omniLensOrderBookClient.getOrderBook("005930", "USD"))
 				.thenThrow(new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE));

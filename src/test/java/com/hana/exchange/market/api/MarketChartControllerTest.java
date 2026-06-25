@@ -6,9 +6,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,11 +20,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.market.application.MarketIntradayCandleStore;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.domain.MarketQuoteTickRequest;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -36,6 +40,14 @@ class MarketChartControllerTest {
 
 	@MockitoBean
 	private OmniLensMarketQuoteClient quoteClient;
+
+	@Autowired
+	private MarketIntradayCandleStore intradayCandleStore;
+
+	@BeforeEach
+	void clearIntradayCandles() {
+		intradayCandleStore.clear();
+	}
 
 	@Test
 	void chartProxiesOmniLensKrxHistoryForFlutterChart() throws Exception {
@@ -123,6 +135,31 @@ class MarketChartControllerTest {
 	}
 
 	@Test
+	void chartUsesIntradayCandlesForOneDayWhenRealtimeTicksWereReceived() throws Exception {
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+		intradayCandleStore.record(tick("005930", "75000", 1_000_000L, "2026-06-24T00:31:15Z"));
+		intradayCandleStore.record(tick("005930", "75200", 1_001_000L, "2026-06-24T00:31:45Z"));
+		intradayCandleStore.record(tick("005930", "75100", 1_002_000L, "2026-06-24T00:32:05Z"));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+						.param("from", "2026-06-24")
+						.param("to", "2026-06-24")
+						.param("interval", "1d")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.dataSource").value("STOCK_EXCHANGE_INTRADAY_CANDLE"))
+				.andExpect(jsonPath("$.data.pointCount").value(2))
+				.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T00:31:00Z"))
+				.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("75000"))
+				.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75200"))
+				.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("75000"))
+				.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75200"))
+				.andExpect(jsonPath("$.data.points[0].closeLocalCurrencyPrice").value("54.144"))
+				.andExpect(jsonPath("$.data.points[0].volume").value(1001000))
+				.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T00:32:00Z"));
+	}
+
+	@Test
 	void chartRejectsInvalidRangeAndParameters() throws Exception {
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
 						.param("from", "2026-06-18")
@@ -194,5 +231,32 @@ class MarketChartControllerTest {
 				LocalDate.parse("2026-06-18"),
 				null,
 				"HANA_OMNILENS_API");
+	}
+
+	private MarketQuoteTickRequest tick(String stockCode, String price, long volume, String marketDataTime) {
+		BigDecimal krwPrice = new BigDecimal(price);
+		BigDecimal fxRate = new BigDecimal("0.00072");
+		return new MarketQuoteTickRequest(
+				stockCode,
+				"삼성전자",
+				"Samsung Electronics",
+				"KOSPI",
+				krwPrice,
+				new BigDecimal("1.25"),
+				volume,
+				"REGULAR",
+				null,
+				null,
+				null,
+				null,
+				null,
+				"USD",
+				krwPrice.multiply(fxRate),
+				fxRate,
+				Instant.parse("2026-06-24T00:30:00Z"),
+				"HANA_FX_RATE_API",
+				false,
+				Instant.parse(marketDataTime),
+				"HANA_OMNILENS_API_STREAM");
 	}
 }

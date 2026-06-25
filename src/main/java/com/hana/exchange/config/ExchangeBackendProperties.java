@@ -3,6 +3,7 @@ package com.hana.exchange.config;
 import java.time.Duration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "hana.omnilens.api")
 public record ExchangeBackendProperties(
@@ -56,6 +57,9 @@ public record ExchangeBackendProperties(
 			String quotePath,
 			String quoteCurrency,
 			boolean quoteReplayEnabled,
+			boolean indexEnabled,
+			String indexPath,
+			boolean indexReplayEnabled,
 			boolean alertEnabled,
 			String alertPath,
 			boolean alertReplayEnabled,
@@ -64,12 +68,45 @@ public record ExchangeBackendProperties(
 			int backpressureBufferSize,
 			Duration drainInterval
 	) {
+		public Stream(
+				boolean quoteEnabled,
+				String quotePath,
+				String quoteCurrency,
+				boolean quoteReplayEnabled,
+				boolean alertEnabled,
+				String alertPath,
+				boolean alertReplayEnabled,
+				Duration reconnectInitialDelay,
+				Duration reconnectMaxDelay,
+				int backpressureBufferSize,
+				Duration drainInterval) {
+			this(
+					quoteEnabled,
+					quotePath,
+					quoteCurrency,
+					quoteReplayEnabled,
+					false,
+					"/ws/market/indices",
+					true,
+					alertEnabled,
+					alertPath,
+					alertReplayEnabled,
+					reconnectInitialDelay,
+					reconnectMaxDelay,
+					backpressureBufferSize,
+					drainInterval);
+		}
+
+		@ConstructorBinding
 		public Stream {
 			if (quotePath == null || quotePath.isBlank()) {
 				quotePath = "/ws/market/quotes";
 			}
 			if (quoteCurrency == null || quoteCurrency.isBlank()) {
 				quoteCurrency = "USD";
+			}
+			if (indexPath == null || indexPath.isBlank()) {
+				indexPath = "/ws/market/indices";
 			}
 			if (alertPath == null || alertPath.isBlank()) {
 				alertPath = "/ws/alerts/events";
@@ -93,6 +130,9 @@ public record ExchangeBackendProperties(
 					false,
 					"/ws/market/quotes",
 					"USD",
+					true,
+					false,
+					"/ws/market/indices",
 					true,
 					false,
 					"/ws/alerts/events",

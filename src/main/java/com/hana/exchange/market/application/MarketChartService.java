@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.temporal.WeekFields;
 import java.util.Comparator;
@@ -21,6 +22,7 @@ import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.domain.MarketIntradayCandle;
 import com.hana.exchange.market.domain.MarketChartPointResponse;
 import com.hana.exchange.market.domain.MarketChartResponse;
 
@@ -29,10 +31,15 @@ public class MarketChartService {
 
 	private final OmniLensMarketHistoryClient historyClient;
 	private final OmniLensMarketQuoteClient quoteClient;
+	private final MarketIntradayCandleStore intradayCandleStore;
 
-	public MarketChartService(OmniLensMarketHistoryClient historyClient, OmniLensMarketQuoteClient quoteClient) {
+	public MarketChartService(
+			OmniLensMarketHistoryClient historyClient,
+			OmniLensMarketQuoteClient quoteClient,
+			MarketIntradayCandleStore intradayCandleStore) {
 		this.historyClient = historyClient;
 		this.quoteClient = quoteClient;
+		this.intradayCandleStore = intradayCandleStore;
 	}
 
 	public MarketChartResponse getChart(
@@ -43,6 +50,31 @@ public class MarketChartService {
 			String currency) {
 		if (from.isAfter(to)) {
 			throw new BusinessException(ErrorCode.INVALID_REQUEST, "from must be on or before to");
+		}
+		if ("1d".equals(interval)) {
+			List<MarketIntradayCandle> intradayCandles = intradayCandles(stockCode, from, to);
+			if (!intradayCandles.isEmpty()) {
+				OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
+				BigDecimal fxRate = resolveFxRate(quote);
+				String localCurrency = quote.localCurrency() == null || quote.localCurrency().isBlank()
+						? currency
+						: quote.localCurrency();
+				List<MarketChartPointResponse> intradayPoints = intradayCandles.stream()
+						.map(candle -> toPoint(candle, localCurrency, fxRate))
+						.toList();
+				return new MarketChartResponse(
+						"STOCK_EXCHANGE_INTRADAY_CANDLE",
+						stockCode,
+						interval,
+						from,
+						to,
+						"KRW",
+						localCurrency,
+						"en",
+						intradayPoints.size(),
+						intradayPoints,
+						Instant.now());
+			}
 		}
 		OmniLensMarketHistoryResponse history = historyClient.getHistory(stockCode, from, to, interval, currency);
 		OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
@@ -66,6 +98,16 @@ public class MarketChartService {
 				points.size(),
 				points,
 				Instant.now());
+	}
+
+	private List<MarketIntradayCandle> intradayCandles(
+			String stockCode,
+			LocalDate from,
+			LocalDate to) {
+		ZoneId koreaZone = ZoneId.of("Asia/Seoul");
+		Instant fromInclusive = from.atStartOfDay(koreaZone).toInstant();
+		Instant toExclusive = to.plusDays(1).atStartOfDay(koreaZone).toInstant();
+		return intradayCandleStore.find(stockCode, fromInclusive, toExclusive, 480);
 	}
 
 	private List<OmniLensMarketHistoryPoint> aggregate(List<OmniLensMarketHistoryPoint> points, String interval) {
@@ -133,7 +175,7 @@ public class MarketChartService {
 
 	private MarketChartPointResponse toPoint(OmniLensMarketHistoryPoint point, String localCurrency, BigDecimal fxRate) {
 		return new MarketChartPointResponse(
-				point.tradeDate(),
+				point.tradeDate().toString(),
 				toText(point.openPriceKrw()),
 				toText(point.highPriceKrw()),
 				toText(point.lowPriceKrw()),
@@ -146,6 +188,23 @@ public class MarketChartService {
 				point.volume(),
 				toText(point.tradingValueKrw()),
 				point.adjusted());
+	}
+
+	private MarketChartPointResponse toPoint(MarketIntradayCandle candle, String localCurrency, BigDecimal fxRate) {
+		return new MarketChartPointResponse(
+				candle.bucketStart().toString(),
+				toText(candle.openPriceKrw()),
+				toText(candle.highPriceKrw()),
+				toText(candle.lowPriceKrw()),
+				toText(candle.closePriceKrw()),
+				localCurrency,
+				toText(localPrice(candle.openPriceKrw(), null, fxRate)),
+				toText(localPrice(candle.highPriceKrw(), null, fxRate)),
+				toText(localPrice(candle.lowPriceKrw(), null, fxRate)),
+				toText(localPrice(candle.closePriceKrw(), null, fxRate)),
+				candle.volume(),
+				null,
+				false);
 	}
 
 	private BigDecimal localPrice(BigDecimal krwPrice, BigDecimal explicitLocalPrice, BigDecimal fxRate) {

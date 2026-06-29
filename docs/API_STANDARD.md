@@ -111,7 +111,7 @@
 - `GET /api/v1/stocks/{stockCode}/global-peers`
   - 종목 상세 화면의 피어 종목 보기 요청 API다.
   - Hana-OmniLens-API의 글로벌 피어 매칭 결과를 proxy하며 headline, summary, primary peer, 후보 peer 목록, confidence, model version을 반환한다.
-  - 각 peer는 섹터, 산업, 사업모델, 규모 버킷, 매칭 근거 배열, rationale을 포함한다.
+  - 각 peer는 섹터, 산업, 사업모델, 규모 버킷, 시가총액, 매출, 영업이익, 순이익, 재무 데이터 출처, 재무 유사도, 매칭 근거 배열, rationale을 포함한다.
 - Stock search/detail calls Hana-OmniLens-API and returns the common response envelope.
 
 ## Market Quote Snapshot

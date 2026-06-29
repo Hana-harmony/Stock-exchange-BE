@@ -113,6 +113,13 @@ public class StockService {
 				peer.industry(),
 				peer.businessModel(),
 				peer.scaleBucket(),
+				peer.fiscalYear(),
+				toText(peer.marketCapUsd()),
+				toText(peer.revenueUsd()),
+				toText(peer.operatingIncomeUsd()),
+				toText(peer.netIncomeUsd()),
+				peer.financialDataSource(),
+				toText(peer.financialSimilarityScore()),
 				peer.matchedFactors(),
 				peer.rationale());
 	}

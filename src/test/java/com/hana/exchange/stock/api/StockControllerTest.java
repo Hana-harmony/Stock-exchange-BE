@@ -157,6 +157,13 @@ class StockControllerTest {
 								"Biotechnology",
 								"Biotech platform licensing",
 								"MID_CAP",
+								2025,
+								null,
+								new BigDecimal("1396611000"),
+								new BigDecimal("469006000"),
+								new BigDecimal("316889000"),
+								"SEC_COMPANYFACTS",
+								new BigDecimal("0.9996"),
 								List.of("Sector: both are Health Care companies."),
 								"Both companies are biotech platform providers."),
 						List.of(new OmniLensGlobalPeerMatch(
@@ -171,6 +178,13 @@ class StockControllerTest {
 								"Biotechnology",
 								"Biotech platform licensing",
 								"MID_CAP",
+								2025,
+								null,
+								new BigDecimal("1396611000"),
+								new BigDecimal("469006000"),
+								new BigDecimal("316889000"),
+								"SEC_COMPANYFACTS",
+								new BigDecimal("0.9996"),
 								List.of("Sector: both are Health Care companies."),
 								"Both companies are biotech platform providers.")),
 						new BigDecimal("0.4911"),
@@ -187,6 +201,8 @@ class StockControllerTest {
 				.andExpect(jsonPath("$.data.primaryPeer.sector").value("Health Care"))
 				.andExpect(jsonPath("$.data.primaryPeer.industry").value("Biotechnology"))
 				.andExpect(jsonPath("$.data.primaryPeer.scaleBucket").value("MID_CAP"))
+				.andExpect(jsonPath("$.data.primaryPeer.revenueUsd").value("1396611000"))
+				.andExpect(jsonPath("$.data.primaryPeer.financialDataSource").value("SEC_COMPANYFACTS"))
 				.andExpect(jsonPath("$.data.primaryPeer.matchedFactors[0]")
 						.value("Sector: both are Health Care companies."))
 				.andExpect(jsonPath("$.data.confidenceLevel").value("MEDIUM"))

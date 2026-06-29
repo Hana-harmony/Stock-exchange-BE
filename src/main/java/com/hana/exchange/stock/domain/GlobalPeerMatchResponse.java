@@ -28,6 +28,13 @@ public record GlobalPeerMatchResponse(
 			String industry,
 			String businessModel,
 			String scaleBucket,
+			Integer fiscalYear,
+			String marketCapUsd,
+			String revenueUsd,
+			String operatingIncomeUsd,
+			String netIncomeUsd,
+			String financialDataSource,
+			String financialSimilarityScore,
 			List<String> matchedFactors,
 			String rationale
 	) {

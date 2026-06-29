@@ -88,6 +88,26 @@ public class RestOmniLensStockClient implements OmniLensStockClient {
 		}
 	}
 
+	@Override
+	public OmniLensGlobalPeerResponse getGlobalPeers(String stockCode) {
+		try {
+			OmniLensApiResponse<OmniLensGlobalPeerResponse> response =
+					retryer.execute("stock.getGlobalPeers", () -> restClient.get()
+							.uri("/api/v1/market/stocks/{stockCode}/global-peers", stockCode)
+							.headers(headers -> {
+								if (StringUtils.hasText(properties.apiKey())) {
+									headers.set(API_KEY_HEADER, properties.apiKey());
+								}
+							})
+							.retrieve()
+							.body(new ParameterizedTypeReference<>() {
+							}));
+			return data(response);
+		} catch (RestClientException exception) {
+			throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE, exception.getMessage());
+		}
+	}
+
 	private <T> T data(OmniLensApiResponse<T> response) {
 		if (response == null || !response.success() || response.data() == null) {
 			throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE);

@@ -6,9 +6,12 @@ import java.time.Instant;
 import org.springframework.stereotype.Service;
 
 import com.hana.exchange.stock.client.OmniLensStockClient;
+import com.hana.exchange.stock.client.OmniLensGlobalPeerMatch;
+import com.hana.exchange.stock.client.OmniLensGlobalPeerResponse;
 import com.hana.exchange.stock.client.OmniLensStockDetailResponse;
 import com.hana.exchange.stock.client.OmniLensStockSearchItem;
 import com.hana.exchange.stock.client.OmniLensStockSearchResponse;
+import com.hana.exchange.stock.domain.GlobalPeerMatchResponse;
 import com.hana.exchange.stock.domain.StockDetailResponse;
 import com.hana.exchange.stock.domain.StockSearchItemResponse;
 import com.hana.exchange.stock.domain.StockSearchResponse;
@@ -72,6 +75,22 @@ public class StockService {
 				Instant.now());
 	}
 
+	public GlobalPeerMatchResponse getGlobalPeers(String stockCode) {
+		OmniLensGlobalPeerResponse response = stockClient.getGlobalPeers(stockCode);
+		return new GlobalPeerMatchResponse(
+				response.stockCode(),
+				displayName(response.stockNameEn(), response.stockName()),
+				response.headline(),
+				response.summary(),
+				toPeer(response.primaryPeer()),
+				response.peers().stream().map(this::toPeer).toList(),
+				toText(response.confidenceScore()),
+				response.confidenceLevel(),
+				response.modelVersion(),
+				response.source(),
+				Instant.now());
+	}
+
 	private StockSearchItemResponse toSearchItem(OmniLensStockSearchItem item) {
 		return new StockSearchItemResponse(
 				item.stockCode(),
@@ -79,6 +98,23 @@ public class StockService {
 				item.market(),
 				item.sector(),
 				item.source());
+	}
+
+	private GlobalPeerMatchResponse.Peer toPeer(OmniLensGlobalPeerMatch peer) {
+		return new GlobalPeerMatchResponse.Peer(
+				peer.rank(),
+				peer.ticker(),
+				peer.companyName(),
+				peer.exchange(),
+				peer.country(),
+				toText(peer.similarityScore()),
+				peer.businessTags(),
+				peer.sector(),
+				peer.industry(),
+				peer.businessModel(),
+				peer.scaleBucket(),
+				peer.matchedFactors(),
+				peer.rationale());
 	}
 
 	private String displayName(String stockNameEn, String stockName) {

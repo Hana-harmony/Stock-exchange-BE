@@ -19,6 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
+import com.hana.exchange.stock.client.OmniLensGlobalPeerMatch;
+import com.hana.exchange.stock.client.OmniLensGlobalPeerResponse;
 import com.hana.exchange.stock.client.OmniLensStockClient;
 import com.hana.exchange.stock.client.OmniLensStockDetailResponse;
 import com.hana.exchange.stock.client.OmniLensStockSearchItem;
@@ -131,6 +133,64 @@ class StockControllerTest {
 						.param("currency", "USD"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.priceLimitState").value("NORMAL"));
+	}
+
+	@Test
+	void globalPeerEndpointReturnsPopupCopyAndPrimaryPeer() throws Exception {
+		when(stockClient.getGlobalPeers("196170"))
+				.thenReturn(new OmniLensGlobalPeerResponse(
+						"196170",
+						"알테오젠",
+						"Alteogen",
+						"Alteogen Is The 'Halozyme Therapeutics' of South Korea — "
+								+ "A Global Biotech Platform Leader",
+						"Alteogen is a high-margin Biotech Platform provider.",
+						new OmniLensGlobalPeerMatch(
+								1,
+								"HALO",
+								"Halozyme Therapeutics",
+								"NASDAQ_GLOBAL_SELECT",
+								"US",
+								new BigDecimal("0.4911"),
+								List.of("biotech platform", "drug delivery"),
+								"Health Care",
+								"Biotechnology",
+								"Biotech platform licensing",
+								"MID_CAP",
+								List.of("Sector: both are Health Care companies."),
+								"Both companies are biotech platform providers."),
+						List.of(new OmniLensGlobalPeerMatch(
+								1,
+								"HALO",
+								"Halozyme Therapeutics",
+								"NASDAQ_GLOBAL_SELECT",
+								"US",
+								new BigDecimal("0.4911"),
+								List.of("biotech platform", "drug delivery"),
+								"Health Care",
+								"Biotechnology",
+								"Biotech platform licensing",
+								"MID_CAP",
+								List.of("Sector: both are Health Care companies."),
+								"Both companies are biotech platform providers.")),
+						new BigDecimal("0.4911"),
+						"MEDIUM",
+						"global-peer-tfidf-test",
+						"HANA_OMNILENS_API"));
+
+		mockMvc.perform(get("/api/v1/stocks/196170/global-peers"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.stockCode").value("196170"))
+				.andExpect(jsonPath("$.data.stockName").value("Alteogen (알테오젠)"))
+				.andExpect(jsonPath("$.data.primaryPeer.ticker").value("HALO"))
+				.andExpect(jsonPath("$.data.primaryPeer.companyName").value("Halozyme Therapeutics"))
+				.andExpect(jsonPath("$.data.primaryPeer.sector").value("Health Care"))
+				.andExpect(jsonPath("$.data.primaryPeer.industry").value("Biotechnology"))
+				.andExpect(jsonPath("$.data.primaryPeer.scaleBucket").value("MID_CAP"))
+				.andExpect(jsonPath("$.data.primaryPeer.matchedFactors[0]")
+						.value("Sector: both are Health Care companies."))
+				.andExpect(jsonPath("$.data.confidenceLevel").value("MEDIUM"))
+				.andExpect(jsonPath("$.data.dataSource").value("HANA_OMNILENS_API"));
 	}
 
 	@Test

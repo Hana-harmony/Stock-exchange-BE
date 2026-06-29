@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.YearMonth;
 import java.time.temporal.WeekFields;
 import java.util.Comparator;
@@ -20,9 +19,10 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
+import com.hana.exchange.market.client.OmniLensMarketIntradayClient;
+import com.hana.exchange.market.client.OmniLensMarketIntradayPrice;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
-import com.hana.exchange.market.domain.MarketIntradayCandle;
 import com.hana.exchange.market.domain.MarketChartPointResponse;
 import com.hana.exchange.market.domain.MarketChartResponse;
 
@@ -30,16 +30,17 @@ import com.hana.exchange.market.domain.MarketChartResponse;
 public class MarketChartService {
 
 	private final OmniLensMarketHistoryClient historyClient;
+	private final OmniLensMarketIntradayClient intradayClient;
 	private final OmniLensMarketQuoteClient quoteClient;
-	private final MarketIntradayCandleStore intradayCandleStore;
 
 	public MarketChartService(
 			OmniLensMarketHistoryClient historyClient,
+			OmniLensMarketIntradayClient intradayClient,
 			OmniLensMarketQuoteClient quoteClient,
 			MarketIntradayCandleStore intradayCandleStore) {
 		this.historyClient = historyClient;
+		this.intradayClient = intradayClient;
 		this.quoteClient = quoteClient;
-		this.intradayCandleStore = intradayCandleStore;
 	}
 
 	public MarketChartResponse getChart(
@@ -51,30 +52,8 @@ public class MarketChartService {
 		if (from.isAfter(to)) {
 			throw new BusinessException(ErrorCode.INVALID_REQUEST, "from must be on or before to");
 		}
-		if ("1d".equals(interval)) {
-			List<MarketIntradayCandle> intradayCandles = intradayCandles(stockCode, from, to);
-			if (!intradayCandles.isEmpty()) {
-				OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
-				BigDecimal fxRate = resolveFxRate(quote);
-				String localCurrency = quote.localCurrency() == null || quote.localCurrency().isBlank()
-						? currency
-						: quote.localCurrency();
-				List<MarketChartPointResponse> intradayPoints = intradayCandles.stream()
-						.map(candle -> toPoint(candle, localCurrency, fxRate))
-						.toList();
-				return new MarketChartResponse(
-						"STOCK_EXCHANGE_INTRADAY_CANDLE",
-						stockCode,
-						interval,
-						from,
-						to,
-						"KRW",
-						localCurrency,
-						"en",
-						intradayPoints.size(),
-						intradayPoints,
-						Instant.now());
-			}
+		if ("1m".equals(interval)) {
+			return getIntradayChart(stockCode, to, currency);
 		}
 		OmniLensMarketHistoryResponse history = historyClient.getHistory(stockCode, from, to, interval, currency);
 		OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
@@ -100,14 +79,42 @@ public class MarketChartService {
 				Instant.now());
 	}
 
-	private List<MarketIntradayCandle> intradayCandles(
-			String stockCode,
-			LocalDate from,
-			LocalDate to) {
-		ZoneId koreaZone = ZoneId.of("Asia/Seoul");
-		Instant fromInclusive = from.atStartOfDay(koreaZone).toInstant();
-		Instant toExclusive = to.plusDays(1).atStartOfDay(koreaZone).toInstant();
-		return intradayCandleStore.find(stockCode, fromInclusive, toExclusive, 480);
+	private MarketChartResponse getIntradayChart(String stockCode, LocalDate date, String currency) {
+		List<OmniLensMarketIntradayPrice> intradayPrices;
+		try {
+			intradayPrices = intradayClient.getIntraday(stockCode, date, 390);
+		} catch (BusinessException exception) {
+			intradayPrices = List.of();
+		}
+		ChartCurrency chartCurrency = chartCurrency(stockCode, currency);
+		List<MarketChartPointResponse> points = intradayPrices.stream()
+				.map(price -> toPoint(price, chartCurrency.localCurrency(), chartCurrency.fxRate()))
+				.toList();
+		return new MarketChartResponse(
+				"KIS_TIME_ITEM_CHART_PRICE",
+				stockCode,
+				"1m",
+				date,
+				date,
+				"KRW",
+				chartCurrency.localCurrency(),
+				"en",
+				points.size(),
+				points,
+				Instant.now());
+	}
+
+	private ChartCurrency chartCurrency(String stockCode, String currency) {
+		try {
+			OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
+			BigDecimal fxRate = resolveFxRate(quote);
+			String localCurrency = quote.localCurrency() == null || quote.localCurrency().isBlank()
+					? currency
+					: quote.localCurrency();
+			return new ChartCurrency(localCurrency, fxRate);
+		} catch (BusinessException exception) {
+			return new ChartCurrency("KRW", BigDecimal.ONE);
+		}
 	}
 
 	private List<OmniLensMarketHistoryPoint> aggregate(List<OmniLensMarketHistoryPoint> points, String interval) {
@@ -190,20 +197,20 @@ public class MarketChartService {
 				point.adjusted());
 	}
 
-	private MarketChartPointResponse toPoint(MarketIntradayCandle candle, String localCurrency, BigDecimal fxRate) {
+	private MarketChartPointResponse toPoint(OmniLensMarketIntradayPrice price, String localCurrency, BigDecimal fxRate) {
 		return new MarketChartPointResponse(
-				candle.bucketStart().toString(),
-				toText(candle.openPriceKrw()),
-				toText(candle.highPriceKrw()),
-				toText(candle.lowPriceKrw()),
-				toText(candle.closePriceKrw()),
+				price.bucketStart().toString(),
+				toText(price.openPriceKrw()),
+				toText(price.highPriceKrw()),
+				toText(price.lowPriceKrw()),
+				toText(price.closePriceKrw()),
 				localCurrency,
-				toText(localPrice(candle.openPriceKrw(), null, fxRate)),
-				toText(localPrice(candle.highPriceKrw(), null, fxRate)),
-				toText(localPrice(candle.lowPriceKrw(), null, fxRate)),
-				toText(localPrice(candle.closePriceKrw(), null, fxRate)),
-				candle.volume(),
-				null,
+				toText(localPrice(price.openPriceKrw(), null, fxRate)),
+				toText(localPrice(price.highPriceKrw(), null, fxRate)),
+				toText(localPrice(price.lowPriceKrw(), null, fxRate)),
+				toText(localPrice(price.closePriceKrw(), null, fxRate)),
+				price.tradingVolume(),
+				toText(price.tradingValueKrw()),
 				false);
 	}
 
@@ -231,5 +238,8 @@ public class MarketChartService {
 
 	private String toText(BigDecimal value) {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
+	}
+
+	private record ChartCurrency(String localCurrency, BigDecimal fxRate) {
 	}
 }

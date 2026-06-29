@@ -37,7 +37,7 @@ public class MarketChartController {
 			@PathVariable @Pattern(regexp = "\\d{6}") String stockCode,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-			@RequestParam(defaultValue = "1d") @Pattern(regexp = "1d|1w|1mo") String interval,
+			@RequestParam(defaultValue = "1d") @Pattern(regexp = "1m|1d|1w|1mo") String interval,
 			@RequestParam(defaultValue = "USD") @Pattern(regexp = "[A-Z]{3}") String currency) {
 		return ApiResponse.success(marketChartService.getChart(stockCode, from, to, interval, currency));
 	}

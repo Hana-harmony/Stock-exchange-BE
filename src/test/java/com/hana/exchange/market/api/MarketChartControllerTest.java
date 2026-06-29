@@ -6,11 +6,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -20,13 +19,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.common.exception.BusinessException;
 import com.hana.exchange.common.exception.ErrorCode;
-import com.hana.exchange.market.application.MarketIntradayCandleStore;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
+import com.hana.exchange.market.client.OmniLensMarketIntradayClient;
+import com.hana.exchange.market.client.OmniLensMarketIntradayPrice;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
-import com.hana.exchange.market.domain.MarketQuoteTickRequest;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -39,15 +38,10 @@ class MarketChartControllerTest {
 	private OmniLensMarketHistoryClient historyClient;
 
 	@MockitoBean
+	private OmniLensMarketIntradayClient intradayClient;
+
+	@MockitoBean
 	private OmniLensMarketQuoteClient quoteClient;
-
-	@Autowired
-	private MarketIntradayCandleStore intradayCandleStore;
-
-	@BeforeEach
-	void clearIntradayCandles() {
-		intradayCandleStore.clear();
-	}
 
 	@Test
 	void chartProxiesOmniLensKrxHistoryForFlutterChart() throws Exception {
@@ -135,28 +129,30 @@ class MarketChartControllerTest {
 	}
 
 	@Test
-	void chartUsesIntradayCandlesForOneDayWhenRealtimeTicksWereReceived() throws Exception {
+	void chartUsesOmniLensIntradayPricesForOneDayMinuteChart() throws Exception {
+		LocalDate date = LocalDate.parse("2026-06-24");
 		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
-		intradayCandleStore.record(tick("005930", "75000", 1_000_000L, "2026-06-24T00:31:15Z"));
-		intradayCandleStore.record(tick("005930", "75200", 1_001_000L, "2026-06-24T00:31:45Z"));
-		intradayCandleStore.record(tick("005930", "75100", 1_002_000L, "2026-06-24T00:32:05Z"));
+		when(intradayClient.getIntraday("005930", date, 390)).thenReturn(List.of(
+				intraday("2026-06-24T09:01:00", "75000", "75200", "75000", "75200", 1_001_000L),
+				intraday("2026-06-24T09:02:00", "75200", "75300", "75100", "75100", 1_002_000L)));
 
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
-						.param("from", "2026-06-24")
-						.param("to", "2026-06-24")
-						.param("interval", "1d")
-						.param("currency", "USD"))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data.dataSource").value("STOCK_EXCHANGE_INTRADAY_CANDLE"))
-				.andExpect(jsonPath("$.data.pointCount").value(2))
-				.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T00:31:00Z"))
-				.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("75000"))
-				.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75200"))
-				.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("75000"))
-				.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75200"))
-				.andExpect(jsonPath("$.data.points[0].closeLocalCurrencyPrice").value("54.144"))
-				.andExpect(jsonPath("$.data.points[0].volume").value(1001000))
-				.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T00:32:00Z"));
+							.param("from", "2026-06-24")
+							.param("to", "2026-06-24")
+							.param("interval", "1m")
+							.param("currency", "USD"))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.data.dataSource").value("KIS_TIME_ITEM_CHART_PRICE"))
+					.andExpect(jsonPath("$.data.interval").value("1m"))
+					.andExpect(jsonPath("$.data.pointCount").value(2))
+					.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T09:01"))
+					.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("75000"))
+					.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75200"))
+					.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("75000"))
+					.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75200"))
+					.andExpect(jsonPath("$.data.points[0].closeLocalCurrencyPrice").value("54.144"))
+					.andExpect(jsonPath("$.data.points[0].volume").value(1001000))
+					.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T09:02"));
 	}
 
 	@Test
@@ -233,30 +229,24 @@ class MarketChartControllerTest {
 				"HANA_OMNILENS_API");
 	}
 
-	private MarketQuoteTickRequest tick(String stockCode, String price, long volume, String marketDataTime) {
-		BigDecimal krwPrice = new BigDecimal(price);
-		BigDecimal fxRate = new BigDecimal("0.00072");
-		return new MarketQuoteTickRequest(
-				stockCode,
-				"삼성전자",
-				"Samsung Electronics",
+	private OmniLensMarketIntradayPrice intraday(
+			String bucketStart,
+			String openKrw,
+			String highKrw,
+			String lowKrw,
+			String closeKrw,
+			long volume) {
+		return new OmniLensMarketIntradayPrice(
+				"005930",
+				LocalDateTime.parse(bucketStart),
 				"KOSPI",
-				krwPrice,
-				new BigDecimal("1.25"),
+				new BigDecimal(openKrw),
+				new BigDecimal(highKrw),
+				new BigDecimal(lowKrw),
+				new BigDecimal(closeKrw),
 				volume,
-				"REGULAR",
-				null,
-				null,
-				null,
-				null,
-				null,
-				"USD",
-				krwPrice.multiply(fxRate),
-				fxRate,
-				Instant.parse("2026-06-24T00:30:00Z"),
-				"HANA_FX_RATE_API",
-				false,
-				Instant.parse(marketDataTime),
-				"HANA_OMNILENS_API_STREAM");
+				new BigDecimal("75000000000"),
+				"KIS_TIME_ITEM_CHART_PRICE",
+				null);
 	}
 }

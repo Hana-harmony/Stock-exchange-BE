@@ -92,7 +92,7 @@ class RestOmniLensMarketQuoteClientTest {
 				builder.build(),
 				properties(""),
 				retryer(""));
-		server.expect(once(), requestTo("http://omnilens/api/v1/market/quotes?currency=USD&limit=2000"))
+		server.expect(once(), requestTo("http://omnilens/api/v1/market/quotes?currency=USD&limit=30"))
 				.andExpect(method(HttpMethod.GET))
 				.andRespond(withSuccess("""
 						{

@@ -13,7 +13,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.annotation.PostConstruct;
+
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.SmartLifecycle;
+import org.springframework.context.event.EventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.TaskScheduler;
@@ -61,9 +65,21 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle, MarketQu
 		this.messageHandler = messageHandler;
 	}
 
+	@PostConstruct
+	void logConfiguration() {
+		log.info("Configured OmniLens market quote WebSocket stream enabled={} uri={} replayEnabled={} drainInterval={}",
+				properties.stream().quoteEnabled(),
+				streamUri(),
+				properties.stream().quoteReplayEnabled(),
+				properties.stream().drainInterval());
+	}
+
 	@Override
 	public void start() {
 		if (running || !properties.stream().quoteEnabled()) {
+			log.info("OmniLens market quote WebSocket stream skipped running={} enabled={}",
+					running,
+					properties.stream().quoteEnabled());
 			return;
 		}
 		running = true;
@@ -72,6 +88,11 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle, MarketQu
 				messageHandler::drainBufferedTicks,
 				properties.stream().drainInterval());
 		connect();
+	}
+
+	@EventListener(ApplicationReadyEvent.class)
+	public void startAfterApplicationReady() {
+		start();
 	}
 
 	@Override

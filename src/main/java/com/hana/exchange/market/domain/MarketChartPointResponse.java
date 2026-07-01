@@ -1,9 +1,7 @@
 package com.hana.exchange.market.domain;
 
-import java.time.LocalDate;
-
 public record MarketChartPointResponse(
-		LocalDate tradeDate,
+		String tradeDate,
 		String openPriceKrw,
 		String highPriceKrw,
 		String lowPriceKrw,

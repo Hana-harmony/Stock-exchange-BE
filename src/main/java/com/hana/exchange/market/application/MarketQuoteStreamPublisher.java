@@ -28,20 +28,24 @@ public class MarketQuoteStreamPublisher {
 	private final WatchlistRepository watchlistRepository;
 	private final TradeRepository tradeRepository;
 	private final TradeService tradeService;
+	private final MarketIntradayCandleStore intradayCandleStore;
 
 	public MarketQuoteStreamPublisher(
 			SimpMessagingTemplate messagingTemplate,
 			WatchlistRepository watchlistRepository,
 			TradeRepository tradeRepository,
-			TradeService tradeService) {
+			TradeService tradeService,
+			MarketIntradayCandleStore intradayCandleStore) {
 		this.messagingTemplate = messagingTemplate;
 		this.watchlistRepository = watchlistRepository;
 		this.tradeRepository = tradeRepository;
 		this.tradeService = tradeService;
+		this.intradayCandleStore = intradayCandleStore;
 	}
 
 	public MarketQuoteStreamPublishResponse publish(MarketQuoteTickRequest request) {
 		Instant now = Instant.now();
+		intradayCandleStore.record(request);
 		tradeService.processLimitOrders(request);
 		MarketQuoteTickMessage message = toMessage(request, now);
 		List<String> topics = topics(request);

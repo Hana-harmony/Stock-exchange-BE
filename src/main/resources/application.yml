@@ -78,6 +78,9 @@ hana:
         quote-path: ${HANA_OMNILENS_QUOTE_STREAM_PATH:/ws/market/quotes}
         quote-currency: ${HANA_OMNILENS_QUOTE_STREAM_CURRENCY:USD}
         quote-replay-enabled: ${HANA_OMNILENS_QUOTE_STREAM_REPLAY_ENABLED:true}
+        index-enabled: ${HANA_OMNILENS_INDEX_STREAM_ENABLED:true}
+        index-path: ${HANA_OMNILENS_INDEX_STREAM_PATH:/ws/market/indices}
+        index-replay-enabled: ${HANA_OMNILENS_INDEX_STREAM_REPLAY_ENABLED:true}
         alert-enabled: ${HANA_OMNILENS_ALERT_STREAM_ENABLED:true}
         alert-path: ${HANA_OMNILENS_ALERT_STREAM_PATH:/ws/alerts/events}
         alert-replay-enabled: ${HANA_OMNILENS_ALERT_STREAM_REPLAY_ENABLED:true}

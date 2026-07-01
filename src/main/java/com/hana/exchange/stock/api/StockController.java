@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hana.exchange.common.api.ApiResponse;
 import com.hana.exchange.stock.application.StockService;
+import com.hana.exchange.stock.domain.GlobalPeerMatchResponse;
 import com.hana.exchange.stock.domain.StockDetailResponse;
 import com.hana.exchange.stock.domain.StockSearchResponse;
 
@@ -48,5 +49,12 @@ public class StockController {
 			@PathVariable @Pattern(regexp = "\\d{6}") String stockCode,
 			@RequestParam(defaultValue = "USD") @Pattern(regexp = "[A-Z]{3}") String currency) {
 		return ApiResponse.success(stockService.getDetail(stockCode, currency));
+	}
+
+	@GetMapping("/{stockCode}/global-peers")
+	@Operation(summary = "국내 주식 글로벌 피어 종목 조회")
+	public ApiResponse<GlobalPeerMatchResponse> getGlobalPeers(
+			@PathVariable @Pattern(regexp = "\\d{6}") String stockCode) {
+		return ApiResponse.success(stockService.getGlobalPeers(stockCode));
 	}
 }

@@ -4,7 +4,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -28,9 +32,10 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hana.exchange.config.ExchangeBackendProperties;
+import com.hana.exchange.market.application.MarketQuoteRealtimeSubscriber;
 
 @Component
-public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
+public class OmniLensMarketQuoteStreamClient implements SmartLifecycle, MarketQuoteRealtimeSubscriber {
 
 	private static final Logger log = LoggerFactory.getLogger(OmniLensMarketQuoteStreamClient.class);
 	private static final String API_KEY_HEADER = "X-HANA-OMNILENS-API-KEY";
@@ -42,6 +47,7 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 	private final OmniLensMarketQuoteStreamMessageHandler messageHandler;
 	private final AtomicInteger reconnectAttempts = new AtomicInteger();
 	private final AtomicReference<WebSocketSession> session = new AtomicReference<>();
+	private final Set<String> requestedStockCodes = ConcurrentHashMap.newKeySet();
 	private volatile boolean running;
 	private ScheduledFuture<?> drainTask;
 	private ScheduledFuture<?> reconnectTask;
@@ -133,7 +139,23 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 					reconnectAttempts.set(0);
 					log.info("OmniLens market quote WebSocket connected sessionId={}", connectedSession.getId());
 					sendReplayRequest(connectedSession);
+					sendSubscriptionRequest(connectedSession, List.copyOf(requestedStockCodes), properties.stream().quoteCurrency());
 				});
+	}
+
+	@Override
+	public void requestSubscription(List<String> stockCodes, String currency) {
+		List<String> normalizedStockCodes = normalizeStockCodes(stockCodes);
+		if (normalizedStockCodes.isEmpty()) {
+			return;
+		}
+		requestedStockCodes.addAll(normalizedStockCodes);
+		WebSocketSession openSession = session.get();
+		if (openSession == null || !openSession.isOpen()) {
+			log.info("Queued OmniLens quote subscription request stockCodes={}", normalizedStockCodes);
+			return;
+		}
+		sendSubscriptionRequest(openSession, normalizedStockCodes, currency);
 	}
 
 	private void scheduleReconnect() {
@@ -181,6 +203,39 @@ public class OmniLensMarketQuoteStreamClient implements SmartLifecycle {
 		} catch (IOException ignored) {
 			scheduleReconnect();
 		}
+	}
+
+	private void sendSubscriptionRequest(WebSocketSession connectedSession, List<String> stockCodes, String currency) {
+		if (stockCodes == null || stockCodes.isEmpty() || !connectedSession.isOpen()) {
+			return;
+		}
+		try {
+			String payload = objectMapper.writeValueAsString(Map.of(
+					"type", "QUOTE_STREAM_SUBSCRIBE",
+					"currency", normalizeCurrency(currency),
+					"stockCodes", stockCodes));
+			connectedSession.sendMessage(new TextMessage(payload));
+		} catch (IOException ignored) {
+			scheduleReconnect();
+		}
+	}
+
+	private List<String> normalizeStockCodes(List<String> stockCodes) {
+		if (stockCodes == null) {
+			return List.of();
+		}
+		return stockCodes.stream()
+				.filter(stockCode -> stockCode != null && stockCode.matches("\\d{6}"))
+				.collect(java.util.stream.Collectors.collectingAndThen(
+						java.util.stream.Collectors.toCollection(LinkedHashSet::new),
+						List::copyOf));
+	}
+
+	private String normalizeCurrency(String currency) {
+		if (!StringUtils.hasText(currency)) {
+			return properties.stream().quoteCurrency();
+		}
+		return currency.toUpperCase(java.util.Locale.ROOT);
 	}
 
 	private void cancel(ScheduledFuture<?> task) {

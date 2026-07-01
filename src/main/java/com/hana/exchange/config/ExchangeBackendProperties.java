@@ -127,14 +127,14 @@ public record ExchangeBackendProperties(
 
 		public static Stream defaults() {
 			return new Stream(
-					false,
+					true,
 					"/ws/market/quotes",
 					"USD",
 					true,
-					false,
+					true,
 					"/ws/market/indices",
 					true,
-					false,
+					true,
 					"/ws/alerts/events",
 					true,
 					Duration.ofSeconds(1),

@@ -49,7 +49,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
   -d "{\"refreshToken\":\"${REFRESH_TOKEN}\"}"
 ```
 
-기본 API 포트는 `3000`이고 로컬 PostgreSQL host port는 `5433`이다. 5433이 이미 사용 중이면 `EXCHANGE_POSTGRES_HOST_PORT=5434 docker compose -f compose.local.yml up --build`처럼 host port만 바꿔 실행한다. `compose.local.yml`은 PostgreSQL 16과 API를 함께 띄우며, Flyway가 사용자, mock USD 계좌, 현금 원장, refresh session schema를 자동 적용한다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. 로컬 세무 문서 저장소는 컨테이너의 비권한 사용자도 쓸 수 있는 `/app/data/tax-documents`를 사용한다. Hana market quote WebSocket stream은 로컬 테스트가 외부 연결에 매달리지 않도록 기본 비활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켜면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
+기본 API 포트는 `3000`이고 로컬 PostgreSQL host port는 `5433`이다. 5433이 이미 사용 중이면 `EXCHANGE_POSTGRES_HOST_PORT=5434 docker compose -f compose.local.yml up --build`처럼 host port만 바꿔 실행한다. `compose.local.yml`은 PostgreSQL 16과 API를 함께 띄우며, Flyway가 사용자, mock USD 계좌, 현금 원장, refresh session schema를 자동 적용한다. Hana-OmniLens-API를 로컬 Docker 또는 호스트에서 `8080`으로 먼저 띄우면 `HANA_OMNILENS_API_BASE_URL=http://host.docker.internal:8080` 기준으로 연동 테스트할 수 있다. 로컬 세무 문서 저장소는 컨테이너의 비권한 사용자도 쓸 수 있는 `/app/data/tax-documents`를 사용한다. Hana market quote WebSocket stream은 기본 활성화이며, `HANA_OMNILENS_QUOTE_STREAM_ENABLED=false`로 끄지 않으면 `HANA_OMNILENS_QUOTE_STREAM_PATH=/ws/market/quotes`에 연결해 FE topic으로 재배포한다.
 
 ## 범위
 - 아이디/비밀번호 기반 현지 사용자 가입, mock USD 계좌, 보유종목, watchlist 관리
@@ -139,9 +139,9 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 
 ## 주요 흐름
 1. Hana-OmniLens-API의 KIS 기반 단건 실시간 시세 snapshot을 조회해 FE에 공통 응답 형식으로 전달한다.
-2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 FE WebSocket topic으로 재배포한다. stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_QUOTE_STREAM_ENABLED=true`로 켠다.
+2. Hana-OmniLens-API의 market quote WebSocket stream을 구독해 현지 거래소 FE WebSocket topic으로 재배포한다. stream client는 기본 활성화이며, 필요 시 `HANA_OMNILENS_QUOTE_STREAM_ENABLED=false`로 끈다.
 3. Stock-exchange-BE는 Hana가 내려준 `currentPriceKrw`, `localCurrencyPrice`, `localCurrency`, `fxRate`, `fxRateTime`, `fxRateSource`를 보존해 FE에 전달한다.
-4. FE가 전체 한국 주식, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 전체 목록은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 종목 목록은 bulk quote endpoint를 사용하며, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다.
+4. FE가 전체 한국 주식, 시장별 종목, 다건 종목, watchlist, 보유종목, 단건 상세 시세를 REST로 요청하면 Stock-exchange-BE가 초기 snapshot을 응답한다. 전체 목록은 Hana-OmniLens-API all quote endpoint를 사용하고, 요청 종목 목록은 bulk quote endpoint를 사용하며, watchlist/보유종목 view는 계좌별 저장 데이터를 기준으로 stockCode를 조합한다. 단건 상세 시세 요청과 `POST /api/v1/market/stocks/{stockCode}/realtime-subscription`은 Hana upstream WebSocket에 `QUOTE_STREAM_SUBSCRIBE`를 보내 상세 진입 종목을 수요 구독한다.
 5. quote REST snapshot은 `HANA_OMNILENS_QUOTE_CACHE_TTL` 동안 short-cache를 사용하고, upstream 장애 시 `HANA_OMNILENS_QUOTE_CACHE_STALE_TTL` 안의 snapshot을 `cache.status=STALE_CACHE`, `fxStale=true`로 내려준다.
 6. FE가 quote WebSocket을 구독하면 Stock-exchange-BE가 전체, 시장별, 종목별, watchlist, portfolio 컨텍스트에 맞는 KRW/USD 실시간 tick을 송신한다. `POST /api/v1/market/stream/quotes`는 local adapter smoke용 ingest 계약이고, Hana-OmniLens-API stream client도 동일 publisher를 호출한다.
 7. FE가 과거 차트를 요청하면 Stock-exchange-BE는 Hana-OmniLens-API의 KRX 기반 과거 시세 DB 조회 API와 단건 quote FX metadata를 호출해 KRW/현지통화 차트 응답으로 재가공한다. `1d`는 일봉을 그대로 반환하고, `1w`와 `1mo`는 BE가 OHLCV와 거래대금을 집계한다.
@@ -157,7 +157,7 @@ curl -X POST http://localhost:3000/api/v1/auth/logout \
 17. 포트폴리오 평가 이력 API는 최근 snapshot의 현금, 평가금액, 총자산, 실현/미실현손익, 보유종목 수를 반환한다.
 18. 매도 체결로 계산된 실현손익과 거래원장 항목은 포트폴리오 API에 반영되며, 이후 세무 환급/선지급 기능의 입력 데이터로 연결한다.
 19. 사용자가 watchlist에 종목을 추가하면 Hana-OmniLens-API의 quote metadata를 확인해 종목명/시장과 함께 알림 대상 입력 데이터로 저장한다.
-20. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 원문 링크, 제목/요약/전문 번역, What/Why/Impact 3줄 요약, 이미지 URL 목록, AI 분석 결과, glossary, translation quality flag를 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 비활성화이며, 운영/통합 테스트 환경에서 `HANA_OMNILENS_ALERT_STREAM_ENABLED=true`로 켠다.
+20. Hana-OmniLens-API의 뉴스·공시 분석 이벤트를 WebSocket stream 또는 REST smoke ingest로 수신해 원문 링크, 제목/요약/전문 번역, What/Why/Impact 3줄 요약, 이미지 URL 목록, AI 분석 결과, glossary, translation quality flag를 저장하고 idempotency key로 중복 처리를 수행한다. alert stream client는 기본 활성화이며, 필요 시 `HANA_OMNILENS_ALERT_STREAM_ENABLED=false`로 끈다.
 18. 이벤트의 `holderTarget`, `watchlistTarget`, `stockCode`, `relatedStocks`를 사용자 보유종목/watchlist와 매칭한다.
 19. 종목 상세 화면은 `stockCode`와 `relatedStocks` 기준으로 저장된 뉴스·공시 AI 분석 결과, sentiment, importance, risk flag, What/Why/Impact 요약, 이미지 URL, 원문 URL, glossary, translation quality flag를 인텔리전스 피드 목록·상세로 조회한다.
 20. 매칭된 사용자에게 인앱 알림함 notification을 저장하고 push delivery 상태와 읽음 상태를 관리한다. alert notification은 glossary와 translation quality flag를 함께 보존한다. 현지 거래소 앱은 계좌별 notification device token을 등록·조회·비활성화할 수 있고, 응답은 원문 token 대신 hash와 masked token을 제공한다. FCM/APNS/Web Push 실발송을 켜는 경우 원문 device token 또는 web subscription endpoint는 AES-GCM encrypted vault 컬럼에만 저장하고 provider별 환경변수로 외부 발송을 수행한다. Hana 세무 상태 sync가 `RECAPTURE_RISK`를 반환하면 해당 tax refund case subject로 사후 환수 리스크 notification을 한 번 저장한다. 기본 provider는 외부 발송 없는 `LOCAL_NOOP_PUSH`이며, `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있다. 자격증명이 없으면 `SKIPPED`로 기록하고, 실패/미발송 notification은 retry worker가 설정된 batch와 max attempt 기준으로 재시도한다.

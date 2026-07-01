@@ -23,7 +23,7 @@
 - FE용 과거 시세 차트 REST API: KRW/현지통화 OHLCV 응답과 `1w`/`1mo` 집계 구현 완료
 - Hana-OmniLens-API KRX history 수집·정규화·DB 저장·API는 Hana 레포에서 완료됐고, Stock-exchange-BE는 KRX를 직접 호출하지 않는다.
 - Hana-OmniLens-API quote snapshot short-cache와 stale data 정책: 기본 3초 fresh cache, 30초 stale fallback, 응답 cache metadata 구현 완료
-- Hana-OmniLens-API market quote stream 구독, reconnect, replay, backpressure 정책: 기본 비활성화 설정과 upstream WebSocket client 구현 완료, 실제 Hana endpoint 연동 smoke 예정
+- Hana-OmniLens-API market quote stream 구독, reconnect, replay, 수요 구독, backpressure 정책: 기본 활성화 설정과 upstream WebSocket client 구현 완료, 실제 Hana endpoint 연동 smoke 예정
 - 보유종목과 watchlist 모델: DB holding과 DB watchlist 구현 완료
 - 아이디/비밀번호 회원가입, 로그인, mock USD 계좌 생성: JDBC/Flyway 기반 user/account 저장, local JWT 발급/검증, refresh token/session rotation, Spring Security bearer filter 구현 완료
 - 실제 결제 없는 mock 달러 충전: DB cash ledger 구현 완료
@@ -35,7 +35,7 @@
 - 평가금액과 주문 경고 contract test: portfolio valuation과 주문 경고 API contract test 구현 완료
 
 ## M3 뉴스·공시 알림
-- Hana-OmniLens-API WebSocket client: 기본 비활성화 설정, reconnect, replay, backpressure buffer 구현 완료
+- Hana-OmniLens-API WebSocket client: 기본 활성화 설정, reconnect, replay, backpressure buffer 구현 완료
 - 이벤트 저장소와 idempotency key: REST ingest와 WebSocket 수신 기반 DB 저장 구현 완료
 - AI 번역 금융용어 glossary와 translation quality flag: 이벤트 저장소, 종목별 인텔리전스 피드, notification inbox 응답 전파 구현 완료
 - full-content news v2 field 확장: What/Why/Impact 요약, 원문/번역 전문, 이미지 URL, content availability, cluster key 저장과 FE feed 응답 전파 Done

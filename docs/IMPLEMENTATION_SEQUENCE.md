@@ -76,7 +76,7 @@
 - quote REST snapshot은 짧은 fresh cache와 upstream 장애 시 stale fallback을 사용하며, stale 응답은 FE가 표시할 수 있도록 cache status, `fxRateTime`, `fxRateSource`, `fxStale=true`를 포함한다.
 - watchlist와 보유종목 REST snapshot은 계좌별 DB 저장 데이터의 stockCode 목록을 기준으로 조합하고, 빈 목록은 기본 universe로 대체하지 않는다.
 - watchlist와 보유종목 WebSocket stream은 tick의 stockCode가 계좌별 watchlist 또는 holding에 포함될 때만 해당 계좌 topic으로 재배포한다.
-- Hana-OmniLens-API market quote WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.
+- Hana-OmniLens-API market quote WebSocket client는 기본 활성화 설정으로 두고, reconnect, replay request, 상세 진입 수요 구독 request, backpressure buffer 정책을 적용해 FE topic publisher로 tick을 전달한다.
 - Stock-exchange-BE 과거 차트 API는 Hana-OmniLens-API의 KRX 기반 history API를 proxy/reformat하며, KRX 수집과 저장은 Hana-OmniLens-API가 담당한다.
 - Stock-exchange-BE는 `/api/v1/market/stocks/{stockCode}/chart`에서 Hana history API와 quote FX metadata를 호출해 KRW/현지통화 OHLCV를 Flutter chart 응답으로 재가공하고, `1w`/`1mo` interval은 BE에서 집계한다.
 - mock 주문 전 orderability API는 Hana-OmniLens-API에서 외국인 한도, 거래정지, VI, 상/하한가 상태를 조회해 차단 사유와 경고를 반환한다.
@@ -84,7 +84,7 @@
 - portfolio API는 DB holding과 trade ledger를 기준으로 보유종목별 Hana USD quote를 조회해 현재가, 평가금액, 미실현손익, 총 평가금액, 총자산을 계산한다.
 - DB 보유종목과 DB watchlist를 기준으로 뉴스·공시 분석 push 대상자를 매칭하고, alert event와 notification inbox에 AI 번역 품질 메타데이터, What/Why/Impact 요약, 이미지 URL, content availability를 함께 저장한다.
 - alert event 저장 schema는 원문/번역 전문, translated summary, image URL, cluster key를 보존하고 종목별 intelligence feed API로 그대로 전달한다.
-- Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 비활성화 설정으로 두고, 통합 환경에서 활성화하면 reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
+- Hana-OmniLens-API 뉴스·공시 분석 WebSocket client는 기본 활성화 설정으로 두고, reconnect, replay request, backpressure buffer 정책을 적용해 기존 alert ingest service로 이벤트를 전달한다.
 - notification은 provider 추상화, delivery 상태, 계좌별 iOS/Android/web device token 등록 상태를 포함하고, 로컬 기본 provider는 외부 발송 없이 delivery 상태를 검증하는 `LOCAL_NOOP_PUSH`를 사용한다. `EXCHANGE_NOTIFICATION_PUSH_ENABLED_PROVIDERS`로 FCM/APNS/web push routing을 켤 수 있으며, FCM HTTP v1, APNS HTTP, Web Push gateway 실발송 client가 configured credential 기준으로 외부 발송한다. 외부 자격증명이 없으면 `SKIPPED`로 기록한다. 실패/미발송 notification은 환경변수로 활성화하는 retry worker가 batch size와 max attempt 기준으로 재전송한다.
 - 매도 실현손익을 세무 환급 기능의 입력 데이터로 연결한다.
 - 세무 환급 케이스는 거주자증명서/제한세율신청서 metadata와 mock SELL 원장을 DB에서 매칭해 예상 환급액과 선지급 가능 여부를 제공하고, 최신 tax case를 Hana 세무 상태 sync boundary로 전송해 반환 status를 DB에 반영한다. 실제 파일 저장은 별도 단계로 확장한다.

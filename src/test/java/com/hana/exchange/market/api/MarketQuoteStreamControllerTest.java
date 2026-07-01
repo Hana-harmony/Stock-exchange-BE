@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,8 +29,10 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
+import com.hana.exchange.market.client.OmniLensMarketRealtimeSubscriptionClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
+import com.hana.exchange.market.client.OmniLensRealtimeSubscriptionResponse;
 import com.hana.exchange.market.domain.MarketQuoteTickMessage;
 import com.hana.exchange.support.AuthTestSupport;
 import com.hana.exchange.support.AuthTestSupport.AuthSession;
@@ -53,6 +56,9 @@ class MarketQuoteStreamControllerTest {
 
 	@MockitoBean
 	private Clock clock;
+
+	@MockitoBean
+	private OmniLensMarketRealtimeSubscriptionClient realtimeSubscriptionClient;
 
 	@BeforeEach
 	void prepareTradingSession() {
@@ -104,6 +110,46 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
+	@Test
+	void realtimeSubscriptionEndpointRequestsUpstreamDemandSubscription() throws Exception {
+		when(realtimeSubscriptionClient.subscribe("091990", "REGULAR"))
+				.thenReturn(new OmniLensRealtimeSubscriptionResponse(
+						"091990",
+						"REGULAR",
+						"SUBSCRIBED",
+						"subscription requested"));
+
+		mockMvc.perform(post("/api/v1/market/stocks/{stockCode}/realtime-subscription", "091990")
+						.queryParam("session", "REGULAR"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.stockCode").value("091990"))
+				.andExpect(jsonPath("$.data.status").value("SUBSCRIBED"))
+				.andExpect(jsonPath("$.data.message").value("subscription requested"));
+
+		verify(realtimeSubscriptionClient).subscribe("091990", "REGULAR");
+	}
+
+	@Test
+	void realtimeSubscriptionEndpointAcceptsReleaseForDetailScreenExit() throws Exception {
+		when(realtimeSubscriptionClient.unsubscribe("091990", "AFTER_HOURS_REAL"))
+				.thenReturn(new OmniLensRealtimeSubscriptionResponse(
+						"091990",
+						"AFTER_HOURS_REAL",
+						"RELEASED_LOCAL",
+						"subscription release accepted"));
+
+		mockMvc.perform(delete("/api/v1/market/stocks/{stockCode}/realtime-subscription", "091990")
+						.queryParam("session", "AFTER_HOURS_REAL"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.stockCode").value("091990"))
+				.andExpect(jsonPath("$.data.session").value("AFTER_HOURS_REAL"))
+				.andExpect(jsonPath("$.data.status").value("RELEASED_LOCAL"));
+
+		verify(realtimeSubscriptionClient).unsubscribe("091990", "AFTER_HOURS_REAL");
 	}
 
 	private void addWatchlist(AuthSession session, String stockCode) throws Exception {

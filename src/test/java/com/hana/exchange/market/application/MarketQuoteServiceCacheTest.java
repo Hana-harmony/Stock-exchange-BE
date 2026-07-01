@@ -64,7 +64,30 @@ class MarketQuoteServiceCacheTest {
 				.isEqualTo(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE);
 	}
 
+	@Test
+	void singleQuoteRequestsRealtimeSubscriptionForDemandDetailStock() {
+		MutableClock clock = new MutableClock(Instant.parse("2026-06-18T06:00:00Z"));
+		FakeQuoteClient quoteClient = new FakeQuoteClient();
+		quoteClient.quote = quote("091990", "48.10");
+		FakeRealtimeSubscriber realtimeSubscriber = new FakeRealtimeSubscriber();
+		MarketQuoteService service = service(quoteClient, clock, realtimeSubscriber);
+
+		MarketQuoteSnapshot snapshot = service.getQuoteSnapshot("091990", "USD");
+
+		assertThat(snapshot.quotes().get(0).stockCode()).isEqualTo("091990");
+		assertThat(realtimeSubscriber.stockCodes).containsExactly("091990");
+		assertThat(realtimeSubscriber.currency).isEqualTo("USD");
+	}
+
 	private MarketQuoteService service(FakeQuoteClient quoteClient, Clock clock) {
+		return service(quoteClient, clock, (stockCodes, currency) -> {
+		});
+	}
+
+	private MarketQuoteService service(
+			FakeQuoteClient quoteClient,
+			Clock clock,
+			MarketQuoteRealtimeSubscriber realtimeSubscriber) {
 		ExchangeBackendProperties properties = new ExchangeBackendProperties(
 				"http://localhost:8080",
 				"",
@@ -75,7 +98,8 @@ class MarketQuoteServiceCacheTest {
 		return new MarketQuoteService(
 				quoteClient,
 				new MarketQuoteCache(properties, clock),
-				properties);
+				properties,
+				realtimeSubscriber);
 	}
 
 	private static OmniLensMarketQuote quote(String stockCode, String usdPrice) {
@@ -102,12 +126,13 @@ class MarketQuoteServiceCacheTest {
 	private static class FakeQuoteClient implements OmniLensMarketQuoteClient {
 
 		private List<OmniLensMarketQuote> quotes = List.of();
+		private OmniLensMarketQuote quote = quote("005930", "54.00");
 		private boolean failQuotes;
 		private int getQuotesCallCount;
 
 		@Override
 		public OmniLensMarketQuote getQuote(String stockCode, String currency) {
-			throw new UnsupportedOperationException("single quote is not used in this test");
+			return quote;
 		}
 
 		@Override
@@ -117,6 +142,18 @@ class MarketQuoteServiceCacheTest {
 				throw new BusinessException(ErrorCode.MARKET_UPSTREAM_UNAVAILABLE);
 			}
 			return quotes;
+		}
+	}
+
+	private static class FakeRealtimeSubscriber implements MarketQuoteRealtimeSubscriber {
+
+		private List<String> stockCodes = List.of();
+		private String currency;
+
+		@Override
+		public void requestSubscription(List<String> stockCodes, String currency) {
+			this.stockCodes = List.copyOf(stockCodes);
+			this.currency = currency;
 		}
 	}
 

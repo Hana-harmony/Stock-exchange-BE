@@ -34,6 +34,15 @@ public class RestOmniLensMarketIntradayClient implements OmniLensMarketIntradayC
 
 	@Override
 	public List<OmniLensMarketIntradayPrice> getIntraday(String stockCode, LocalDate date, int limit) {
+		return getIntraday(stockCode, date, limit, true);
+	}
+
+	@Override
+	public List<OmniLensMarketIntradayPrice> getIntraday(
+			String stockCode,
+			LocalDate date,
+			int limit,
+			boolean fetchMissing) {
 		try {
 			OmniLensApiResponse<List<OmniLensMarketIntradayPrice>> response =
 					retryer.execute("market.getIntraday", () -> restClient.get()
@@ -41,6 +50,7 @@ public class RestOmniLensMarketIntradayClient implements OmniLensMarketIntradayC
 									.path("/api/v1/market/stocks/{stockCode}/intraday")
 									.queryParam("date", date)
 									.queryParam("limit", limit)
+									.queryParam("fetchMissing", fetchMissing)
 									.build(stockCode))
 							.headers(headers -> {
 								if (StringUtils.hasText(properties.apiKey())) {

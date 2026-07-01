@@ -156,6 +156,79 @@ class MarketChartControllerTest {
 	}
 
 	@Test
+	void chartDoesNotFallbackToSingleDailyCandleWhenMinutePricesAreOutsideRegularSession() throws Exception {
+		LocalDate date = LocalDate.parse("2026-07-01");
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+		when(intradayClient.getIntraday("005930", date, 390)).thenReturn(List.of(
+				intraday("2026-07-01T23:59:00", "60000", "60000", "60000", "60000", 1_000L)));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+						.param("from", "2026-07-01")
+						.param("to", "2026-07-01")
+						.param("interval", "1m")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.dataSource").value("KIS_TIME_ITEM_CHART_PRICE"))
+				.andExpect(jsonPath("$.data.interval").value("1m"))
+				.andExpect(jsonPath("$.data.from").value("2026-07-01"))
+				.andExpect(jsonPath("$.data.to").value("2026-07-01"))
+				.andExpect(jsonPath("$.data.pointCount").value(0));
+	}
+
+	@Test
+	void chartAggregatesMultiDayIntradayPricesForOneWeekChart() throws Exception {
+		LocalDate from = LocalDate.parse("2026-06-24");
+		LocalDate to = LocalDate.parse("2026-06-25");
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+		when(intradayClient.getIntraday("005930", LocalDate.parse("2026-06-24"), 390, true)).thenReturn(List.of(
+				intraday("2026-06-24T09:01:00", "75000", "75200", "75000", "75100", 1_000L),
+				intraday("2026-06-24T09:29:00", "75100", "75300", "75050", "75200", 2_000L),
+				intraday("2026-06-24T09:31:00", "75200", "75400", "75100", "75300", 3_000L)));
+		when(intradayClient.getIntraday("005930", LocalDate.parse("2026-06-25"), 390, true)).thenReturn(List.of(
+				intraday("2026-06-25T09:01:00", "76000", "76100", "75900", "76050", 4_000L)));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+						.param("from", "2026-06-24")
+						.param("to", "2026-06-25")
+						.param("interval", "30m")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.dataSource").value("KIS_TIME_DAILY_CHART_PRICE"))
+				.andExpect(jsonPath("$.data.interval").value("30m"))
+				.andExpect(jsonPath("$.data.pointCount").value(3))
+				.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T09:00"))
+				.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("75000"))
+				.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75300"))
+				.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("75000"))
+				.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75200"))
+				.andExpect(jsonPath("$.data.points[0].volume").value(3000))
+				.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T09:30"))
+				.andExpect(jsonPath("$.data.points[2].tradeDate").value("2026-06-25T09:00"));
+	}
+
+	@Test
+	void chartAggregatesMultiDayIntradayPricesForOneMonthChart() throws Exception {
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+		when(intradayClient.getIntraday("005930", LocalDate.parse("2026-06-24"), 390, false)).thenReturn(List.of(
+				intraday("2026-06-24T09:01:00", "75000", "75200", "75000", "75100", 1_000L),
+				intraday("2026-06-24T10:59:00", "75100", "75500", "75050", "75400", 2_000L),
+				intraday("2026-06-24T11:01:00", "75400", "75600", "75300", "75500", 3_000L)));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+						.param("from", "2026-06-24")
+						.param("to", "2026-06-24")
+						.param("interval", "2h")
+						.param("currency", "USD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.interval").value("2h"))
+				.andExpect(jsonPath("$.data.pointCount").value(2))
+				.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T09:00"))
+				.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75500"))
+				.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75400"))
+				.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T11:00"));
+	}
+
+	@Test
 	void chartRejectsInvalidRangeAndParameters() throws Exception {
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
 						.param("from", "2026-06-18")

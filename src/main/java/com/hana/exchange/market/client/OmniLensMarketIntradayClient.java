@@ -9,4 +9,12 @@ public interface OmniLensMarketIntradayClient {
 			String stockCode,
 			LocalDate date,
 			int limit);
+
+	default List<OmniLensMarketIntradayPrice> getIntraday(
+			String stockCode,
+			LocalDate date,
+			int limit,
+			boolean fetchMissing) {
+		return getIntraday(stockCode, date, limit);
+	}
 }

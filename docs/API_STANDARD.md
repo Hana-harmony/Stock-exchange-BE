@@ -47,6 +47,7 @@
 | `ALERT_001` | 404 | Alert event not found |
 | `NOTIFICATION_001` | 404 | Notification not found |
 | `MARKET_001` | 502 | Hana OmniLens market upstream unavailable |
+| `TERM_001` | 502 | Hana OmniLens financial term upstream unavailable |
 | `TRADE_001` | 409 | Mock USD account has insufficient balance |
 | `TRADE_002` | 409 | Mock holding has insufficient quantity |
 | `TAX_001` | 404 | Tax refund case not found |
@@ -113,6 +114,15 @@
   - Hana-OmniLens-API의 글로벌 피어 매칭 결과를 proxy하며 headline, summary, primary peer, 후보 peer 목록, confidence, model version을 반환한다.
   - 각 peer는 섹터, 산업, 사업모델, 규모 버킷, 시가총액, 매출, 영업이익, 순이익, 재무 데이터 출처, 재무 유사도, 매칭 근거 배열, rationale을 포함한다.
 - Stock search/detail calls Hana-OmniLens-API and returns the common response envelope.
+
+## Korean Financial Terms
+
+- `POST /api/v1/financial-terms/explain`
+  - FE 뉴스·공시 상세 화면에서 특정 한국 금융 용어를 클릭할 때 호출한다.
+  - Stock-exchange-BE는 Hana-OmniLens-API `/api/v1/korean-financial-terms/explain`를 proxy하고, FE에는 OmniLens API key를 노출하지 않는다.
+  - 요청은 `term`, `locale=en`, `sourceType=NEWS|DISCLOSURE`, 기사 제목/본문 문맥, 선택 stock metadata, article id/url, session key를 포함한다.
+  - 응답은 영어 용어명, 정의, 설명, 예문, confidence, `displayMode`, source, evidence, model version, `cacheHit`, 누적 click count를 포함한다.
+  - `displayMode=REVIEW_REQUIRED`이면 FE는 자동 해설 대신 검수 필요 상태로 표시한다.
 
 ## Market Quote Snapshot
 

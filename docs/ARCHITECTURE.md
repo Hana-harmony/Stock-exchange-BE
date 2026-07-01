@@ -14,6 +14,7 @@
 - `stock/application`: Hana-OmniLens-API 종목 검색/상세 응답을 영어권/USD 화면 계약으로 재가공하는 service
 - `stock/domain`: stock search result와 stock detail response 계약 record
 - `stock/client`: Hana-OmniLens-API 종목 검색/상세 REST client
+- `term/api`, `term/application`, `term/client`: 뉴스·공시 상세에서 클릭한 한국 금융 용어를 Hana-OmniLens-API 사전/RAG 해설 API로 중계하는 FE용 service
 - `account/api`: 아이디/비밀번호 회원가입, 로그인/token verify, mock USD 계좌 조회, 실제 결제 없는 달러 충전 REST API
 - `account/application`: password hash/verify, local JWT 발급/검증, 사용자 생성, mock USD cash ledger 조합 service
 - `account/domain`: user, mock USD account, cash ledger, account response 계약 record
@@ -123,6 +124,7 @@
 - 감사 이벤트의 `subjectId`와 `summary`는 저장 전 이메일, 전화번호, 주민등록번호 형식, 긴 secret/token 형식을 마스킹한다. retention worker는 기본 비활성화이며, `EXCHANGE_AUDIT_RETENTION_WORKER_ENABLED=true`에서 `EXCHANGE_AUDIT_RETENTION_DAYS` 이전 이벤트를 정리한다.
 - `GET /api/v1/stocks/search`와 `GET /api/v1/stocks/{stockCode}`는 Hana-OmniLens-API 종목 검색/상세 결과를 영어권/USD 화면 계약으로 제공한다.
 - `GET /api/v1/stocks/{stockCode}/global-peers`는 Hana-OmniLens-API 글로벌 피어 매칭 endpoint를 proxy해 종목 상세 화면의 피어 팝업 headline, summary, primary peer, 후보 peer 목록, 섹터·산업·사업모델·규모·재무 기반 매칭 근거를 제공한다.
+- `POST /api/v1/financial-terms/explain`은 뉴스·공시 상세에서 클릭한 한국 금융 용어를 Hana-OmniLens-API `/api/v1/korean-financial-terms/explain`로 중계해 영어 해설, evidence, confidence, cache 상태를 반환한다. 서버 간 `X-HANA-OMNILENS-API-KEY`는 FE에 노출하지 않는다.
 - `GET /api/v1/market/quotes?stockCodes=...&market=...&currency=USD`는 Hana all/bulk quote endpoint와 시장 필터 기준으로 KRW/USD 시세 목록 snapshot을 제공한다.
 - `GET /api/v1/market/quotes/{stockCode}?currency=USD`는 Hana-OmniLens-API 단건 quote REST snapshot을 호출해 KRW 가격, USD 환산 가격, 기준시각을 공통 응답 형식으로 제공하고, 같은 종목을 upstream quote stream에 수요 구독 요청한다.
 - `POST/DELETE /api/v1/market/stocks/{stockCode}/realtime-subscription`은 상세 화면 진입/이탈 시 원천 실시간 구독 intent를 처리한다.

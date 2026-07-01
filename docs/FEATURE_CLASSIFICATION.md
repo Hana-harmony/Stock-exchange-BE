@@ -41,6 +41,7 @@
 | Hana-OmniLens-API WebSocket 구독 | Stock-exchange-BE | Done |
 | 이벤트 저장과 중복 제거 | Stock-exchange-BE | Done |
 | AI 번역 금융용어 glossary와 translation quality flag 수신·저장·응답 | Stock-exchange-BE | Done |
+| 뉴스·공시 상세 한국 금융 용어 클릭 해설 proxy | Stock-exchange-BE | Done: `/api/v1/financial-terms/explain`, OmniLens API key FE 비노출 |
 | full-content news v2 필드 저장과 응답 | Stock-exchange-BE | Done: What/Why/Impact, 원문/번역 전문, 이미지 URL, content availability, cluster key |
 | `holderTarget`, `watchlistTarget` 기반 사용자 매칭 | Stock-exchange-BE | Done |
 | 알림함 저장, local push delivery 상태, 실패/미발송 retry worker | Stock-exchange-BE | Done |

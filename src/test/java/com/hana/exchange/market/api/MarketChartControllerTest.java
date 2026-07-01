@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,8 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
+import com.hana.exchange.market.client.OmniLensMarketIntradayClient;
+import com.hana.exchange.market.client.OmniLensMarketIntradayPrice;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 
@@ -33,6 +36,9 @@ class MarketChartControllerTest {
 
 	@MockitoBean
 	private OmniLensMarketHistoryClient historyClient;
+
+	@MockitoBean
+	private OmniLensMarketIntradayClient intradayClient;
 
 	@MockitoBean
 	private OmniLensMarketQuoteClient quoteClient;
@@ -123,6 +129,33 @@ class MarketChartControllerTest {
 	}
 
 	@Test
+	void chartUsesOmniLensIntradayPricesForOneDayMinuteChart() throws Exception {
+		LocalDate date = LocalDate.parse("2026-06-24");
+		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
+		when(intradayClient.getIntraday("005930", date, 390)).thenReturn(List.of(
+				intraday("2026-06-24T09:01:00", "75000", "75200", "75000", "75200", 1_001_000L),
+				intraday("2026-06-24T09:02:00", "75200", "75300", "75100", "75100", 1_002_000L)));
+
+		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
+							.param("from", "2026-06-24")
+							.param("to", "2026-06-24")
+							.param("interval", "1m")
+							.param("currency", "USD"))
+					.andExpect(status().isOk())
+					.andExpect(jsonPath("$.data.dataSource").value("KIS_TIME_ITEM_CHART_PRICE"))
+					.andExpect(jsonPath("$.data.interval").value("1m"))
+					.andExpect(jsonPath("$.data.pointCount").value(2))
+					.andExpect(jsonPath("$.data.points[0].tradeDate").value("2026-06-24T09:01"))
+					.andExpect(jsonPath("$.data.points[0].openPriceKrw").value("75000"))
+					.andExpect(jsonPath("$.data.points[0].highPriceKrw").value("75200"))
+					.andExpect(jsonPath("$.data.points[0].lowPriceKrw").value("75000"))
+					.andExpect(jsonPath("$.data.points[0].closePriceKrw").value("75200"))
+					.andExpect(jsonPath("$.data.points[0].closeLocalCurrencyPrice").value("54.144"))
+					.andExpect(jsonPath("$.data.points[0].volume").value(1001000))
+					.andExpect(jsonPath("$.data.points[1].tradeDate").value("2026-06-24T09:02"));
+	}
+
+	@Test
 	void chartRejectsInvalidRangeAndParameters() throws Exception {
 		mockMvc.perform(get("/api/v1/market/stocks/005930/chart")
 						.param("from", "2026-06-18")
@@ -194,5 +227,26 @@ class MarketChartControllerTest {
 				LocalDate.parse("2026-06-18"),
 				null,
 				"HANA_OMNILENS_API");
+	}
+
+	private OmniLensMarketIntradayPrice intraday(
+			String bucketStart,
+			String openKrw,
+			String highKrw,
+			String lowKrw,
+			String closeKrw,
+			long volume) {
+		return new OmniLensMarketIntradayPrice(
+				"005930",
+				LocalDateTime.parse(bucketStart),
+				"KOSPI",
+				new BigDecimal(openKrw),
+				new BigDecimal(highKrw),
+				new BigDecimal(lowKrw),
+				new BigDecimal(closeKrw),
+				volume,
+				new BigDecimal("75000000000"),
+				"KIS_TIME_ITEM_CHART_PRICE",
+				null);
 	}
 }

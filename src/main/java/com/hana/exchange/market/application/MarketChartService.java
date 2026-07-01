@@ -19,6 +19,8 @@ import com.hana.exchange.common.exception.ErrorCode;
 import com.hana.exchange.market.client.OmniLensMarketHistoryClient;
 import com.hana.exchange.market.client.OmniLensMarketHistoryPoint;
 import com.hana.exchange.market.client.OmniLensMarketHistoryResponse;
+import com.hana.exchange.market.client.OmniLensMarketIntradayClient;
+import com.hana.exchange.market.client.OmniLensMarketIntradayPrice;
 import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.domain.MarketChartPointResponse;
@@ -28,10 +30,16 @@ import com.hana.exchange.market.domain.MarketChartResponse;
 public class MarketChartService {
 
 	private final OmniLensMarketHistoryClient historyClient;
+	private final OmniLensMarketIntradayClient intradayClient;
 	private final OmniLensMarketQuoteClient quoteClient;
 
-	public MarketChartService(OmniLensMarketHistoryClient historyClient, OmniLensMarketQuoteClient quoteClient) {
+	public MarketChartService(
+			OmniLensMarketHistoryClient historyClient,
+			OmniLensMarketIntradayClient intradayClient,
+			OmniLensMarketQuoteClient quoteClient,
+			MarketIntradayCandleStore intradayCandleStore) {
 		this.historyClient = historyClient;
+		this.intradayClient = intradayClient;
 		this.quoteClient = quoteClient;
 	}
 
@@ -43,6 +51,9 @@ public class MarketChartService {
 			String currency) {
 		if (from.isAfter(to)) {
 			throw new BusinessException(ErrorCode.INVALID_REQUEST, "from must be on or before to");
+		}
+		if ("1m".equals(interval)) {
+			return getIntradayChart(stockCode, to, currency);
 		}
 		OmniLensMarketHistoryResponse history = historyClient.getHistory(stockCode, from, to, interval, currency);
 		OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
@@ -66,6 +77,44 @@ public class MarketChartService {
 				points.size(),
 				points,
 				Instant.now());
+	}
+
+	private MarketChartResponse getIntradayChart(String stockCode, LocalDate date, String currency) {
+		List<OmniLensMarketIntradayPrice> intradayPrices;
+		try {
+			intradayPrices = intradayClient.getIntraday(stockCode, date, 390);
+		} catch (BusinessException exception) {
+			intradayPrices = List.of();
+		}
+		ChartCurrency chartCurrency = chartCurrency(stockCode, currency);
+		List<MarketChartPointResponse> points = intradayPrices.stream()
+				.map(price -> toPoint(price, chartCurrency.localCurrency(), chartCurrency.fxRate()))
+				.toList();
+		return new MarketChartResponse(
+				"KIS_TIME_ITEM_CHART_PRICE",
+				stockCode,
+				"1m",
+				date,
+				date,
+				"KRW",
+				chartCurrency.localCurrency(),
+				"en",
+				points.size(),
+				points,
+				Instant.now());
+	}
+
+	private ChartCurrency chartCurrency(String stockCode, String currency) {
+		try {
+			OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
+			BigDecimal fxRate = resolveFxRate(quote);
+			String localCurrency = quote.localCurrency() == null || quote.localCurrency().isBlank()
+					? currency
+					: quote.localCurrency();
+			return new ChartCurrency(localCurrency, fxRate);
+		} catch (BusinessException exception) {
+			return new ChartCurrency("KRW", BigDecimal.ONE);
+		}
 	}
 
 	private List<OmniLensMarketHistoryPoint> aggregate(List<OmniLensMarketHistoryPoint> points, String interval) {
@@ -133,7 +182,7 @@ public class MarketChartService {
 
 	private MarketChartPointResponse toPoint(OmniLensMarketHistoryPoint point, String localCurrency, BigDecimal fxRate) {
 		return new MarketChartPointResponse(
-				point.tradeDate(),
+				point.tradeDate().toString(),
 				toText(point.openPriceKrw()),
 				toText(point.highPriceKrw()),
 				toText(point.lowPriceKrw()),
@@ -146,6 +195,23 @@ public class MarketChartService {
 				point.volume(),
 				toText(point.tradingValueKrw()),
 				point.adjusted());
+	}
+
+	private MarketChartPointResponse toPoint(OmniLensMarketIntradayPrice price, String localCurrency, BigDecimal fxRate) {
+		return new MarketChartPointResponse(
+				price.bucketStart().toString(),
+				toText(price.openPriceKrw()),
+				toText(price.highPriceKrw()),
+				toText(price.lowPriceKrw()),
+				toText(price.closePriceKrw()),
+				localCurrency,
+				toText(localPrice(price.openPriceKrw(), null, fxRate)),
+				toText(localPrice(price.highPriceKrw(), null, fxRate)),
+				toText(localPrice(price.lowPriceKrw(), null, fxRate)),
+				toText(localPrice(price.closePriceKrw(), null, fxRate)),
+				price.tradingVolume(),
+				toText(price.tradingValueKrw()),
+				false);
 	}
 
 	private BigDecimal localPrice(BigDecimal krwPrice, BigDecimal explicitLocalPrice, BigDecimal fxRate) {
@@ -172,5 +238,8 @@ public class MarketChartService {
 
 	private String toText(BigDecimal value) {
 		return value == null ? null : value.stripTrailingZeros().toPlainString();
+	}
+
+	private record ChartCurrency(String localCurrency, BigDecimal fxRate) {
 	}
 }

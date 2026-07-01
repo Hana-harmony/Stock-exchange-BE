@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hana.exchange.config.ExchangeBackendProperties;
 import com.hana.exchange.common.exception.BusinessException;
@@ -26,14 +27,26 @@ public class MarketQuoteService {
 	private final OmniLensMarketQuoteClient omniLensMarketQuoteClient;
 	private final MarketQuoteCache marketQuoteCache;
 	private final ExchangeBackendProperties properties;
+	private final MarketQuoteRealtimeSubscriber realtimeSubscriber;
 
 	public MarketQuoteService(
 			OmniLensMarketQuoteClient omniLensMarketQuoteClient,
 			MarketQuoteCache marketQuoteCache,
 			ExchangeBackendProperties properties) {
+		this(omniLensMarketQuoteClient, marketQuoteCache, properties, (stockCodes, currency) -> {
+		});
+	}
+
+	@Autowired
+	public MarketQuoteService(
+			OmniLensMarketQuoteClient omniLensMarketQuoteClient,
+			MarketQuoteCache marketQuoteCache,
+			ExchangeBackendProperties properties,
+			MarketQuoteRealtimeSubscriber realtimeSubscriber) {
 		this.omniLensMarketQuoteClient = omniLensMarketQuoteClient;
 		this.marketQuoteCache = marketQuoteCache;
 		this.properties = properties;
+		this.realtimeSubscriber = realtimeSubscriber;
 	}
 
 	public MarketQuoteSnapshot getQuoteSnapshot() {
@@ -85,6 +98,7 @@ public class MarketQuoteService {
 	}
 
 	public MarketQuoteSnapshot getQuoteSnapshot(String stockCode, String currency) {
+		realtimeSubscriber.requestSubscription(List.of(stockCode), currency);
 		CachedQuotes cachedQuotes = getQuoteWithCache(stockCode, currency);
 		OmniLensMarketQuote quote = cachedQuotes.quotes().get(0);
 		return new MarketQuoteSnapshot(

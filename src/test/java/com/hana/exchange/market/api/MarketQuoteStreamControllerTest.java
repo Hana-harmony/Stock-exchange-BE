@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -30,6 +31,7 @@ import com.hana.exchange.market.client.OmniLensMarketQuote;
 import com.hana.exchange.market.client.OmniLensMarketQuoteClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityClient;
 import com.hana.exchange.market.client.OmniLensOrderabilityResponse;
+import com.hana.exchange.market.application.MarketQuoteRealtimeSubscriber;
 import com.hana.exchange.market.domain.MarketQuoteTickMessage;
 import com.hana.exchange.support.AuthTestSupport;
 import com.hana.exchange.support.AuthTestSupport.AuthSession;
@@ -53,6 +55,9 @@ class MarketQuoteStreamControllerTest {
 
 	@MockitoBean
 	private Clock clock;
+
+	@MockitoBean
+	private MarketQuoteRealtimeSubscriber realtimeSubscriber;
 
 	@BeforeEach
 	void prepareTradingSession() {
@@ -104,6 +109,30 @@ class MarketQuoteStreamControllerTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("COMMON_002"));
+	}
+
+	@Test
+	void realtimeSubscriptionEndpointRequestsUpstreamDemandSubscription() throws Exception {
+		mockMvc.perform(post("/api/v1/market/stocks/{stockCode}/realtime-subscription", "091990")
+						.queryParam("session", "REGULAR"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.stockCode").value("091990"))
+				.andExpect(jsonPath("$.data.status").value("SUBSCRIBED"))
+				.andExpect(jsonPath("$.data.upstream").value("HANA_OMNILENS_QUOTE_STREAM"));
+
+		verify(realtimeSubscriber).requestSubscription(eq(java.util.List.of("091990")), eq("USD"));
+	}
+
+	@Test
+	void realtimeSubscriptionEndpointAcceptsReleaseForDetailScreenExit() throws Exception {
+		mockMvc.perform(delete("/api/v1/market/stocks/{stockCode}/realtime-subscription", "091990")
+						.queryParam("session", "AFTER_HOURS_REAL"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.stockCode").value("091990"))
+				.andExpect(jsonPath("$.data.session").value("AFTER_HOURS_REAL"))
+				.andExpect(jsonPath("$.data.status").value("RELEASED_LOCAL"));
 	}
 
 	private void addWatchlist(AuthSession session, String stockCode) throws Exception {

@@ -66,8 +66,8 @@ hana:
     api:
       base-url: ${HANA_OMNILENS_API_BASE_URL:http://localhost:8080}
       api-key: ${HANA_OMNILENS_API_KEY:}
-      quote-cache-ttl: ${HANA_OMNILENS_QUOTE_CACHE_TTL:3s}
-      quote-cache-stale-ttl: ${HANA_OMNILENS_QUOTE_CACHE_STALE_TTL:30s}
+      quote-cache-ttl: ${HANA_OMNILENS_QUOTE_CACHE_TTL:20s}
+      quote-cache-stale-ttl: ${HANA_OMNILENS_QUOTE_CACHE_STALE_TTL:10m}
       retry:
         enabled: ${HANA_OMNILENS_REST_RETRY_ENABLED:true}
         max-attempts: ${HANA_OMNILENS_REST_RETRY_MAX_ATTEMPTS:3}

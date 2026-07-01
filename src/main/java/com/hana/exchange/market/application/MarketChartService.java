@@ -2,10 +2,15 @@ package com.hana.exchange.market.application;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +33,9 @@ import com.hana.exchange.market.domain.MarketChartResponse;
 
 @Service
 public class MarketChartService {
+
+	private static final LocalTime REGULAR_MARKET_OPEN = LocalTime.of(9, 0);
+	private static final LocalTime REGULAR_MARKET_CLOSE = LocalTime.of(15, 30);
 
 	private final OmniLensMarketHistoryClient historyClient;
 	private final OmniLensMarketIntradayClient intradayClient;
@@ -54,6 +62,9 @@ public class MarketChartService {
 		}
 		if ("1m".equals(interval)) {
 			return getIntradayChart(stockCode, to, currency);
+		}
+		if ("30m".equals(interval) || "2h".equals(interval)) {
+			return getIntradayRangeChart(stockCode, from, to, interval, currency);
 		}
 		OmniLensMarketHistoryResponse history = historyClient.getHistory(stockCode, from, to, interval, currency);
 		OmniLensMarketQuote quote = quoteClient.getQuote(stockCode, currency);
@@ -88,6 +99,7 @@ public class MarketChartService {
 		}
 		ChartCurrency chartCurrency = chartCurrency(stockCode, currency);
 		List<MarketChartPointResponse> points = intradayPrices.stream()
+				.filter(this::isRegularSessionPrice)
 				.map(price -> toPoint(price, chartCurrency.localCurrency(), chartCurrency.fxRate()))
 				.toList();
 		return new MarketChartResponse(
@@ -102,6 +114,121 @@ public class MarketChartService {
 				points.size(),
 				points,
 				Instant.now());
+	}
+
+	private MarketChartResponse getIntradayRangeChart(
+			String stockCode,
+			LocalDate from,
+			LocalDate to,
+			String interval,
+			String currency) {
+		Duration bucketSize = "2h".equals(interval) ? Duration.ofHours(2) : Duration.ofMinutes(30);
+		boolean fetchMissing = !"2h".equals(interval);
+		List<OmniLensMarketIntradayPrice> prices = new ArrayList<>();
+		LocalDate date = from;
+		while (!date.isAfter(to)) {
+			if (isKoreanTradingWeekday(date)) {
+				try {
+					prices.addAll(intradayClient.getIntraday(stockCode, date, 390, fetchMissing));
+				} catch (BusinessException exception) {
+					// 휴장일이나 provider 일시 실패는 다른 거래일 차트를 막지 않는다.
+				}
+			}
+			date = date.plusDays(1);
+		}
+		ChartCurrency chartCurrency = chartCurrency(stockCode, currency);
+		List<MarketChartPointResponse> points = aggregateIntraday(prices, bucketSize)
+				.stream()
+				.map(price -> toPoint(price, chartCurrency.localCurrency(), chartCurrency.fxRate()))
+				.toList();
+		return new MarketChartResponse(
+				"KIS_TIME_DAILY_CHART_PRICE",
+				stockCode,
+				interval,
+				from,
+				to,
+				"KRW",
+				chartCurrency.localCurrency(),
+				"en",
+				points.size(),
+				points,
+				Instant.now());
+	}
+
+	private boolean isKoreanTradingWeekday(LocalDate date) {
+		DayOfWeek dayOfWeek = date.getDayOfWeek();
+		return dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY;
+	}
+
+	private boolean isRegularSessionPrice(OmniLensMarketIntradayPrice price) {
+		LocalTime time = price.bucketStart().toLocalTime();
+		return !time.isBefore(REGULAR_MARKET_OPEN) && !time.isAfter(REGULAR_MARKET_CLOSE);
+	}
+
+	private List<OmniLensMarketIntradayPrice> aggregateIntraday(
+			List<OmniLensMarketIntradayPrice> prices,
+			Duration bucketSize) {
+		List<OmniLensMarketIntradayPrice> sortedPrices = prices.stream()
+				.filter(this::isRegularSessionPrice)
+				.sorted(Comparator.comparing(OmniLensMarketIntradayPrice::bucketStart))
+				.toList();
+		Map<LocalDateTime, List<OmniLensMarketIntradayPrice>> grouped = new LinkedHashMap<>();
+		for (OmniLensMarketIntradayPrice price : sortedPrices) {
+			grouped.computeIfAbsent(intradayBucket(price.bucketStart(), bucketSize), ignored -> new ArrayList<>())
+					.add(price);
+		}
+		return grouped.entrySet().stream()
+				.map(entry -> aggregateIntradayGroup(entry.getKey(), entry.getValue()))
+				.toList();
+	}
+
+	private LocalDateTime intradayBucket(LocalDateTime bucketStart, Duration bucketSize) {
+		int minutesFromOpen = Math.max(0, (int) Duration.between(
+				LocalDateTime.of(bucketStart.toLocalDate(), REGULAR_MARKET_OPEN),
+				bucketStart).toMinutes());
+		int bucketMinutes = Math.max(1, (int) bucketSize.toMinutes());
+		int normalizedMinutes = (minutesFromOpen / bucketMinutes) * bucketMinutes;
+		return LocalDateTime.of(bucketStart.toLocalDate(), REGULAR_MARKET_OPEN).plusMinutes(normalizedMinutes);
+	}
+
+	private OmniLensMarketIntradayPrice aggregateIntradayGroup(
+			LocalDateTime bucketStart,
+			List<OmniLensMarketIntradayPrice> prices) {
+		OmniLensMarketIntradayPrice first = prices.get(0);
+		OmniLensMarketIntradayPrice last = prices.get(prices.size() - 1);
+		return new OmniLensMarketIntradayPrice(
+				first.stockCode(),
+				bucketStart,
+				first.market(),
+				first.openPriceKrw(),
+				maxIntraday(prices, OmniLensMarketIntradayPrice::highPriceKrw),
+				minIntraday(prices, OmniLensMarketIntradayPrice::lowPriceKrw),
+				last.closePriceKrw(),
+				prices.stream().mapToLong(OmniLensMarketIntradayPrice::tradingVolume).sum(),
+				prices.stream()
+						.map(OmniLensMarketIntradayPrice::tradingValueKrw)
+						.filter(value -> value != null)
+						.reduce(BigDecimal.ZERO, BigDecimal::add),
+				first.source(),
+				Instant.now());
+	}
+
+	private BigDecimal maxIntraday(
+			List<OmniLensMarketIntradayPrice> prices,
+			java.util.function.Function<OmniLensMarketIntradayPrice, BigDecimal> mapper) {
+		return prices.stream()
+				.map(mapper)
+				.max(BigDecimal::compareTo)
+				.orElse(null);
+	}
+
+	private BigDecimal minIntraday(
+			List<OmniLensMarketIntradayPrice> prices,
+			java.util.function.Function<OmniLensMarketIntradayPrice, BigDecimal> mapper) {
+		return prices.stream()
+				.map(mapper)
+				.min(BigDecimal::compareTo)
+				.orElse(null);
 	}
 
 	private ChartCurrency chartCurrency(String stockCode, String currency) {

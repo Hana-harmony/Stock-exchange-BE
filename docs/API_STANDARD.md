@@ -250,6 +250,16 @@
 - Internal stream stats include accepted, ingested, rejected, dropped, retry scheduled, failed ingest, buffer depth, and last ingested `publishedAt`.
 - REST ingest remains available for local smoke tests and adapter verification.
 
+## Market News
+
+- `GET /api/v1/market/news?limit=10`
+  - Market 탭의 인기종목 아래 한국 증시 전체 뉴스 리스트에서 사용한다.
+  - Stock-exchange-BE는 Hana-OmniLens-API `/api/v1/market/news`를 proxy하고, 서버 간 API key는 FE에 노출하지 않는다.
+  - 응답은 `newsCount`, `news[]`를 포함하며 각 항목은 `newsId`, `title`, `summary`, `originalContent`, `imageUrls`, `originalUrl`, `contentAvailability`, `publishedAt`을 포함한다.
+- `GET /api/v1/market/news/{newsId}`
+  - 한국 증시 뉴스 상세 전문 화면에서 사용한다.
+  - 상세 전문의 한국 금융 고유어 설명은 FE가 `/api/v1/financial-terms/explain`로 별도 요청한다.
+
 ## Notification Delivery
 
 - `GET /api/v1/accounts/{accountId}/notifications`

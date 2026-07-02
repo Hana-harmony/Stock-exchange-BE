@@ -20,6 +20,12 @@ management:
         include: health,info
 
 exchange:
+  cors:
+    allowed-origins: ${EXCHANGE_CORS_ALLOWED_ORIGINS:http://localhost:15100,http://127.0.0.1:15100,http://localhost:3000,http://127.0.0.1:3000}
+    allowed-methods: ${EXCHANGE_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${EXCHANGE_CORS_ALLOWED_HEADERS:Authorization,Content-Type,Accept,X-Requested-With}
+    allow-credentials: ${EXCHANGE_CORS_ALLOW_CREDENTIALS:true}
+    max-age: ${EXCHANGE_CORS_MAX_AGE:1h}
   auth:
     token-signing-key: ${EXCHANGE_AUTH_TOKEN_SIGNING_KEY:local-dev-token-signing-key-change-before-prod}
     access-token-ttl: ${EXCHANGE_AUTH_ACCESS_TOKEN_TTL:12h}

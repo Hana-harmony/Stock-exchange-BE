@@ -123,13 +123,12 @@ public class MarketChartService {
 			String interval,
 			String currency) {
 		Duration bucketSize = "2h".equals(interval) ? Duration.ofHours(2) : Duration.ofMinutes(30);
-		boolean fetchMissing = !"2h".equals(interval);
 		List<OmniLensMarketIntradayPrice> prices = new ArrayList<>();
 		LocalDate date = from;
 		while (!date.isAfter(to)) {
 			if (isKoreanTradingWeekday(date)) {
 				try {
-					prices.addAll(intradayClient.getIntraday(stockCode, date, 390, fetchMissing));
+					prices.addAll(intradayClient.getIntraday(stockCode, date, 390, true));
 				} catch (BusinessException exception) {
 					// 휴장일이나 provider 일시 실패는 다른 거래일 차트를 막지 않는다.
 				}

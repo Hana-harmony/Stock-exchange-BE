@@ -2,7 +2,9 @@ package com.hana.exchange.marketnews.api;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Instant;
@@ -44,6 +46,16 @@ class MarketNewsControllerTest {
 				.andExpect(jsonPath("$.data.news[0].newsId").value("MKT-NEWS-001"))
 				.andExpect(jsonPath("$.data.news[0].title").value("Ants lift chip bellwethers"))
 				.andExpect(jsonPath("$.data.news[0].originalContent").value("Ants net bought the KOSPI bellwether."));
+	}
+
+	@Test
+	void marketNewsCorsPreflightAllowsLocalFrontendOrigin() throws Exception {
+		mockMvc.perform(options("/api/v1/market/news?limit=5")
+						.header("Origin", "http://127.0.0.1:15100")
+						.header("Access-Control-Request-Method", "GET"))
+				.andExpect(status().isOk())
+				.andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:15100"))
+				.andExpect(header().string("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS"));
 	}
 
 	@Test

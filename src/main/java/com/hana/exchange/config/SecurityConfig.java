@@ -19,6 +19,8 @@ public class SecurityConfig {
 			BearerTokenAuthenticationFilter bearerTokenAuthenticationFilter) throws Exception {
 		return http
 				.csrf(AbstractHttpConfigurer::disable)
+				.cors(cors -> {
+				})
 				.httpBasic(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
 				.logout(AbstractHttpConfigurer::disable)

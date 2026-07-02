@@ -209,7 +209,7 @@ class MarketChartControllerTest {
 	@Test
 	void chartAggregatesMultiDayIntradayPricesForOneMonthChart() throws Exception {
 		when(quoteClient.getQuote("005930", "USD")).thenReturn(quote());
-		when(intradayClient.getIntraday("005930", LocalDate.parse("2026-06-24"), 390, false)).thenReturn(List.of(
+		when(intradayClient.getIntraday("005930", LocalDate.parse("2026-06-24"), 390, true)).thenReturn(List.of(
 				intraday("2026-06-24T09:01:00", "75000", "75200", "75000", "75100", 1_000L),
 				intraday("2026-06-24T10:59:00", "75100", "75500", "75050", "75400", 2_000L),
 				intraday("2026-06-24T11:01:00", "75400", "75600", "75300", "75500", 3_000L)));
